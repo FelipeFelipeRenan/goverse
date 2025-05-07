@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    container_name: microversa_postgres
+    container_name: goverse_postgres
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -11,18 +11,25 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT}:5432"
+    networks:
+      - goverse_network
 
   user-service:
     build: ./user-service
-    container_name: microversa_user_service
+    container_name: goverse_user_service
     depends_on:
       - postgres
-    env_file:
-      - ./user-service/.env
+    volumes:
+      - ./user-service/.env:/app/.env
     ports:
       - "${USER_SERVICE_PORT}:8080"
-    volumes:
-      - ./user-service:/app
+    networks:
+      - goverse_network
+
 
 volumes:
   pgdata:
+
+networks:
+  goverse_network:
+    driver: bridge

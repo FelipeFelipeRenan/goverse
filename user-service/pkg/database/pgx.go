@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -9,7 +10,7 @@ import (
 )
 
 func LoadEnv() error{
-	err := godotenv.Load("./user-service/.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		return fmt.Errorf("Erro ao carregar configurações do banco de dados: %v", err)
 	}
@@ -31,7 +32,7 @@ func Connect() (*pgx.Conn, error){
 	dbName := os.Getenv("DB_NAME")
 
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
-	conn, err := pgx.Connect(nil, connStr)
+	conn, err := pgx.Connect(context.Background(), connStr)
 	if err != nil {
 		return nil, fmt.Errorf("Não foi possível conectar ao banco de dados: %v", err)
 	}

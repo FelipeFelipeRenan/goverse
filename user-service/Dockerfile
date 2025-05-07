@@ -28,14 +28,15 @@ LABEL Name=goverse-user-service Version=0.0.1
 RUN apk --no-cache add ca-certificates
 
 # Copia apenas o binário, reduzindo o tamanho da imagem final
-COPY --from=builder /app/app /app
+COPY --from=builder /app/app /app/app
+WORKDIR /app
 
 # Define usuário não-root para melhor segurança
 RUN adduser -D appuser
 USER appuser
 
 # Define o ponto de entrada
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/app/app"]
 
 # Expõe a porta padrão da aplicação
 EXPOSE 8080
