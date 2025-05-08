@@ -3,13 +3,14 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
 
-func LoadEnv() error{
+func LoadEnv() error {
 	err := godotenv.Load(".env")
 	if err != nil {
 		return fmt.Errorf("Erro ao carregar configurações do banco de dados: %v", err)
@@ -17,8 +18,7 @@ func LoadEnv() error{
 	return nil
 }
 
-
-func Connect() (*pgx.Conn, error){
+func Connect() (*pgx.Conn, error) {
 
 	err := LoadEnv()
 	if err != nil {
@@ -38,4 +38,26 @@ func Connect() (*pgx.Conn, error){
 	}
 
 	return conn, nil
+}
+
+func RunMigration(conn *pgx.Conn) error {
+	ctx := context.Background()
+
+	query := `
+		CREATE TABLE IF NOT EXISTS users (
+		id SERIAL PRIMARY KEY,
+		username TEXT NOT NULL,
+		email TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);	
+	`
+
+	_, err := conn.Exec(ctx, query)
+	if err != nil {
+		return fmt.Errorf("erro ao executar migração: %w", err)
+	}
+
+	log.Println("Migração executada com sucesso...")
+	return nil
 }
