@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
@@ -48,7 +49,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 
 	var user domain.User
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt)
-	if err != nil {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("Usuario nao encontrado: %w", err)
 	}
 	return &user, nil
