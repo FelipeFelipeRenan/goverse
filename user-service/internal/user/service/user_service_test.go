@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-
 func TestUserService_Register_Success(t *testing.T) {
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
@@ -72,5 +71,21 @@ func TestUserService_FindByID_NotFound(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, user)
+	mockRepo.AssertExpectations(t)
+}
+
+func TestUserService_GetAllUsers(t *testing.T) {
+	mockRepo := new(repository.MockUserRepository)
+	svc := NewUserService(mockRepo)
+	expectedUsers := []domain.User{
+		{ID: "1", Username: "alice", Email: "alice@example.com"},
+		{ID: "2", Username: "bob", Email: "bob@example.com"},
+	}
+
+	mockRepo.On("GetAllUsers", mock.Anything).Return(expectedUsers, nil)
+
+	users, err := svc.GetAllUsers(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, expectedUsers, users)
 	mockRepo.AssertExpectations(t)
 }

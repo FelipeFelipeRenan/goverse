@@ -12,6 +12,7 @@ import (
 type UserService interface {
 	Register(ctx context.Context, user domain.User) (string, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
+	GetAllUsers(ctx context.Context) ([]domain.User, error)
 }
 
 type userService struct {
@@ -24,8 +25,8 @@ func NewUserService(repo repository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) Register(ctx context.Context, user domain.User)(string, error){
-	if user.Username == "" || user.Email == "" || user.Password == ""{
+func (s *userService) Register(ctx context.Context, user domain.User) (string, error) {
+	if user.Username == "" || user.Email == "" || user.Password == "" {
 		return "", fmt.Errorf("dados incompletos para registro")
 	}
 
@@ -37,6 +38,10 @@ func (s *userService) Register(ctx context.Context, user domain.User)(string, er
 	return s.repo.CreateUser(ctx, user)
 }
 
-func (s *userService) FindByID(ctx context.Context, id string) (*domain.User, error){
+func (s *userService) FindByID(ctx context.Context, id string) (*domain.User, error) {
 	return s.repo.GetUserByID(ctx, id)
+}
+
+func (s *userService) GetAllUsers(ctx context.Context) ([]domain.User, error) {
+	return s.repo.GetAllUsers(ctx)
 }
