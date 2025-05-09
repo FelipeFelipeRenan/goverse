@@ -24,3 +24,8 @@ func (m *MockUserRepository) GetUserByID(ctx context.Context, id string)(*domain
 	}
 	return args.Get(0).(*domain.User), args.Error(1)
 }
+
+func (m *MockUserRepository) GetAllUsers(ctx context.Context) ([]domain.User, error){
+	args := m.Called(ctx)
+	return args.Get(0).([]domain.User), args.Error(1)
+}

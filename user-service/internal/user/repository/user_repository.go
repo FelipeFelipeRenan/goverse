@@ -12,6 +12,7 @@ import (
 type UserRepository interface {
 	CreateUser(ctx context.Context, user domain.User) (string, error)
 	GetUserByID(ctx context.Context, id string) (*domain.User, error)
+	GetAllUsers(ctx context.Context) ([]domain.User, error)
 }
 
 type userRepository struct {
@@ -53,4 +54,28 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 		return nil, fmt.Errorf("Usuario nao encontrado: %w", err)
 	}
 	return &user, nil
+}
+
+func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.User, error){
+	rows, err := r.conn.Query(ctx, `SELECT id, username, email FROM users`)
+	if err != nil {
+		return nil, fmt.Errorf("erro na busca de usuarios: %w", err)
+	}
+
+	defer rows.Close()
+
+	var users []domain.User
+	for rows.Next(){
+		var u domain.User
+		err := rows.Scan(&u.ID, &u.Username, &u.Email)
+		if err != nil {
+			return nil, fmt.Errorf("erro na busca de usuarios: %w", err)
+		}
+		users = append(users, u)
+	}
+
+	if rows.Err() != nil{
+		return nil, fmt.Errorf("erro na busca de usuarios: %w", rows.Err())
+	}
+	return users, nil
 }

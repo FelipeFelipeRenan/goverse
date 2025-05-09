@@ -21,18 +21,7 @@ func main() {
 
 	database.RunMigration(conn)
 
-	// Definindo uma rota de exemplo
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Verificando a conexão com o banco
-		err := conn.Ping(nil)
-		if err != nil {
-			http.Error(w, "Erro ao conectar ao banco de dados", http.StatusInternalServerError)
-			return
-		}
-		w.Write([]byte("Conexão bem-sucedida com o banco de dados!"))
-	})
 
-	/**/
 	repo := repository.NewUserRepository(conn)
 	testUser := domain.User{
 		Username: "Joao Silva",
