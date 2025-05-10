@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -94,4 +95,62 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 	assert.Equal(t, "alice", got[0].Username)
 	mockService.AssertExpectations(t)
 
+}
+
+func TestUserHandler_Register_Error(t *testing.T) {
+	mockService := new(service.MockUserService)
+	h := NewUserHandler(mockService)
+
+	input := domain.User{Username: "alice", Email: "alice@example.com", Password: "secret"}
+	mockService.On("Register", mock.Anything, input).Return("", errors.New("internal error"))
+
+	body, _ := json.Marshal(input)
+	req := httptest.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.Register(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	mockService.AssertExpectations(t)
+}
+
+func TestUserHandler_GetByID_NotFound(t *testing.T) {
+	mockService := new(service.MockUserService)
+	handler := NewUserHandler(mockService)
+
+	mockService.On("FindByID", mock.Anything, "999").Return(nil, errors.New("not found"))
+
+	req := httptest.NewRequest(http.MethodGet, "/user/999", nil)
+	req.SetPathValue("id", "999")
+	w := httptest.NewRecorder()
+
+	handler.GetByID(w, req)
+
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	mockService.AssertExpectations(t)
+
+}
+
+func TestUserHandler_GetAllUsers_Error(t *testing.T) {
+	mockService := new(service.MockUserService)
+	handler := NewUserHandler(mockService)
+
+	mockService.On("GetAllUsers", mock.Anything).Return(nil, errors.New("db failure"))
+
+	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	w := httptest.NewRecorder()
+
+	handler.GetAllUsers(w, req)
+	res := w.Result()
+	defer res.Body.Close()
+
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
+	mockService.AssertExpectations(t)
 }

@@ -57,6 +57,10 @@ func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.Service.GetAllUsers(r.Context())
+	if users == nil {
+		users = []domain.User{}
+	}
+
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "falha ao solicitar usuarios")
 		return
