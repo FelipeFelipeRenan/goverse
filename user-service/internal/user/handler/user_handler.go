@@ -37,6 +37,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	id, err := h.Service.Register(r.Context(), user)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "falha ao registrar usuario")
+		return
 	}
 	sendResponse(w, http.StatusCreated, map[string]string{"id": id})
 }
@@ -74,8 +75,11 @@ func sendError(w http.ResponseWriter, statusCode int, message string) {
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
-func sendResponse(w http.ResponseWriter, statusCode int, data any) {
+func sendResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(data)
+
+	if data != nil {
+		json.NewEncoder(w).Encode(data)
+	}
 }
