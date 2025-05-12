@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "proto/user;userpb";
+// Requisição com email e senha
+message CredentialsRequest{
+    string email = 1;
+    string password = 2;
+}
+
+// Resposta com ID e nome do usuario autenticado
+message UserResponse{
+    string id = 1;
+    string name = 2;
+}
+
+// Possiveis erros serão tratadis via grpc status
+service UserService{
+    rpc ValidateCredentials(CredentialsRequest) returns (UserResponse);
+}
