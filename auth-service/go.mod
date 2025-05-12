@@ -2,7 +2,10 @@ module github.com/FelipeFelipeRenan/goverse/auth-service
 
 go 1.24.2
 
-require github.com/FelipeFelipeRenan/goverse/proto v0.0.0-00010101000000-000000000000
+require (
+	github.com/FelipeFelipeRenan/goverse/proto v0.0.0-00010101000000-000000000000
+	github.com/golang-jwt/jwt/v5 v5.2.2
+)
 
 require (
 	golang.org/x/net v0.35.0 // indirect
