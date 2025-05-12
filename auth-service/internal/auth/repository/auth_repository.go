@@ -5,33 +5,29 @@ import (
 	"fmt"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
+	"github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/jackc/pgx/v5"
 )
 
 
 type AuthRepository interface {
-	ValidateCredentials(ctx context.Context, email, password string)(*domain.Credentials, error )
+	GetUserByEmail(ctx context.Context, email string)(*user.User, error )
 }
 
 
 type authRepository struct {
-  conn *pgx.Conn
+  userClient user.UserServiceClient
 }
 
-func NewAuthRepository(conn *pgx.Conn) AuthRepository{
-	return &authRepository{conn:conn}
+func NewAuthRepository(userClient user.UserServiceClient) AuthRepository{
+	return &authRepository{userClient:userClient}
 }
 
-func (r *authRepository) ValidateCredentials(ctx context.Context, email, password string)(*domain.Credentials, error){
-	query := `SELECT email, password FROM users WHERE email = $1`
-
-	var stored domain.Credentials
-	err := r.conn.QueryRow(ctx, query, email).Scan(&stored.Email, &stored.Password)
-	if err != nil{
-		if err == pgx.ErrNoRows{
-			return nil, fmt.Errorf("usuario nao encontrado")
-		}
-		return nil, fmt.Errorf("erro ao buscar usuario: %w", err)
+func (r *authRepository) GetUserByEmail(ctx context.Context, email string)(*user.User, error){
+	req := &user.GetUserByEmailRequest{Email: email}
+	resp, err := r.userClient.GetUserByEmail(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("erro na chamada do grpc")
 	}
-	return &stored, nil
+	return resp.User, nil
 }
