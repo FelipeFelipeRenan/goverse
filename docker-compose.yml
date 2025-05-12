@@ -25,7 +25,20 @@ services:
       - "${USER_SERVICE_PORT}:8080"
     networks:
       - goverse_network
-
+  auth-service:
+    build: ./auth-service
+    container_name: goverse_auth_service
+    depends_on:
+      - user-service
+    volumes:
+      - ./auth-service/.env:/app/.env
+    ports:
+      - "${AUTH_SERVICE_PORT}:8080"
+    environment:
+      - USER_SERVICE_GRPC_ADDR=goverse_user_service:8080
+      - JWT_SECRET={JWT_SECRET}
+    networks:
+      - goverse_network
 
 volumes:
   pgdata:

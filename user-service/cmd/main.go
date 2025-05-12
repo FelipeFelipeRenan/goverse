@@ -30,9 +30,9 @@ func main() {
 
 	// Iniciando o servidor na porta 8080
 	port := os.Getenv("APP_PORT")
-	fmt.Printf("Servidor rodando na porta %s...\n", port)
+	fmt.Printf("Serviço de usuários rodando na porta %s...\n", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("Erro ao iniciar o servidor: %v", err)
+		log.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
 	}
 
 }
