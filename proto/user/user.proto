@@ -3,6 +3,7 @@ syntax = "proto3";
 package user;
 
 option go_package = "proto/user;userpb";
+
 // Requisição com email e senha
 message CredentialsRequest{
     string email = 1;

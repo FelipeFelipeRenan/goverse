@@ -2,32 +2,30 @@ package repository
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
-	"github.com/FelipeFelipeRenan/goverse/proto/user"
-	"github.com/jackc/pgx/v5"
+ userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+
 )
 
 
 type AuthRepository interface {
-	GetUserByEmail(ctx context.Context, email string)(*user.User, error )
+	ValidateCredentials(ctx context.Context, email, password string)(*userpb.UserResponse, error )
 }
 
 
 type authRepository struct {
-  userClient user.UserServiceClient
+  userClient userpb.UserServiceClient
 }
 
-func NewAuthRepository(userClient user.UserServiceClient) AuthRepository{
+func NewAuthRepository(userClient userpb.UserServiceClient) AuthRepository{
 	return &authRepository{userClient:userClient}
 }
 
-func (r *authRepository) GetUserByEmail(ctx context.Context, email string)(*user.User, error){
-	req := &user.GetUserByEmailRequest{Email: email}
-	resp, err := r.userClient.GetUserByEmail(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("erro na chamada do grpc")
+func (r *authRepository) ValidateCredentials(ctx context.Context, email, password string ) (*userpb.UserResponse, error){
+	req := &userpb.CredentialsRequest{
+		Email: email,
+		Password: password,
 	}
-	return resp.User, nil
+
+	return r.userClient.ValidateCredentials(ctx, req)
 }
