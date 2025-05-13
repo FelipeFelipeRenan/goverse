@@ -11,6 +11,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/repository"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
 )
 
 func main() {
@@ -20,19 +21,28 @@ func main() {
 	}
 	defer conn.Close(nil)
 
+	
+
 	database.RunMigration(conn)
 
 	repo := repository.NewUserRepository(conn)
 	userService := service.NewUserService(repo)
 	userHandler := handler.NewUserHandler(userService)
 
-	routes.SetupUserRoutes(userHandler)
+	// Goroutine para iniciar o servidor HTTP
+	go func(){
+		routes.SetupUserRoutes(userHandler)
+		// Iniciando o servidor na porta 8080
+		port := os.Getenv("APP_PORT")
+		fmt.Printf("Serviço de usuários rodando na porta %s...\n", port)
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
+		}
+	}()
 
-	// Iniciando o servidor na porta 8080
-	port := os.Getenv("APP_PORT")
-	fmt.Printf("Serviço de usuários rodando na porta %s...\n", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
-	}
+	// Go routine para iniciar servidor gRPC
+	go grpc.StartGRPCServer(userService)
+
+	select{}
 
 }

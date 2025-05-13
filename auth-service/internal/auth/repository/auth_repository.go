@@ -19,10 +19,12 @@ func NewAuthRepository(userClient userpb.UserServiceClient) AuthRepository {
 }
 
 func (r *authRepository) ValidateCredentials(ctx context.Context, email, password string) (*userpb.UserResponse, error) {
+	
+	
 	req := &userpb.CredentialsRequest{
 		Email:    email,
 		Password: password,
 	}
-
+	
 	return r.userClient.ValidateCredentials(ctx, req)
 }

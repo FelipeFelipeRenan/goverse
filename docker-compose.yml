@@ -15,25 +15,31 @@ services:
       - goverse_network
 
   user-service:
-    build: ./user-service
+    build:
+      context: .
+      dockerfile: ./user-service/Dockerfile
     container_name: goverse_user_service
     depends_on:
       - postgres
-    volumes:
-      - ./user-service/.env:/app/.env
+    volumes: 
+    - ./user-service/.env:/app/.env
     ports:
       - "${USER_SERVICE_PORT}:8080"
+      - "50051:50051"
     networks:
       - goverse_network
+
   auth-service:
-    build: ./auth-service
+    build:
+      context: .
+      dockerfile: ./auth-service/Dockerfile
     container_name: goverse_auth_service
     depends_on:
       - user-service
     volumes:
       - ./auth-service/.env:/app/.env
     ports:
-      - "${AUTH_SERVICE_PORT}:8080"
+      - "${AUTH_SERVICE_PORT}:8081"
     environment:
       - USER_SERVICE_GRPC_ADDR=goverse_user_service:8080
       - JWT_SECRET={JWT_SECRET}
