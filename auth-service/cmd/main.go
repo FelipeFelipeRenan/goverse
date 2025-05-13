@@ -24,12 +24,19 @@ func main() {
 	}
 	defer conn.Close()
 
+
 	userClient := userpb.NewUserServiceClient(conn)
 
 	authRepo := repository.NewAuthRepository(userClient)
 
+	passwordAuth := service.NewPasswordAuth(authRepo)
+
+	authMethods := map[string]service.AuthMethod{
+		"password" : passwordAuth,
+		// TODO oauth method
+	}
 	jwt_secret := os.Getenv("JWT_SECRET")
-	authService := service.NewAuthService(authRepo, []byte(jwt_secret))
+	authService := service.NewAuthService(authMethods, []byte(jwt_secret))
 
 	authHandler := handler.NewAuthHandler(authService)
 
