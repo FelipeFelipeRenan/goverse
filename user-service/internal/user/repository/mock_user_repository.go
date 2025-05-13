@@ -11,6 +11,11 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+// GetUserByEmail implements UserRepository.
+func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	panic("unimplemented")
+}
+
 func (m *MockUserRepository) CreateUser(ctx context.Context, user domain.User) (string, error) {
 	args := m.Called(ctx, user)
 	return args.String(0), args.Error(1)

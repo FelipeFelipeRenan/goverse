@@ -9,13 +9,13 @@ WORKDIR /app
 COPY proto /proto
 
 # Copia os arquivos de go.mod e go.sum do user-service
-COPY user-service/go.mod user-service/go.sum ./
+COPY auth-service/go.mod auth-service/go.sum ./
 
 # Rodar o download agora funciona porque o /proto existe
 RUN go mod download
 
 # Copia o restante do código do user-service
-COPY user-service/. .
+COPY auth-service/. .
 
 # Compila o binário
 RUN go build -o app ./cmd/main.go
@@ -23,7 +23,7 @@ RUN go build -o app ./cmd/main.go
 # Etapa final
 FROM alpine:latest
 
-LABEL Name=goverse-user-service Version=0.0.1
+LABEL Name=goverse-auth-service Version=0.0.1
 
 RUN apk --no-cache add ca-certificates
 
@@ -35,4 +35,3 @@ USER appuser
 
 ENTRYPOINT ["/app/app"]
 EXPOSE 8080
-EXPOSE 50051

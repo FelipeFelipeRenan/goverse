@@ -13,6 +13,8 @@ type UserRepository interface {
 	CreateUser(ctx context.Context, user domain.User) (string, error)
 	GetUserByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+
 }
 
 type userRepository struct {
@@ -79,3 +81,24 @@ func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.User, error)
 	}
 	return users, nil
 }
+
+func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query := `
+		SELECT id, username, email, password, created_at
+		FROM users
+		WHERE email = $1
+	`
+
+	row := r.conn.QueryRow(ctx, query, email)
+
+	var user domain.User
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("usuário não encontrado com e-mail %s: %w", email, err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar usuário por e-mail: %w", err)
+	}
+	return &user, nil
+}
+
