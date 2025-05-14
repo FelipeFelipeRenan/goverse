@@ -25,11 +25,6 @@ func main() {
 	}
 	defer conn.Close()
 
-	fmt.Println("CLIENT_ID:", os.Getenv("GOOGLE_CLIENT_ID"))
-	fmt.Println("SECRET:", os.Getenv("GOOGLE_CLIENT_SECRET"))
-	fmt.Println("REDIRECT_URI:", os.Getenv("GOOGLE_REDIRECT_URI"))
-
-
 	userClient := userpb.NewUserServiceClient(conn)
 
 	authRepo := repository.NewAuthRepository(userClient)

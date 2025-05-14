@@ -10,6 +10,7 @@ import (
 type AuthRepository interface {
 	ValidateCredentials(ctx context.Context, email, password string) (*userpb.UserResponse, error)
 	FindByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
+	CreateUser(ctx context.Context, user domain.User) (string, error)
 }
 
 type authRepository struct {
@@ -46,4 +47,20 @@ func (r *authRepository) FindByEmail(ctx context.Context, email string) (*domain
 		Username: resp.Name,
 		Email:    resp.Email,
 	}, nil
+}
+
+func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (string, error) {
+	req := &userpb.RegisterRequest{
+		Name:     user.Username,
+		Email:    user.Email,
+		Password: user.Password, // mesmo que seja "-", como placeholder
+		Picture:  user.Picture,
+	}
+
+	resp, err := r.userClient.Register(ctx, req)
+	if err != nil {
+		return "", err
+	}
+
+	return resp.Id, nil
 }

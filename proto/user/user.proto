@@ -15,6 +15,21 @@ message UserResponse{
     string id = 1;
     string name = 2;
     string email = 3;
+    string picture = 4;
+}
+
+message RegisterRequest {
+    string name = 1;
+    string email = 2;
+    string password = 3;
+    string picture = 4;
+}
+
+
+message RegisterResponse {
+    string id = 1; // ID do usuário gerado
+    string name = 2;
+    string email = 3;
 }
 
 message EmailRequest {
@@ -25,5 +40,6 @@ message EmailRequest {
 service UserService{
     rpc ValidateCredentials(CredentialsRequest) returns (UserResponse);
     rpc GetUserByEmail(EmailRequest) returns (UserResponse);
+    rpc Register(RegisterRequest) returns (RegisterResponse);
 }
 

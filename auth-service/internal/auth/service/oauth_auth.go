@@ -35,11 +35,13 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		return nil, fmt.Errorf("token (authorization code) não fornecido")
 	}
 
+	// Troca o código pelo token de acesso
 	token, err := a.config.Exchange(ctx, credentials.Token)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao trocar código por token: %w", err)
 	}
 
+	// Faz a requisição para obter dados do usuário
 	client := a.config.Client(ctx, token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -47,6 +49,7 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 	}
 	defer resp.Body.Close()
 
+	// Decodifica os dados do usuário
 	var userInfo struct {
 		ID            string `json:"id"`
 		Email         string `json:"email"`
@@ -54,18 +57,36 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		Name          string `json:"name"`
 		Picture       string `json:"picture"`
 	}
-
 	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
 		return nil, fmt.Errorf("erro ao decodificar resposta do Google: %w", err)
 	}
 
+	// Tenta buscar o usuário no user-service
 	user, err := a.repository.FindByEmail(ctx, userInfo.Email)
 	if err == nil {
-		return nil, fmt.Errorf("usuário não encontrado: %w", err)
+		return user, nil // usuário já existe
 	}
 
-	return user, nil
+	// Se não existir, registra o usuário
+	newUser := domain.User{
+		Email:    userInfo.Email,
+		Username: userInfo.Name,
+		Password: "-", // senha dummy, pois é OAuth
+		Picture:  userInfo.Picture,
+	}
+	userID, err := a.repository.CreateUser(ctx, newUser)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao registrar novo usuário: %w", err)
+	}
+
+	return &domain.UserResponse{
+		ID:       userID,
+		Email:    newUser.Email,
+		Username: newUser.Username,
+		Picture:  newUser.Picture,
+	}, nil
 }
+
 
 // NOVO MÉTODO: gera a URL de login OAuth
 func (a *OAuthAuth) GetAuthURL(state string) string {
