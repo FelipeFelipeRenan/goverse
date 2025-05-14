@@ -6,12 +6,10 @@ require (
 	github.com/FelipeFelipeRenan/goverse/proto v0.0.0-00010101000000-000000000000
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/joho/godotenv v1.5.1
+	golang.org/x/oauth2 v0.30.0
 )
 
-require (
-	cloud.google.com/go/compute/metadata v0.6.0 // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
-)
+require cloud.google.com/go/compute/metadata v0.6.0 // indirect
 
 require (
 	golang.org/x/net v0.35.0 // indirect

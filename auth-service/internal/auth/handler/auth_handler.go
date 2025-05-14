@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -12,14 +13,14 @@ type AuthHandler struct {
 	authService service.AuthService
 }
 
-func NewAuthHandler(authService service.AuthService) *AuthHandler{
+func NewAuthHandler(authService service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request){
+func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var creds domain.Credentials
 
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil{
+	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
@@ -32,4 +33,33 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request){
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tokenResp)
+}
+
+func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
+	state := "state-token" // idealmente aleatório e salvo em cookie/session
+	authURL := h.authService.GetOAuthURL(state)
+	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
+}
+
+func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "code ausente", http.StatusBadRequest)
+		return
+	}
+
+	// Usamos o fluxo padrão do OAuth (Authenticate usa o código como Token)
+	user, err := h.authService.Authenticate(ctx, domain.Credentials{
+		Type: "oauth",
+		Token:  code,
+	})
+	if err != nil {
+		http.Error(w, "erro na autenticação: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Exibe os dados retornados
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }

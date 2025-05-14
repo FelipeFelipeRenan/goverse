@@ -34,10 +34,10 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 	if credentials.Token == "" {
 		return nil, fmt.Errorf("token (authorization code) não fornecido")
 	}
-	// trocar o código por um access token
+
 	token, err := a.config.Exchange(ctx, credentials.Token)
 	if err != nil {
-		return nil, fmt.Errorf("eror ao trocar código por token: %w", err)
+		return nil, fmt.Errorf("erro ao trocar código por token: %w", err)
 	}
 
 	client := a.config.Client(ctx, token)
@@ -46,6 +46,7 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		return nil, fmt.Errorf("erro ao buscar dados do usuário: %w", err)
 	}
 	defer resp.Body.Close()
+
 	var userInfo struct {
 		ID            string `json:"id"`
 		Email         string `json:"email"`
@@ -58,12 +59,19 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		return nil, fmt.Errorf("erro ao decodificar resposta do Google: %w", err)
 	}
 
-	// Validação real com o user-service:
 	user, err := a.repository.FindByEmail(ctx, userInfo.Email)
-	if err != nil {
+	if err == nil {
 		return nil, fmt.Errorf("usuário não encontrado: %w", err)
 	}
 
 	return user, nil
+}
 
+// NOVO MÉTODO: gera a URL de login OAuth
+func (a *OAuthAuth) GetAuthURL(state string) string {
+	return a.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+}
+
+func (a *OAuthAuth) GetOAuthURL(state string) string {
+	return a.config.AuthCodeURL(state)
 }
