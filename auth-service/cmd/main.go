@@ -17,8 +17,9 @@ import (
 
 func main() {
 	godotenv.Load(".env")
-	grpc_host := "goverse_user_service" //os.Getenv("GRPC_HOST")
-	conn, err := grpc.NewClient(grpc_host+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpc_host := os.Getenv("GRPC_SERVER_HOST")
+	grpc_port := os.Getenv("GRPC_SERVER_PORT")
+	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("falha ao conectar ao user-service: %v", err)
 	}
