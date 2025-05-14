@@ -1,6 +1,7 @@
 package domain
 
 type Credentials struct {
+	Type     string `json:"type"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }

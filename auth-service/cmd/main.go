@@ -17,19 +17,27 @@ import (
 
 func main() {
 	godotenv.Load(".env")
-	grpc_host := "goverse_user_service" //os.Getenv("GRPC_HOST")
-	conn, err := grpc.NewClient(grpc_host+":50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpc_host := os.Getenv("GRPC_SERVER_HOST")
+	grpc_port := os.Getenv("GRPC_SERVER_PORT")
+	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("falha ao conectar ao user-service: %v", err)
 	}
 	defer conn.Close()
 
+
 	userClient := userpb.NewUserServiceClient(conn)
 
 	authRepo := repository.NewAuthRepository(userClient)
 
+	passwordAuth := service.NewPasswordAuth(authRepo)
+
+	authMethods := map[string]service.AuthMethod{
+		"password" : passwordAuth,
+		// TODO oauth method
+	}
 	jwt_secret := os.Getenv("JWT_SECRET")
-	authService := service.NewAuthService(authRepo, []byte(jwt_secret))
+	authService := service.NewAuthService(authMethods, []byte(jwt_secret))
 
 	authHandler := handler.NewAuthHandler(authService)
 

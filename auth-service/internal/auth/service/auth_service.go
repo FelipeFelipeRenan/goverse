@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -15,34 +14,39 @@ type AuthService interface {
 }
 
 type authService struct {
-	authRepo repository.AuthRepository
+	authMethods map[string]AuthMethod
 	jwtKey []byte
 }
 
-func NewAuthService(authRepo repository.AuthRepository, jwtKey []byte) AuthService{
+func NewAuthService(authMethods map[string]AuthMethod, jwtKey []byte) AuthService{
 	return &authService{
-		authRepo: authRepo,
+		authMethods: authMethods,
 		jwtKey: jwtKey,
 	}
 }
 
 func (s *authService) Authenticate(ctx context.Context, credentials domain.Credentials)(*domain.TokenResponse, error){
 
-	userResp, err := s.authRepo.ValidateCredentials(ctx, credentials.Email, credentials.Password)
-	if err != nil {
-		return nil, fmt.Errorf("erro ao validar credenciais: %w", err)
+	method, ok := s.authMethods[credentials.Type]
+
+	if !ok {
+		return nil, fmt.Errorf("metodo de autenticação não suportado: %s",credentials.Type)
 	}
 
-	// Gerar token
+	user, err := method.Authenticate(ctx, credentials)
+	if err != nil {
+		return nil, fmt.Errorf("falha na autenticação> %w", err)
+	}
+	
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id" : userResp.Id,
-		"username" : userResp.Name,
-		"exp": time.Now().Add(time.Hour *24).Unix(),
+		"user_id" : user.ID,
+		"user_name": user.Username,
+		"exp" : time.Now().Add(24 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString(s.jwtKey)
-	if err != nil{
-		return nil, fmt.Errorf("erro ao assinar o token: %w", err)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao assinar token: %w", err)
 	}
-	return &domain.TokenResponse{Token: tokenString}, nil
+	return &domain.TokenResponse{Token:tokenString}, nil
 }
