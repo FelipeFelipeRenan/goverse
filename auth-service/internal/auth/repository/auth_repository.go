@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
@@ -10,7 +12,7 @@ import (
 type AuthRepository interface {
 	ValidateCredentials(ctx context.Context, email, password string) (*userpb.UserResponse, error)
 	FindByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
-	CreateUser(ctx context.Context, user domain.User) (string, error)
+	CreateUser(ctx context.Context, user domain.User) (*domain.UserResponse, error)
 }
 
 type authRepository struct {
@@ -31,8 +33,7 @@ func (r *authRepository) ValidateCredentials(ctx context.Context, email, passwor
 	return r.userClient.ValidateCredentials(ctx, req)
 }
 
-
-func (r *authRepository) FindByEmail(ctx context.Context, email string) (*domain.UserResponse, error){
+func (r *authRepository) FindByEmail(ctx context.Context, email string) (*domain.UserResponse, error) {
 	req := &userpb.EmailRequest{
 		Email: email,
 	}
@@ -49,18 +50,27 @@ func (r *authRepository) FindByEmail(ctx context.Context, email string) (*domain
 	}, nil
 }
 
-func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (string, error) {
+func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (*domain.UserResponse, error) {
+	now := time.Now()
+
 	req := &userpb.RegisterRequest{
-		Name:     user.Username,
-		Email:    user.Email,
-		Password: user.Password, // mesmo que seja "-", como placeholder
-		Picture:  user.Picture,
+		Name:      user.Username,       // Nome do usuário
+		Email:     user.Email,          // E-mail do usuário
+		Password:  "",                  // OAuth não tem senha
+		Picture:   user.Picture,        // Foto de perfil
+		CreatedAt: now.Format(time.RFC3339), // Data de criação
 	}
 
+	// Chamada ao serviço gRPC
 	resp, err := r.userClient.Register(ctx, req)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("erro ao registrar novo usuário: %w", err)
 	}
 
-	return resp.Id, nil
+	return &domain.UserResponse{
+		ID:       resp.Id,              // ID gerado no registro
+		Username: resp.Name,            // Nome do usuário
+		Email:    resp.Email,           // E-mail do usuário
+		Picture:  resp.Picture,         // Foto do usuário
+	}, nil
 }

@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type Credentials struct {
 	Type     string `json:"type"`
 	Email    string `json:"email"`
@@ -15,10 +17,11 @@ type UserResponse struct {
 }
 
 type User struct {
-	Username string `json:"username"`
-	Email string `json:"email"`
-		Password string `json:"password,omitempty"` // opcional no OAuth
-	Picture  string `json:"picture,omitempty"`  // opcional no registro comum
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password,omitempty"` // opcional no OAuth
+	Picture   string    `json:"picture,omitempty"`  // opcional no registro comum
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type TokenResponse struct {
