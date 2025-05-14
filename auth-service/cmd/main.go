@@ -34,7 +34,7 @@ func main() {
 
 	authMethods := map[string]service.AuthMethod{
 		"password" : passwordAuth,
-		// TODO oauth method
+		"oauth": service.NewOAuthAuth(authRepo), 
 	}
 	jwt_secret := os.Getenv("JWT_SECRET")
 	authService := service.NewAuthService(authMethods, []byte(jwt_secret))

@@ -14,9 +14,16 @@ message CredentialsRequest{
 message UserResponse{
     string id = 1;
     string name = 2;
+    string email = 3;
+}
+
+message EmailRequest {
+    string email = 1;
 }
 
 // Possiveis erros serão tratadis via grpc status
 service UserService{
     rpc ValidateCredentials(CredentialsRequest) returns (UserResponse);
+    rpc GetUserByEmail(EmailRequest) returns (UserResponse);
 }
+
