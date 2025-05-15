@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
@@ -36,7 +35,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusBadRequest, fmt.Sprintf("formato de requisição inválido: %v", err))
 		return
 	}
-	log.Printf("-----------Senha no user-service-----------: %v", user.Password)
 	// Se a senha estiver vazia, gera uma senha aleatória para evitar erro no serviço
 	if user.Password == "" {
 		user.Password, err = generateRandomPassword(16)
@@ -45,7 +43,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Printf("-----------Senha aleatoria-----------: %v", user.Password)
+
 
 	id, err := h.Service.Register(r.Context(), user)
 	if err != nil {

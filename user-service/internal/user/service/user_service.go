@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/repository"
@@ -31,12 +31,6 @@ func NewUserService(repo repository.UserRepository) UserService {
 
 func (s *userService) Register(ctx context.Context, user domain.User) (*domain.UserResponse, error) {
 	
-	log.Printf("Username: %s", user.Username)
-	log.Printf("Email: %s", user.Email)
-	log.Printf("Password: %s", user.Password)
-
-	
-	
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		return nil, fmt.Errorf("dados incompletos para registro")
 	}
@@ -46,6 +40,8 @@ func (s *userService) Register(ctx context.Context, user domain.User) (*domain.U
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar hash da senha: %w", err)
 	}
+
+	user.CreatedAt = time.Now()
 	user.Password = string(hashedPassword)
 	return s.repo.CreateUser(ctx, user)
 }
