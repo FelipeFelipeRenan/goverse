@@ -12,6 +12,7 @@ import (
 )
 
 func TestUserService_Register_Success(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -21,8 +22,9 @@ func TestUserService_Register_Success(t *testing.T) {
 		Password: "securepass",
 	}
 
-	mockRepo.On("CreateUser", mock.Anything, mock.AnythingOfType("domain.User")).Return("123", nil)
+	expectedResp := &domain.UserResponse{ID: "123"}
 
+	mockRepo.On("CreateUser", mock.Anything, mock.AnythingOfType("domain.User")).Return(expectedResp, nil)
 	id, err := svc.Register(context.Background(), user)
 
 	assert.NoError(t, err)
@@ -31,6 +33,7 @@ func TestUserService_Register_Success(t *testing.T) {
 }
 
 func TestUserService_Register_InvalidData(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -43,6 +46,7 @@ func TestUserService_Register_InvalidData(t *testing.T) {
 }
 
 func TestUserService_FindByID_Success(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -62,6 +66,7 @@ func TestUserService_FindByID_Success(t *testing.T) {
 }
 
 func TestUserService_FindByID_NotFound(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -75,6 +80,7 @@ func TestUserService_FindByID_NotFound(t *testing.T) {
 }
 
 func TestUserService_GetAllUsers(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 	expectedUsers := []domain.User{

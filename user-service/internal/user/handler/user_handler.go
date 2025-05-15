@@ -44,7 +44,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-
 	id, err := h.Service.Register(r.Context(), user)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, fmt.Sprintf("falha ao registrar usuário: %v", err))

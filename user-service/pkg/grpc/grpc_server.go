@@ -12,12 +12,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-
-func StartGRPCServer(userService service.UserService){
+func StartGRPCServer(userService service.UserService) {
 
 	godotenv.Load(".env")
 	grpc_port := os.Getenv("GRPC_PORT")
-	listener, err := net.Listen("tcp",grpc_port)
+	listener, err := net.Listen("tcp", grpc_port)
 	if err != nil {
 		log.Fatalf("Erro ao iniciar o listener gRPC: %v", err)
 	}
@@ -26,9 +25,9 @@ func StartGRPCServer(userService service.UserService){
 
 	userpb.RegisterUserServiceServer(grpcServer, handler.NewGRPCHandler(userService))
 
-	log.Println("Servidor gRPC ouvindo na porta: " , grpc_port)
-	
-	if err := grpcServer.Serve(listener); err != nil{
+	log.Println("Servidor gRPC ouvindo na porta: ", grpc_port)
+
+	if err := grpcServer.Serve(listener); err != nil {
 		log.Fatalf("Erro ao iniciar o servidor gRPC: %v", err)
 	}
 }

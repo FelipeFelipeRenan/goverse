@@ -14,14 +14,12 @@ type UserService interface {
 	Register(ctx context.Context, user domain.User) (*domain.UserResponse, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
-	Authenticate(ctx context.Context, email, password string) (*domain.User, error) // 👈 adicionado
-
+	Authenticate(ctx context.Context, email, password string) (*domain.User, error)
 }
 
 type userService struct {
 	repo repository.UserRepository
 }
-
 
 func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{
@@ -30,12 +28,11 @@ func NewUserService(repo repository.UserRepository) UserService {
 }
 
 func (s *userService) Register(ctx context.Context, user domain.User) (*domain.UserResponse, error) {
-	
+
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		return nil, fmt.Errorf("dados incompletos para registro")
 	}
 
-	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao gerar hash da senha: %w", err)
@@ -67,4 +64,3 @@ func (s *userService) Authenticate(ctx context.Context, email string, password s
 	}
 	return user, nil
 }
-

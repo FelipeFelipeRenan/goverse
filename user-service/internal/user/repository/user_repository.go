@@ -43,12 +43,12 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 	}
 
 	return &domain.UserResponse{
-		ID:       id,
-		Username: user.Username,
-		Email:    user.Email,
-		Picture:  user.Picture,
+		ID:        id,
+		Username:  user.Username,
+		Email:     user.Email,
+		Picture:   user.Picture,
 		CreatedAt: user.CreatedAt,
-		IsOAuth: user.IsOAuth,
+		IsOAuth:   user.IsOAuth,
 	}, nil
 }
 

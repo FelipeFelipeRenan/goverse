@@ -12,8 +12,12 @@ type MockUserService struct {
 }
 
 // Authenticate implements UserService.
-func (m *MockUserService) Authenticate(ctx context.Context, email string, password string) (*domain.User, error) {
-	panic("unimplemented")
+func (m *MockUserService) Authenticate(ctx context.Context, email, password string) (*domain.User, error) {
+	args := m.Called(ctx, email, password)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domain.User), args.Error(1)
 }
 
 func (m *MockUserService) Register(ctx context.Context, user domain.User) (*domain.UserResponse, error) {

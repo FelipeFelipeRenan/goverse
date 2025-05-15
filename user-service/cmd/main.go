@@ -21,8 +21,6 @@ func main() {
 	}
 	defer conn.Close(nil)
 
-	
-
 	database.RunMigration(conn)
 
 	repo := repository.NewUserRepository(conn)
@@ -30,7 +28,7 @@ func main() {
 	userHandler := handler.NewUserHandler(userService)
 
 	// Goroutine para iniciar o servidor HTTP
-	go func(){
+	go func() {
 		routes.SetupUserRoutes(userHandler)
 		// Iniciando o servidor na porta 8080
 		port := os.Getenv("APP_PORT")
@@ -43,6 +41,6 @@ func main() {
 	// Go routine para iniciar servidor gRPC
 	go grpc.StartGRPCServer(userService)
 
-	select{}
+	select {}
 
 }
