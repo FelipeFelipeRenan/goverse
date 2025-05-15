@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -24,22 +26,31 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		sendError(w, http.StatusBadRequest, "falha ao ler corpo da requisição")
+		sendError(w, http.StatusBadRequest, fmt.Sprintf("falha ao ler corpo da requisição: %v", err))
 		return
 	}
 	defer r.Body.Close()
 
 	if err := json.Unmarshal(body, &user); err != nil {
-		sendError(w, http.StatusBadRequest, "formato de requisição invalida")
+		sendError(w, http.StatusBadRequest, fmt.Sprintf("formato de requisição inválido: %v", err))
 		return
 	}
+	// Se a senha estiver vazia, gera uma senha aleatória para evitar erro no serviço
+	if user.Password == "" {
+		user.Password, err = generateRandomPassword(16)
+		if err != nil {
+			sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao gerar senha automática: %v", err))
+			return
+		}
+	}
+
 
 	id, err := h.Service.Register(r.Context(), user)
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "falha ao registrar usuario")
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("falha ao registrar usuário: %v", err))
 		return
 	}
-	sendResponse(w, http.StatusCreated, map[string]string{"id": id})
+	sendResponse(w, http.StatusCreated, map[string]string{"user": id.ID})
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +74,7 @@ func (h *UserHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		sendError(w, http.StatusInternalServerError, "falha ao solicitar usuarios")
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("falha ao solicitar usuarios: %v", err))
 		return
 	}
 	sendResponse(w, http.StatusOK, users)
@@ -82,4 +93,18 @@ func sendResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	if data != nil {
 		json.NewEncoder(w).Encode(data)
 	}
+}
+
+// Essa função é uma gambiarra
+func generateRandomPassword(length int) (string, error) {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	for i := range bytes {
+		bytes[i] = letters[bytes[i]%byte(len(letters))]
+	}
+	return string(bytes), nil
 }

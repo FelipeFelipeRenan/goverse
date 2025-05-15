@@ -3,6 +3,11 @@ services:
     image: postgres:16
     container_name: goverse_postgres
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -20,7 +25,8 @@ services:
       dockerfile: ./user-service/Dockerfile
     container_name: goverse_user_service
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes: 
     - ./user-service/.env:/app/.env
     ports:

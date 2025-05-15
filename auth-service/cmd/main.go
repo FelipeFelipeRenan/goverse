@@ -25,7 +25,6 @@ func main() {
 	}
 	defer conn.Close()
 
-
 	userClient := userpb.NewUserServiceClient(conn)
 
 	authRepo := repository.NewAuthRepository(userClient)
@@ -33,8 +32,8 @@ func main() {
 	passwordAuth := service.NewPasswordAuth(authRepo)
 
 	authMethods := map[string]service.AuthMethod{
-		"password" : passwordAuth,
-		// TODO oauth method
+		"password": passwordAuth,
+		"oauth":    service.NewOAuthAuth(authRepo),
 	}
 	jwt_secret := os.Getenv("JWT_SECRET")
 	authService := service.NewAuthService(authMethods, []byte(jwt_secret))
@@ -42,6 +41,8 @@ func main() {
 	authHandler := handler.NewAuthHandler(authService)
 
 	http.HandleFunc("POST /login", authHandler.Login)
+	http.HandleFunc("/oauth/google/login", authHandler.GoogleLogin)
+	http.HandleFunc("/oauth/google/callback", authHandler.GoogleCallback)
 
 	port := os.Getenv("APP_PORT")
 	fmt.Printf("Service de autenticação rodando na porta %s...\n", port)

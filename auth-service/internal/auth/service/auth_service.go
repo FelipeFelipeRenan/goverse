@@ -11,6 +11,7 @@ import (
 
 type AuthService interface {
 	Authenticate(ctx context.Context, credentials domain.Credentials) (*domain.TokenResponse, error)
+	GetOAuthURL(state string) string
 }
 
 type authService struct {
@@ -49,4 +50,22 @@ func (s *authService) Authenticate(ctx context.Context, credentials domain.Crede
 		return nil, fmt.Errorf("erro ao assinar token: %w", err)
 	}
 	return &domain.TokenResponse{Token:tokenString}, nil
+}
+
+func (s *authService) GetOAuthURL(state string) string {
+	// Verifica se existe o método "oauth" registrado
+	method, ok := s.authMethods["oauth"]
+	if !ok {
+		return ""
+	}
+
+	// Faz type assertion para a estratégia correta
+	oauthMethod, ok := method.(interface {
+		GetOAuthURL(state string) string
+	})
+	if !ok {
+		return ""
+	}
+
+	return oauthMethod.GetOAuthURL(state)
 }
