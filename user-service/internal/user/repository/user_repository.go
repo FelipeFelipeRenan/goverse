@@ -54,14 +54,14 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 
 func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	query := `
-		SELECT id, username, email, password, picture, created_at, is_oauth
+		SELECT id, username, email, picture, created_at, is_oauth
 		FROM users
 		WHERE id = $1
 	`
 	row := r.conn.QueryRow(ctx, query, id)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Picture, &user.CreatedAt, &user.IsOAuth)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Picture, &user.CreatedAt, &user.IsOAuth)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("Usuario nao encontrado: %w", err)
 	}
