@@ -54,11 +54,12 @@ func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 	now := time.Now()
 
 	req := &userpb.RegisterRequest{
-		Name:      user.Username,       // Nome do usuário
-		Email:     user.Email,          // E-mail do usuário
-		Password:  "",                  // OAuth não tem senha
-		Picture:   user.Picture,        // Foto de perfil
+		Name:      user.Username,            // Nome do usuário
+		Email:     user.Email,               // E-mail do usuário
+		Password:  "",                       // OAuth não tem senha
+		Picture:   user.Picture,             // Foto de perfil
 		CreatedAt: now.Format(time.RFC3339), // Data de criação
+		IsOauth:   user.Is_OAuth,
 	}
 
 	// Chamada ao serviço gRPC
@@ -68,9 +69,9 @@ func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 	}
 
 	return &domain.UserResponse{
-		ID:       resp.Id,              // ID gerado no registro
-		Username: resp.Name,            // Nome do usuário
-		Email:    resp.Email,           // E-mail do usuário
-		Picture:  resp.Picture,         // Foto do usuário
+		ID:       resp.Id,      // ID gerado no registro
+		Username: resp.Name,    // Nome do usuário
+		Email:    resp.Email,   // E-mail do usuário
+		Picture:  resp.Picture, // Foto do usuário
 	}, nil
 }

@@ -22,6 +22,7 @@ type User struct {
 	Password  string    `json:"password,omitempty"` // opcional no OAuth
 	Picture   string    `json:"picture,omitempty"`  // opcional no registro comum
 	CreatedAt time.Time `json:"created_at"`
+	Is_OAuth  bool      `json:"is_oauth"`
 }
 
 type TokenResponse struct {

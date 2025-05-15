@@ -28,7 +28,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Possiveis erros serão tratadis via grpc status
+// Serviço gRPC
 type UserServiceClient interface {
 	ValidateCredentials(ctx context.Context, in *CredentialsRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetUserByEmail(ctx context.Context, in *EmailRequest, opts ...grpc.CallOption) (*UserResponse, error)
@@ -77,7 +77,7 @@ func (c *userServiceClient) Register(ctx context.Context, in *RegisterRequest, o
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
 //
-// Possiveis erros serão tratadis via grpc status
+// Serviço gRPC
 type UserServiceServer interface {
 	ValidateCredentials(context.Context, *CredentialsRequest) (*UserResponse, error)
 	GetUserByEmail(context.Context, *EmailRequest) (*UserResponse, error)

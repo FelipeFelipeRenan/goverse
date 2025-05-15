@@ -5,41 +5,49 @@ package user;
 option go_package = "proto/user;userpb";
 
 // Requisição com email e senha
-message CredentialsRequest{
+message CredentialsRequest {
     string email = 1;
     string password = 2;
 }
 
-// Resposta com ID e nome do usuario autenticado
-message UserResponse{
-    string id = 1;
-    string name = 2;
-    string email = 3;
-    string picture = 4;
-}
-
+// Requisição para registro de usuário
 message RegisterRequest {
     string name = 1;
     string email = 2;
     string password = 3;
     string picture = 4;
+    string created_at = 5;
+    bool is_oauth = 6; // <--- campo adicionado
 }
 
-
+// Resposta do registro
 message RegisterResponse {
-    string id = 1; // ID do usuário gerado
+    string id = 1;
     string name = 2;
     string email = 3;
+    string picture = 4;
+    string created_at = 5;
+    bool is_oauth = 6;
 }
 
+// Resposta com os dados do usuário
+message UserResponse {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    string picture = 4;
+    string created_at = 5;
+    bool is_oauth = 6;
+}
+
+// Requisição para buscar usuário por email
 message EmailRequest {
     string email = 1;
 }
 
-// Possiveis erros serão tratadis via grpc status
-service UserService{
+// Serviço gRPC
+service UserService {
     rpc ValidateCredentials(CredentialsRequest) returns (UserResponse);
     rpc GetUserByEmail(EmailRequest) returns (UserResponse);
     rpc Register(RegisterRequest) returns (RegisterResponse);
 }
-

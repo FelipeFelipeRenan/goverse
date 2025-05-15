@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/repository"
@@ -10,7 +11,7 @@ import (
 )
 
 type UserService interface {
-	Register(ctx context.Context, user domain.User) (string, error)
+	Register(ctx context.Context, user domain.User) (*domain.UserResponse, error)
 	FindByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	Authenticate(ctx context.Context, email, password string) (*domain.User, error) // 👈 adicionado
@@ -28,14 +29,22 @@ func NewUserService(repo repository.UserRepository) UserService {
 	}
 }
 
-func (s *userService) Register(ctx context.Context, user domain.User) (string, error) {
+func (s *userService) Register(ctx context.Context, user domain.User) (*domain.UserResponse, error) {
+	
+	log.Printf("Username: %s", user.Username)
+	log.Printf("Email: %s", user.Email)
+	log.Printf("Password: %s", user.Password)
+
+	
+	
 	if user.Username == "" || user.Email == "" || user.Password == "" {
-		return "", fmt.Errorf("dados incompletos para registro")
+		return nil, fmt.Errorf("dados incompletos para registro")
 	}
 
+	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", fmt.Errorf("erro ao gerar hash da senha: %w", err)
+		return nil, fmt.Errorf("erro ao gerar hash da senha: %w", err)
 	}
 	user.Password = string(hashedPassword)
 	return s.repo.CreateUser(ctx, user)

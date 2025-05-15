@@ -69,6 +69,7 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		Username:  userInfo.Name,
 		Picture:   userInfo.Picture,
 		CreatedAt: time.Now(),
+		Is_OAuth:  true,
 	}
 	user, err = a.repository.CreateUser(ctx, newUser)
 	if err != nil {
