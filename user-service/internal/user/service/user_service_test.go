@@ -28,7 +28,7 @@ func TestUserService_Register_Success(t *testing.T) {
 	id, err := svc.Register(context.Background(), user)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "123", id)
+	assert.Equal(t, "123", id.ID)
 	mockRepo.AssertExpectations(t)
 }
 
@@ -41,8 +41,16 @@ func TestUserService_Register_InvalidData(t *testing.T) {
 
 	id, err := svc.Register(context.Background(), user)
 
+	if id != nil {
+		t.Errorf("expected nil response, got: %+v", id)
+	}
+	if err == nil {
+		t.Errorf("expected an error, got nil")
+	}
+
+	assert.Nil(t, id)
 	assert.Error(t, err)
-	assert.Equal(t, "", id)
+
 }
 
 func TestUserService_FindByID_Success(t *testing.T) {
