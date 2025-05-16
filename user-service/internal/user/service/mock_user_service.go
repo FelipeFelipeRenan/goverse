@@ -11,6 +11,11 @@ type MockUserService struct {
 	mock.Mock
 }
 
+// GetByEmail implements UserService.
+func (m *MockUserService) GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error) {
+	panic("unimplemented")
+}
+
 // Authenticate implements UserService.
 func (m *MockUserService) Authenticate(ctx context.Context, email, password string) (*domain.User, error) {
 	args := m.Called(ctx, email, password)

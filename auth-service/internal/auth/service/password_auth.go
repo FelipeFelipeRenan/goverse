@@ -11,10 +11,9 @@ type PasswordAuth struct {
 	authRepo repository.AuthRepository
 }
 
-func NewPasswordAuth(authRepo repository.AuthRepository) AuthMethod{
+func NewPasswordAuth(authRepo repository.AuthRepository) AuthMethod {
 	return &PasswordAuth{authRepo}
 }
-
 
 func (a *PasswordAuth) Authenticate(ctx context.Context, credentials domain.Credentials) (*domain.UserResponse, error) {
 	res, err := a.authRepo.ValidateCredentials(ctx, credentials.Email, credentials.Password)
@@ -23,7 +22,7 @@ func (a *PasswordAuth) Authenticate(ctx context.Context, credentials domain.Cred
 	}
 
 	return &domain.UserResponse{
-		ID:   res.Id,
+		ID:       res.Id,
 		Username: res.Name,
 	}, nil
 }

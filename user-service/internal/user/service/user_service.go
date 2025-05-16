@@ -15,6 +15,8 @@ type UserService interface {
 	FindByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	Authenticate(ctx context.Context, email, password string) (*domain.User, error)
+	GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
+
 }
 
 type userService struct {
@@ -63,4 +65,17 @@ func (s *userService) Authenticate(ctx context.Context, email string, password s
 		return nil, fmt.Errorf("senha invalida")
 	}
 	return user, nil
+}
+
+func (s *userService) GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error) {
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar usuário por email: %w", err)
+	}
+	return &domain.UserResponse{
+		ID:       user.ID,
+		Email:    user.Email,
+		Username: user.Username,
+		Picture:  user.Picture,
+	}, nil
 }
