@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -63,6 +64,9 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 	if err == nil {
 		return user, nil
 	}
+	if !errors.Is(err, domain.ErrUserNotFound) {
+		return nil, fmt.Errorf("erro ao buscar usuário: %w", err)
+	}
 
 	newUser := domain.User{
 		Email:     userInfo.Email,
@@ -71,6 +75,7 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 		CreatedAt: time.Now(),
 		Is_OAuth:  true,
 	}
+
 	user, err = a.repository.CreateUser(ctx, newUser)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao registrar usuário: %w", err)
@@ -78,6 +83,7 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 
 	return user, nil
 }
+
 
 // NOVO MÉTODO: gera a URL de login OAuth
 func (a *OAuthAuth) GetAuthURL(state string) string {

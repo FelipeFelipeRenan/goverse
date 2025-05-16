@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type User struct {
 	ID        string    `json:"id"`
@@ -20,3 +23,5 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 	IsOAuth   bool      `json:"is_oauth"`
 }
+
+var ErrUserNotFound = errors.New("usuário não encontrado")

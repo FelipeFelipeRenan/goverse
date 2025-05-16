@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type Credentials struct {
 	Type     string `json:"type"`
@@ -28,3 +31,5 @@ type User struct {
 type TokenResponse struct {
 	Token string `json:"token"`
 }
+
+var ErrUserNotFound = errors.New("usuário não encontrado")

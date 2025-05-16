@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log"
 	"time"
 
@@ -88,4 +89,21 @@ func (h *GRPCHandler) Register(ctx context.Context, req *userpb.RegisterRequest)
 		IsOauth:   true,
 	}, nil
 
+}
+
+func (s *GRPCHandler) GetUserByEmail(ctx context.Context, req *userpb.EmailRequest) (*userpb.UserResponse, error) {
+	user, err := s.userService.GetByEmail(ctx, req.GetEmail())
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return nil, status.Error(codes.NotFound, "usuário não encontrado")
+		}
+		return nil, status.Errorf(codes.Internal, "erro ao buscar usuário: %v", err)
+	}
+
+	return &userpb.UserResponse{
+		Id:       user.ID,
+		Email:    user.Email,
+		Name: user.Username,
+		Picture:  user.Picture,
+	}, nil
 }

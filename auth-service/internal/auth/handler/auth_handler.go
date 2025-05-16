@@ -1,7 +1,6 @@
 package handler
 
 import (
-
 	"encoding/json"
 	"net/http"
 
@@ -42,22 +41,22 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
-    ctx := r.Context() // Usando o contexto da requisição diretamente
-    code := r.URL.Query().Get("code")
-    if code == "" {
-        http.Error(w, "code ausente", http.StatusBadRequest)
-        return
-    }
+	ctx := r.Context() // Usando o contexto da requisição diretamente
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		http.Error(w, "code ausente", http.StatusBadRequest)
+		return
+	}
 
-    user, err := h.authService.Authenticate(ctx, domain.Credentials{
-        Type:  "oauth",
-        Token: code,
-    })
-    if err != nil {
-        http.Error(w, "erro na autenticação: "+err.Error(), http.StatusUnauthorized)
-        return
-    }
+	user, err := h.authService.Authenticate(ctx, domain.Credentials{
+		Type:  "oauth",
+		Token: code,
+	})
+	if err != nil {
+		http.Error(w, "erro na autenticação: "+err.Error(), http.StatusUnauthorized)
+		return
+	}
 
-    w.Header().Set("Content-Type", "application/json")
-    json.NewEncoder(w).Encode(user)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
