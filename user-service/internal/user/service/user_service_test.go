@@ -12,6 +12,7 @@ import (
 )
 
 func TestUserService_Register_Success(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -21,16 +22,18 @@ func TestUserService_Register_Success(t *testing.T) {
 		Password: "securepass",
 	}
 
-	mockRepo.On("CreateUser", mock.Anything, mock.AnythingOfType("domain.User")).Return("123", nil)
+	expectedResp := &domain.UserResponse{ID: "123"}
 
+	mockRepo.On("CreateUser", mock.Anything, mock.AnythingOfType("domain.User")).Return(expectedResp, nil)
 	id, err := svc.Register(context.Background(), user)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "123", id)
+	assert.Equal(t, "123", id.ID)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestUserService_Register_InvalidData(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -38,11 +41,20 @@ func TestUserService_Register_InvalidData(t *testing.T) {
 
 	id, err := svc.Register(context.Background(), user)
 
+	if id != nil {
+		t.Errorf("expected nil response, got: %+v", id)
+	}
+	if err == nil {
+		t.Errorf("expected an error, got nil")
+	}
+
+	assert.Nil(t, id)
 	assert.Error(t, err)
-	assert.Equal(t, "", id)
+
 }
 
 func TestUserService_FindByID_Success(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -62,6 +74,7 @@ func TestUserService_FindByID_Success(t *testing.T) {
 }
 
 func TestUserService_FindByID_NotFound(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 
@@ -75,6 +88,7 @@ func TestUserService_FindByID_NotFound(t *testing.T) {
 }
 
 func TestUserService_GetAllUsers(t *testing.T) {
+	t.Parallel()
 	mockRepo := new(repository.MockUserRepository)
 	svc := NewUserService(mockRepo)
 	expectedUsers := []domain.User{

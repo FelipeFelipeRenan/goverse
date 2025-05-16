@@ -15,12 +15,21 @@ import (
 )
 
 func TestUserHandler_Register(t *testing.T) {
+	t.Parallel()
+
 	mockService := new(service.MockUserService)
 	handler := NewUserHandler(mockService)
 
-	input := domain.User{Username: "alice", Email: "alice@example.com", Password: "secret"}
+	input := domain.User{
+		Username: "alice",
+		Email:    "alice@example.com",
+		Password: "secret",
+	}
 
-	mockService.On("Register", mock.Anything, input).Return("123", nil)
+	// Espera que o método Register receba qualquer contexto e o input como valor (não ponteiro)
+	mockService.
+		On("Register", mock.Anything, input).
+		Return(&domain.UserResponse{ID: "123"}, nil)
 
 	body, _ := json.Marshal(input)
 	req := httptest.NewRequest(http.MethodPost, "/user", bytes.NewReader(body))
@@ -35,14 +44,15 @@ func TestUserHandler_Register(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
 
 	var resp map[string]string
-	json.NewDecoder(res.Body).Decode(&resp)
-	assert.Equal(t, "123", resp["id"])
+	err := json.NewDecoder(res.Body).Decode(&resp)
+	assert.NoError(t, err)
+	assert.Equal(t, "123", resp["user"])
 
 	mockService.AssertExpectations(t)
-
 }
 
 func TestUserHandler_GetByID(t *testing.T) {
+	t.Parallel()
 	mockService := new(service.MockUserService)
 	handler := NewUserHandler(mockService)
 
@@ -68,6 +78,7 @@ func TestUserHandler_GetByID(t *testing.T) {
 
 }
 func TestUserHandler_GetAllUsers(t *testing.T) {
+	t.Parallel()
 	mockService := new(service.MockUserService)
 	handler := NewUserHandler(mockService)
 
@@ -98,11 +109,12 @@ func TestUserHandler_GetAllUsers(t *testing.T) {
 }
 
 func TestUserHandler_Register_Error(t *testing.T) {
+	t.Parallel()
 	mockService := new(service.MockUserService)
 	h := NewUserHandler(mockService)
 
 	input := domain.User{Username: "alice", Email: "alice@example.com", Password: "secret"}
-	mockService.On("Register", mock.Anything, input).Return("", errors.New("internal error"))
+	mockService.On("Register", mock.Anything, input).Return(nil, errors.New("internal error"))
 
 	body, _ := json.Marshal(input)
 	req := httptest.NewRequest(http.MethodPost, "/users", bytes.NewReader(body))
@@ -119,6 +131,7 @@ func TestUserHandler_Register_Error(t *testing.T) {
 }
 
 func TestUserHandler_GetByID_NotFound(t *testing.T) {
+	t.Parallel()
 	mockService := new(service.MockUserService)
 	handler := NewUserHandler(mockService)
 
@@ -139,6 +152,7 @@ func TestUserHandler_GetByID_NotFound(t *testing.T) {
 }
 
 func TestUserHandler_GetAllUsers_Error(t *testing.T) {
+	t.Parallel()
 	mockService := new(service.MockUserService)
 	handler := NewUserHandler(mockService)
 
