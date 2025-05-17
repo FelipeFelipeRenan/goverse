@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -12,12 +10,14 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
+	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
 )
 
 func main() {
+	logger.Init()
 	conn, err := database.Connect()
 	if err != nil {
-		log.Fatalf("Erro ao conectar com banco de dados: %v", err)
+		logger.Error.Fatalf("Erro ao conectar com banco de dados: %v", err)
 	}
 	defer conn.Close(nil)
 
@@ -32,9 +32,9 @@ func main() {
 		routes.SetupUserRoutes(userHandler)
 		// Iniciando o servidor na porta 8080
 		port := os.Getenv("APP_PORT")
-		fmt.Printf("Serviço de usuários rodando na porta %s...\n", port)
+		logger.Info.Printf("Serviço de usuários rodando na porta %s...\n", port)
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			log.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
+			logger.Error.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
 		}
 	}()
 
@@ -42,5 +42,4 @@ func main() {
 	go grpc.StartGRPCServer(userService)
 
 	select {}
-
 }

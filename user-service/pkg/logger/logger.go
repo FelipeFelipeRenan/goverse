@@ -12,5 +12,5 @@ var (
 
 func Init() {
 	Info = log.New(os.Stdout, "[INFO] ", log.LstdFlags|log.Lshortfile)
-	Info = log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lshortfile)
+	Error = log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lshortfile)
 }
