@@ -18,16 +18,16 @@ func StartGRPCServer(userService service.UserService) {
 	grpc_port := os.Getenv("GRPC_PORT")
 	listener, err := net.Listen("tcp", grpc_port)
 	if err != nil {
-		logger.Error.Fatalf("Erro ao iniciar o listener gRPC: %v", err)
+		logger.Error.Error("Erro ao iniciar o listener gRPC", "err", err)
 	}
 
 	grpcServer := grpc.NewServer()
 
 	userpb.RegisterUserServiceServer(grpcServer, handler.NewGRPCHandler(userService))
 
-	logger.Info.Println("Servidor gRPC ouvindo na porta: ", grpc_port)
+	logger.Info.Info("Servidor gRPC ouvindo", "port", grpc_port)
 
 	if err := grpcServer.Serve(listener); err != nil {
-		logger.Error.Fatalf("Erro ao iniciar o servidor gRPC: %v", err)
+		logger.Error.Error("Erro ao iniciar o servidor gRPC", "err",  err)
 	}
 }

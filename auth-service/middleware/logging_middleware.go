@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 )
 
 type contextKey string

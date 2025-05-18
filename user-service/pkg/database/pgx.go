@@ -3,9 +3,9 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
 	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 )
@@ -60,6 +60,6 @@ func RunMigration(conn *pgx.Conn) error {
 		return fmt.Errorf("erro ao executar migração: %w", err)
 	}
 
-	log.Println("Migração executada com sucesso...")
+	logger.Info.Info("Migração executada com sucesso...")
 	return nil
 }

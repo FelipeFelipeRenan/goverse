@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
@@ -34,8 +33,6 @@ func (h *GRPCHandler) ValidateCredentials(ctx context.Context, req *userpb.Crede
 	if err != nil {
 		return nil, status.Error(codes.Unknown, "senha invalida!")
 	}
-
-	log.Printf("Senha enviada: %s | Senha armazenada: %s", req.Password, user.Password)
 
 	return &userpb.UserResponse{
 		Id:        user.ID,
