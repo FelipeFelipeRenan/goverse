@@ -34,14 +34,14 @@ goverse/
 ├── room-service/
 ├── chat-service/
 ├── notification-service/
-└── gateway/
+└── api-gateway/
 ```
 
 ## 📦 Como rodar localmente
 
 ```bash
-# Clone o repositório
-git clone https://github.com/seu-usuario/goverse.git
+Clone o repositório
+
 cd goverse
 
 # Execute os serviços (exemplo com docker-compose)
