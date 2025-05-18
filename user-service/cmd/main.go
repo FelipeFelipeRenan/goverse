@@ -17,7 +17,7 @@ func main() {
 	logger.Init()
 	conn, err := database.Connect()
 	if err != nil {
-		logger.Error.Fatalf("Erro ao conectar com banco de dados: %v", err)
+		logger.Error.Error("Erro ao conectar com banco de dados","err",  err)
 	}
 	defer conn.Close(nil)
 
@@ -32,9 +32,9 @@ func main() {
 		routes.SetupUserRoutes(userHandler)
 		// Iniciando o servidor na porta 8080
 		port := os.Getenv("APP_PORT")
-		logger.Info.Printf("Serviço de usuários rodando na porta %s...\n", port)
+		logger.Info.Info("Serviço de usuários rodando", "port", port)
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			logger.Error.Fatalf("Erro ao iniciar o serviço de usuários: %v", err)
+			logger.Error.Error("Erro ao iniciar o serviço de usuários", "err", err)
 		}
 	}()
 

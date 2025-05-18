@@ -9,7 +9,7 @@ import (
 
 func SetupUserRoutes(userHandler *handler.UserHandler) {
 
-	http.HandleFunc("GET /users", middleware.Logging(userHandler.GetAllUsers))
-	http.HandleFunc("GET /user/{id}", middleware.Logging(userHandler.GetByID))
-	http.HandleFunc("POST /user", middleware.Logging(userHandler.Register))
+	http.HandleFunc("GET /users", middleware.LoggingMiddleware(userHandler.GetAllUsers))
+	http.HandleFunc("GET /user/{id}", middleware.LoggingMiddleware(userHandler.GetByID))
+	http.HandleFunc("POST /user", middleware.LoggingMiddleware(userHandler.Register))
 }
