@@ -25,7 +25,7 @@ func StartGRPCServer(userService service.UserService) {
 
 	userpb.RegisterUserServiceServer(grpcServer, handler.NewGRPCHandler(userService))
 
-	logger.Info.Info("Servidor gRPC ouvindo na porta", "port", grpc_port)
+	logger.Info.Info("Servidor gRPC ouvindo", "port", grpc_port)
 
 	if err := grpcServer.Serve(listener); err != nil {
 		logger.Error.Error("Erro ao iniciar o servidor gRPC", "err",  err)

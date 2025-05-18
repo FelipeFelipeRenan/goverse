@@ -1,16 +1,22 @@
 package logger
 
 import (
-	"log"
+	"log/slog"
 	"os"
 )
 
 var (
-	Info  *log.Logger
-	Error *log.Logger
+	Info  *slog.Logger
+	Error *slog.Logger
 )
 
 func Init() {
-	Info = log.New(os.Stdout, "[INFO] ", log.LstdFlags|log.Lshortfile)
-	Error = log.New(os.Stderr, "[ERROR] ", log.LstdFlags|log.Lshortfile)
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})
+
+	logger := slog.New(handler)
+
+	Info = logger.With("component", "INFO")
+	Error = logger.With("component", "ERROR")
 }
