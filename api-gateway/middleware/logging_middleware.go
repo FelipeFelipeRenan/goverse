@@ -25,7 +25,7 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
-func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
@@ -41,13 +41,23 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		duration := time.Since(start)
 
-		logger.Info.Info("Requisição HTTP",
+		logFields := []any{
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rec.status,
 			"duration", duration.String(),
 			"request_id", requestID,
-		)
+		}
+
+		switch {
+		case rec.status >= 500:
+			logger.Error.Error("Erro na requisição HTTP", logFields...)
+			
+		case rec.status >= 400:
+			logger.Error.Info("Falha na requisição HTTP", logFields...)
+		default:
+			logger.Info.Info("Requisição HTTP", logFields...)
+		}
 
 	})
 }
