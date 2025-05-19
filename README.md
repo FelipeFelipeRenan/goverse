@@ -57,6 +57,42 @@ cd auth-service
 go test ./...
 ```
 
+### 🧪 Testes com curl
+
+Para criar um usuário, utilize o comando: 
+
+```bash
+curl -X POST http://localhost:8088/user \
+  -H "Content-Type: application/json" \
+  -d '{
+  "username": "usuario",
+  "email": "usuario@email.com",
+  "password": "senha123"
+}'
+
+```
+
+Para retornar todos os usuários, utilize o comando:
+```bash
+curl http://localhost:8088/users
+```
+
+Para retornar um usuário pelo seu ID, utilize o comando: 
+```bash
+curl http://localhost:8088/users
+```
+
+Para realizar testes de login com senha, utilize o comando: 
+
+```bash
+ curl -X POST http://localhost:8088/login \
+  -H "Content-Type: application/json" \
+  -d '{
+  "email": "usuario@usuario.com",
+  "password": "senha123", "type":"password"
+}'
+```
+
 ## 📄 Licença
 
 Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
