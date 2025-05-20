@@ -57,7 +57,7 @@ cd auth-service
 go test ./...
 ```
 
-### 🧪 Testes com curl
+### 🧪 Testes com curl, acessando o API Gateway
 
 Para criar um usuário, utilize o comando: 
 
@@ -79,7 +79,7 @@ curl http://localhost:8088/users
 
 Para retornar um usuário pelo seu ID, utilize o comando: 
 ```bash
-curl http://localhost:8088/users
+curl http://localhost:8088/users/{id do usuario}
 ```
 
 Para realizar testes de login com senha, utilize o comando: 
