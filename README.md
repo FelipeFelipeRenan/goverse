@@ -93,6 +93,8 @@ Para realizar testes de login com senha, utilize o comando:
 }'
 ```
 
+Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
+
 ## 📄 Licença
 
 Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
