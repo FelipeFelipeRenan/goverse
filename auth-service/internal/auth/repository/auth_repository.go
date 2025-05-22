@@ -7,6 +7,8 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AuthRepository interface {
@@ -40,7 +42,12 @@ func (r *authRepository) FindByEmail(ctx context.Context, email string) (*domain
 
 	resp, err := r.userClient.GetUserByEmail(ctx, req)
 	if err != nil {
-		return nil, err
+		// Tratamento do erro NotFound
+		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+			return nil, domain.ErrUserNotFound
+		}
+		// Qualquer outro erro é retornado normalmente
+		return nil, fmt.Errorf("erro ao buscar usuário por email: %w", err)
 	}
 
 	return &domain.UserResponse{

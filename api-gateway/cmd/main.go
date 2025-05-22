@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/delivery"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/proxy"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
@@ -16,16 +17,9 @@ func main() {
 	mux := http.NewServeMux()
 
 	// Rotas do auth service
-	mux.Handle("/login", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
-	mux.Handle("/oauth/google/login", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
-	mux.Handle("/oauth/google/callback", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
+	mux.Handle("/", middleware.LoggingMiddleware(http.HandlerFunc(delivery.RouteRequest)))
 
-	// Rotas do user-service
-	mux.Handle("/users", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://user-service:8080")))
-	// Criar usuario
-	mux.Handle("/user", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://user-service:8080")))
-	// retornar usuario por id
-	mux.Handle("/user/", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://user-service:8080")))
+	mux.Handle("/oauth/google/callback", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
 
 	port := os.Getenv("GATEWAY_PORT")
 	if port == "" {
