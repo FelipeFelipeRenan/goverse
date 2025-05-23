@@ -7,38 +7,34 @@ import (
 	"strings"
 )
 
+var serviceRoutes = map[string]string{
+	"/login":                 "http://auth-service:8081",
+	"/oauth/google/login":    "http://auth-service:8081",
+	"/oauth/google/callback": "http://auth-service:8081",
+	"/user":                  "http://user-service:8080",
+	"/users":                 "http://user-service:8080",
+										
+}
+
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
-	method := r.Method
 
-	var target string
-
-	switch {
-	case method == http.MethodPost && path == "/login":
-		target = "http://auth-service:8081"
-	
-	case method == http.MethodGet && path == "/oauth/google/login":
-		target = "http://auth-service:8081"
-
-
-	case method == http.MethodPost && path == "/user":
-		target = "http://user-service:8080"
-
-	case method == http.MethodGet && strings.HasPrefix(path, "/user/"):
-		target = "http://user-service:8080"
-
-	case method == http.MethodGet && path == "/users":
-		target = "http://user-service:8080"
-
-	default:
-		http.Error(w, "Rota não encontrada", http.StatusNotFound)
-		return
+	for prefix, target := range serviceRoutes {
+		if strings.HasPrefix(path, prefix) {
+			proxy := newReverseProxy(target)
+			proxy.ServeHTTP(w, r)
+			return
+		}
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(&url.URL{
-		Scheme: "http",
-		Host:   strings.TrimPrefix(target, "http://"),
-	})
+	http.Error(w, "Rota não encontrada", http.StatusNotFound)
+}
 
-	proxy.ServeHTTP(w, r)
+func newReverseProxy(target string) *httputil.ReverseProxy {
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		panic("URL do destino inválida: " + target)
+	}
+
+	return httputil.NewSingleHostReverseProxy(targetURL)
 }
