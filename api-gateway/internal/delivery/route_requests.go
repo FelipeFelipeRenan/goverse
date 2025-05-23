@@ -5,6 +5,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 var serviceRoutes = map[string]string{
@@ -13,11 +15,15 @@ var serviceRoutes = map[string]string{
 	"/oauth/google/callback": "http://auth-service:8081",
 	"/user":                  "http://user-service:8080",
 	"/users":                 "http://user-service:8080",
-										
+
 }
 
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
+
+	if r.Header.Get("X-Request-ID") == ""{
+		r.Header.Set("X-Reader-ID", uuid.New().String())
+	}
 
 	for prefix, target := range serviceRoutes {
 		if strings.HasPrefix(path, prefix) {

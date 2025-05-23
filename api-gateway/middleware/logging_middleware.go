@@ -29,7 +29,10 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		requestID := generateRequestID()
+		requestID := r.Header.Get("X-Request-ID")
+		if requestID == ""{
+			requestID = generateRequestID()
+		}
 
 		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
 
