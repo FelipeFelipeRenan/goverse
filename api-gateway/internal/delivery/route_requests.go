@@ -7,32 +7,49 @@ import (
 	"strings"
 )
 
+type Route struct {
+	Method string
+	Path   string
+	Target string
+	Prefix bool
+}
+
+var routes = []Route{
+	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081"},
+	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081"},
+	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080"},
+	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080"},
+	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true},
+}
+
+var serviceRoutes = map[string]string{
+	"/login":                 "http://auth-service:8081",
+	"/oauth/google/login":    "http://auth-service:8081",
+	"/oauth/google/callback": "http://auth-service:8081",
+	"/user":                  "http://user-service:8080",
+	"/users":                 "http://user-service:8080",
+}
+
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method
 
 	var target string
 
-	switch {
-	case method == http.MethodPost && path == "/login":
-		target = "http://auth-service:8081"
-	
-	case method == http.MethodGet && path == "/oauth/google/login":
-		target = "http://auth-service:8081"
+	for _, route := range routes {
+		if route.Method == method {
+			if route.Prefix && strings.HasPrefix(path, route.Path) {
+				target = route.Target
+				break
+			} else if !route.Prefix && path == route.Path {
+				target = route.Target
+				break
+			}
+		}
+	}
 
-
-	case method == http.MethodPost && path == "/user":
-		target = "http://user-service:8080"
-
-	case method == http.MethodGet && strings.HasPrefix(path, "/user/"):
-		target = "http://user-service:8080"
-
-	case method == http.MethodGet && path == "/users":
-		target = "http://user-service:8080"
-
-	default:
+	if target == "" {
 		http.Error(w, "Rota não encontrada", http.StatusNotFound)
-		return
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{
@@ -40,5 +57,20 @@ func RouteRequest(w http.ResponseWriter, r *http.Request) {
 		Host:   strings.TrimPrefix(target, "http://"),
 	})
 
-	proxy.ServeHTTP(w, r)
+	if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
+		r.Header.Set("X-Request-ID", requestID)
+
+	}
+
+	proxy.ServeHTTP(w,r)
+
+}
+
+func newReverseProxy(target string) *httputil.ReverseProxy {
+	targetURL, err := url.Parse(target)
+	if err != nil {
+		panic("URL do destino inválida: " + target)
+	}
+
+	return httputil.NewSingleHostReverseProxy(targetURL)
 }
