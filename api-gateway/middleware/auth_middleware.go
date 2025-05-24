@@ -17,7 +17,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		authHeader := r.Header.Get("Authorization")
 
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			http.Error(w, "Teken de autorização ausente", http.StatusUnauthorized)
+			http.Error(w, "Token de autorização ausente", http.StatusUnauthorized)
 			return
 		}
 

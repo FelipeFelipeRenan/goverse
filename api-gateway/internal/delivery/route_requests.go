@@ -5,6 +5,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+
+	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 )
 
 type Route struct {
@@ -12,14 +14,15 @@ type Route struct {
 	Path   string
 	Target string
 	Prefix bool
+	Public bool
 }
 
 var routes = []Route{
-	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081"},
-	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081"},
-	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080"},
-	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080"},
-	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true},
+	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true, Public: false},
+	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081", Public: true},
+	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081", Public: true},
+	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080", Public: true},
+	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080", Public: true},
 }
 
 var serviceRoutes = map[string]string{
@@ -29,27 +32,34 @@ var serviceRoutes = map[string]string{
 	"/user":                  "http://user-service:8080",
 	"/users":                 "http://user-service:8080",
 }
-
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method
 
 	var target string
+	var isPublic bool
 
 	for _, route := range routes {
-		if route.Method == method {
-			if route.Prefix && strings.HasPrefix(path, route.Path) {
-				target = route.Target
-				break
-			} else if !route.Prefix && path == route.Path {
-				target = route.Target
-				break
-			}
+		if route.Method != method {
+			continue
+		}
+
+		if route.Prefix && strings.HasPrefix(path, route.Path) {
+			target = route.Target
+			isPublic = route.Public
+			break
+		}
+
+		if !route.Prefix && path == route.Path {
+			target = route.Target
+			isPublic = route.Public
+			break
 		}
 	}
 
 	if target == "" {
 		http.Error(w, "Rota não encontrada", http.StatusNotFound)
+		return
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{
@@ -57,11 +67,12 @@ func RouteRequest(w http.ResponseWriter, r *http.Request) {
 		Host:   strings.TrimPrefix(target, "http://"),
 	})
 
-	if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
-		r.Header.Set("X-Request-ID", requestID)
+	handler := http.Handler(proxy)
 
+	// Apenas rotas privadas passam pelo middleware de autenticação
+	if !isPublic {
+		handler = middleware.AuthMiddleware(handler)
 	}
 
-	proxy.ServeHTTP(w, r)
-
+	handler.ServeHTTP(w, r)
 }
