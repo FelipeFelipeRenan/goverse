@@ -92,6 +92,11 @@ Para realizar testes de login com senha, utilize o comando:
   "password": "senha123", "type":"password"
 }'
 ```
+Para realizar o acesso à rotas protegidas, utilize o comando: 
+```bash
+➜  curl -X GET http://localhost:8080/user/2 \
+  -H "Authorization: Bearer <TOKEN>"    
+```
 
 Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
 
