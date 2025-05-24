@@ -62,15 +62,6 @@ func RouteRequest(w http.ResponseWriter, r *http.Request) {
 
 	}
 
-	proxy.ServeHTTP(w,r)
+	proxy.ServeHTTP(w, r)
 
-}
-
-func newReverseProxy(target string) *httputil.ReverseProxy {
-	targetURL, err := url.Parse(target)
-	if err != nil {
-		panic("URL do destino inválida: " + target)
-	}
-
-	return httputil.NewSingleHostReverseProxy(targetURL)
 }
