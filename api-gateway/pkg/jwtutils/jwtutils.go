@@ -2,32 +2,37 @@ package jwtutils
 
 import (
 	"errors"
+	"log"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-
 type CustomClaims struct {
-	UserID string `json:"user_id"`
+	UserID   string `json:"user_id"`
 	Username string `json:"user_name"`
 	jwt.RegisteredClaims
 }
 
-func ValidateToken(tokenString string) (*CustomClaims, error){
+func ValidateToken(tokenString string) (*CustomClaims, error) {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return nil, errors.New("JWT_SECRET não configurado no ambiente")
+	}
+
+	log.Println("JWT_SECRET =", os.Getenv("JWT_SECRET"))
+
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (any, error) {
-		return jwtSecret, nil
+		return []byte(secret), nil
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid{
-		if claims.ExpiresAt.Time.Before(time.Now()){
+	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
+		if claims.ExpiresAt.Time.Before(time.Now()) {
 			return nil, errors.New("token expirado")
 		}
 		return claims, nil
