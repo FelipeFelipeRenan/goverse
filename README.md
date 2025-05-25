@@ -47,6 +47,10 @@ cd goverse
 # Execute os serviços (exemplo com docker-compose)
 docker-compose up --build
 ```
+## 🧪 Acesso à documentação do Swagger 
+Os endpoints para os serviços estão disponíveis na interface do Swagger, ao acessar o link abaixo:
+
+http://localhost:8088/swagger/index.html
 
 ## 🧪 Testes
 
