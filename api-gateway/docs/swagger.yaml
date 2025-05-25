@@ -1,0 +1,105 @@
+basePath: /
+definitions:
+  swagger.LoginRequest:
+    properties:
+      email:
+        example: joao@email.com
+        type: string
+      password:
+        example: senha123
+        type: string
+      type:
+        example: password
+        type: string
+    type: object
+  swagger.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  swagger.UserResponse:
+    properties:
+      email:
+        example: joao@email.com
+        type: string
+      id:
+        example: 1
+        type: integer
+      username:
+        example: joaogate
+        type: string
+    type: object
+host: localhost:8088
+info:
+  contact:
+    email: feliperenanqwerty@gmail.com
+    name: Felipe Renan
+  description: Documentação unificada dos serviços do Goverse
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Goverse API GAteway
+  version: "1.0"
+paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Realiza login com email e senha
+      parameters:
+      - description: Credenciais de login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.LoginResponse'
+        "401":
+          description: Credenciais inválidas
+          schema:
+            type: string
+      summary: Login
+      tags:
+      - Auth
+  /user/{id}:
+    get:
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID do usuário
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.UserResponse'
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Obter usuário por ID
+      tags:
+      - User
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
