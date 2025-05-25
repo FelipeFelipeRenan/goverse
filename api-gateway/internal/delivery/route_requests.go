@@ -25,13 +25,6 @@ var routes = []Route{
 	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080", Public: true},
 }
 
-var serviceRoutes = map[string]string{
-	"/login":                 "http://auth-service:8081",
-	"/oauth/google/login":    "http://auth-service:8081",
-	"/oauth/google/callback": "http://auth-service:8081",
-	"/user":                  "http://user-service:8080",
-	"/users":                 "http://user-service:8080",
-}
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method

@@ -2,6 +2,7 @@ package swagger
 
 import "net/http"
 
+// Login godoc
 // @Summary Login
 // @Description Realiza login com email e senha
 // @Tags Auth
@@ -13,7 +14,7 @@ import "net/http"
 // @Router /login [post]
 func SwaggerLoginPlaceholder(w http.ResponseWriter, r *http.Request){}
 
-
+// GetUserByID godoc
 // @Summary Obter usuário por ID
 // @Tags User
 // @Security ApiKeyAuth
@@ -24,3 +25,23 @@ func SwaggerLoginPlaceholder(w http.ResponseWriter, r *http.Request){}
 // @Failure 401 {string} string "Não autorizado"
 // @Router /user/{id} [get]
 func SwaggerGetUserPlaceholder(w http.ResponseWriter, r *http.Request) {}
+
+// CreateUser godoc
+// @Summary Criar novo usuário
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param user body CreateUserRequest true "Dados do novo usuário"
+// @Success 201 {object} UserResponse
+// @Failure 400 {string} string "Dados inválidos"
+// @Router /user [post]
+func SwaggerCreateUser(w http.ResponseWriter, r *http.Request) {}
+
+// ListUsers godoc
+// @Summary Listar todos os usuários
+// @Tags User
+// @Security ApiKeyAuth
+// @Produce json
+// @Success 200 {array} UserResponse
+// @Router /users [get]
+func SwaggerListUsers(w http.ResponseWriter, r *http.Request) {}

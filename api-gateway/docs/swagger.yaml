@@ -1,5 +1,14 @@
 basePath: /
 definitions:
+  swagger.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
   swagger.LoginRequest:
     properties:
       email:
@@ -25,6 +34,8 @@ definitions:
       id:
         example: 1
         type: integer
+      picture:
+        type: string
       username:
         example: joaogate
         type: string
@@ -68,6 +79,31 @@ paths:
       summary: Login
       tags:
       - Auth
+  /user:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dados do novo usuário
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/swagger.UserResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            type: string
+      summary: Criar novo usuário
+      tags:
+      - User
   /user/{id}:
     get:
       parameters:
@@ -95,6 +131,22 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Obter usuário por ID
+      tags:
+      - User
+  /users:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/swagger.UserResponse'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Listar todos os usuários
       tags:
       - User
 securityDefinitions:
