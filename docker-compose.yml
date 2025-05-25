@@ -18,7 +18,19 @@ services:
       - "${POSTGRES_PORT}:5432"
     networks:
       - goverse_network
-
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - goverse_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - redis_data:/data
   user-service:
     build:
       context: .
