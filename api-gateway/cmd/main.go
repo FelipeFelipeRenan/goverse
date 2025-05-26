@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 
@@ -9,12 +8,12 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/proxy"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/redis"
 	"github.com/joho/godotenv"
 
+	_ "github.com/FelipeFelipeRenan/goverse/api-gateway/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
-    _ "github.com/FelipeFelipeRenan/goverse/api-gateway/docs"
 )
-
 
 // ref: https://swaggo.github.io/swaggo.io/declarative_comments_format/general_api_info.html
 // @title Goverse API GAteway
@@ -35,9 +34,16 @@ import (
 // @in header
 // @name Authorization
 func main() {
-	godotenv.Load(".env")
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		logger.Error.Info("Erro ao carregar o .env", "err", err)
+	}
 
 	logger.Init()
+
+	redis.Init()
+
 	mux := http.NewServeMux()
 
 	// Rotas do auth service
@@ -45,15 +51,21 @@ func main() {
 
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	mux.Handle("/", middleware.LoggingMiddleware(http.HandlerFunc(delivery.RouteRequest)))
+	// Middleware encadeado: Cache + Logging + RouteRequest
+	var mainHandler http.Handler = http.HandlerFunc(delivery.RouteRequest)
+	mainHandler = middleware.RecoverMiddleware(mainHandler)
+	mainHandler = middleware.CacheMiddleware(mainHandler)
+	mainHandler = middleware.LoggingMiddleware(mainHandler)
+	mux.Handle("/", mainHandler)
 
 	port := os.Getenv("GATEWAY_PORT")
+
 	if port == "" {
 		port = "8080"
 	}
 
 	logger.Info.Info("API Gateway rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		log.Fatalf("Erro ao iniciar API Gateway: %v", err)
+		logger.Error.Info("Erro ao iniciar o API Gateway", "err", err)
 	}
 }
