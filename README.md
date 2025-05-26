@@ -44,6 +44,8 @@ Clone o repositório
 
 cd goverse
 
+preencha os arquivos .env baseados nos .env.example
+
 # Execute os serviços (exemplo com docker-compose)
 docker-compose up --build
 ```
