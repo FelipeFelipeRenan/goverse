@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	//"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/redis"
 )
 
@@ -38,8 +36,8 @@ func CacheMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		if rw.status == http.StatusOK {
-			err := redis.Client.Set(ctx, key, rw.body.String(), 300*time.Second).Err()
-			logger.Error.Info("Erro ao salvar no Redis", "err", err)
+			_ = redis.Client.Set(ctx, key, rw.body.String(), 300*time.Second).Err()
+
 		}
 
 	})
