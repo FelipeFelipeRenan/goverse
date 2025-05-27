@@ -100,7 +100,7 @@ Para realizar testes de login com senha, utilize o comando:
 ```
 Para realizar o acesso à rotas protegidas, utilize o comando: 
 ```bash
-➜  curl -X GET http://localhost:8080/user/2 \
+  curl -X GET http://localhost:8080/user/2 \
   -H "Authorization: Bearer <TOKEN>"    
 ```
 
