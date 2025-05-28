@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
@@ -45,6 +46,13 @@ func (r *roomMemberRepository) AddMember(member *domain.RoomMember) error {
 	return err
 }
 
+// RemoveMember implements RoomMemberRepository.
+func (r *roomMemberRepository) RemoveMember(roomID string, userID string) error {
+	query := `DELETE FROM room_members WHERE room_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(context.Background(), query, roomID, userID)
+	return err
+}
+
 // GetMembers implements RoomMemberRepository.
 func (r *roomMemberRepository) GetMembers(roomID string) ([]*domain.RoomMember, error) {
 	query := `
@@ -77,15 +85,30 @@ func (r *roomMemberRepository) GetMembers(roomID string) ([]*domain.RoomMember, 
 
 // GetUserRole implements RoomMemberRepository.
 func (r *roomMemberRepository) GetUserRole(roomID string, userID string) (domain.Role, error) {
-	panic("unimplemented")
+	query := `SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2`
+
+	var roleStr string
+	err := r.db.QueryRow(context.Background(), query, roomID, userID).Scan(roleStr)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	return domain.Role(roleStr), nil
 }
 
 // IsMember implements RoomMemberRepository.
 func (r *roomMemberRepository) IsMember(roomID string, userID string) (bool, error) {
-	panic("unimplemented")
-}
+	query := `SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2`
 
-// RemoveMember implements RoomMemberRepository.
-func (r *roomMemberRepository) RemoveMember(roomID string, userID string) error {
-	panic("unimplemented")
+	var dummy int
+	err := r.db.QueryRow(context.Background(), query, roomID, userID).Scan(&dummy)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
