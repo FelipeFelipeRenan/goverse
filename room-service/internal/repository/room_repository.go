@@ -10,12 +10,12 @@ import (
 )
 
 type RoomRepository interface {
-	Create(room *domain.Room) error
+	Create(ctx context.Context, room *domain.Room) error
 	GetByID(id string) (*domain.Room, error)
 	ListPublic() ([]*domain.Room, error)
 	ListByUserID(userID string) ([]*domain.Room, error)
 	Update(room *domain.Room) error
-	Delete(id string) error
+	Delete(ctx context.Context, id string) error
 }
 
 type roomRepository struct {
@@ -27,31 +27,32 @@ func NewRoomRepository(db *pgx.Conn) RoomRepository {
 }
 
 // Create implements RoomRepository.
-func (r *roomRepository) Create(room *domain.Room) error {
-	query := `
-		INSERT INTO rooms (id, name, description, is_public, owner_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	now := time.Now()
 
+func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
+	query := `
+		INSERT INTO rooms (name, description, is_public, owner_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+
+	now := time.Now()
 	room.CreatedAt = now
 	room.UpdatedAt = now
 
-	_, err := r.db.Exec(context.Background(), query,
-		room.ID,
+	err := r.db.QueryRow(ctx, query,
 		room.Name,
-		room, room.Description,
+		room.Description,
 		room.IsPublic,
 		room.OwnerID,
 		room.CreatedAt,
 		room.UpdatedAt,
-	)
-	return err
+	).Scan(&room.ID)
 
+	return err
 }
 
 // Delete implements RoomRepository.
-func (r *roomRepository) Delete(id string) error {
+func (r *roomRepository) Delete(ctx context.Context , id string) error {
 	query := `DELETE FROM rooms WHERE id = $1`
 
 	_, err := r.db.Exec(context.Background(), query, id)

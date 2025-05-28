@@ -10,7 +10,7 @@ import (
 )
 
 type RoomMemberRepository interface {
-	AddMember(member *domain.RoomMember) error
+	AddMember(ctx context.Context, member *domain.RoomMember) error
 	RemoveMember(roomID, userID string) error
 	GetMembers(roomID string) ([]*domain.RoomMember, error)
 	GetUserRole(roomID, userID string) (domain.Role, error)
@@ -26,7 +26,7 @@ func NewRoomMemberRepository(db *pgx.Conn) RoomMemberRepository {
 }
 
 // AddMember implements RoomMemberRepository.
-func (r *roomMemberRepository) AddMember(member *domain.RoomMember) error {
+func (r *roomMemberRepository) AddMember(ctx context.Context, member *domain.RoomMember) error {
 	query := `
 		INSERT INTO room_members (room_id, user_id, role, joined_at)
 		VALUES ($1, $2, $3, $4)
