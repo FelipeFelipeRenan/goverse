@@ -104,6 +104,8 @@ Para realizar o acesso à rotas protegidas, utilize o comando:
   -H "Authorization: Bearer <TOKEN>"    
 ```
 
+## Em breve serão implementadas as features relacionadas a criação de salas e bate papo por texto
+
 Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
 
 ## 📄 Licença
