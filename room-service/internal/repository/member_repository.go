@@ -13,8 +13,9 @@ type RoomMemberRepository interface {
 	AddMember(ctx context.Context, member *domain.RoomMember) error
 	RemoveMember(roomID, userID string) error
 	GetMembers(roomID string) ([]*domain.RoomMember, error)
+	GetMemberByID(ctx context.Context, roomID, userID string) (*domain.RoomMember, error)
 	GetUserRole(roomID, userID string) (domain.Role, error)
-	IsMember(roomID, userID string) (bool, error)
+	IsMember(ctx context.Context, roomID, userID string) (bool, error)
 }
 
 type roomMemberRepository struct {
@@ -51,6 +52,27 @@ func (r *roomMemberRepository) RemoveMember(roomID string, userID string) error 
 	query := `DELETE FROM room_members WHERE room_id = $1 AND user_id = $2`
 	_, err := r.db.Exec(context.Background(), query, roomID, userID)
 	return err
+}
+
+// GetMemberByID implements RoomMemberRepository.
+func (r *roomMemberRepository) GetMemberByID(ctx context.Context, roomID string, userID string) (*domain.RoomMember, error) {
+	query := `
+		SELECT room_id, user_id, role, joined_at
+		FROM room_members
+		WHERE room_id = $1 AND user_id = $2
+	`
+
+	var member domain.RoomMember
+	err := r.db.QueryRow(ctx, query, roomID, userID).Scan(
+		&member.RoomID,
+		&member.UserID,
+		&member.Role,
+		&member.JoinedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &member, nil
 }
 
 // GetMembers implements RoomMemberRepository.
@@ -99,7 +121,7 @@ func (r *roomMemberRepository) GetUserRole(roomID string, userID string) (domain
 }
 
 // IsMember implements RoomMemberRepository.
-func (r *roomMemberRepository) IsMember(roomID string, userID string) (bool, error) {
+func (r *roomMemberRepository) IsMember(ctx context.Context, roomID string, userID string) (bool, error) {
 	query := `SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2`
 
 	var dummy int

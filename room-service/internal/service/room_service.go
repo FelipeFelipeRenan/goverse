@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
@@ -62,7 +63,19 @@ func (r *roomService) DeleteRoom(ctx context.Context, actorID string, roomID str
 
 // AddMember implements RoomService.
 func (r *roomService) AddMember(ctx context.Context, actorID string, roomID string, userID string, role domain.Role) error {
-	panic("unimplemented")
+	
+	existingMember, err := r.memberRepo.IsMember(ctx, roomID, userID)
+	if err != nil && existingMember{
+		return fmt.Errorf("usuario %s já é membro da sala %s", userID, roomID)
+	}
+	member := &domain.RoomMember{
+		RoomID: roomID,
+		UserID: userID,
+		Role: role,
+		JoinedAt: time.Now(),
+	}
+
+	return r.memberRepo.AddMember(ctx, member)
 }
 
 // GetRoom implements RoomService.
