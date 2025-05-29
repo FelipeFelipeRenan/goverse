@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
@@ -10,11 +11,13 @@ import (
 )
 
 type RoomMemberRepository interface {
-	AddMember(member *domain.RoomMember) error
-	RemoveMember(roomID, userID string) error
-	GetMembers(roomID string) ([]*domain.RoomMember, error)
-	GetUserRole(roomID, userID string) (domain.Role, error)
-	IsMember(roomID, userID string) (bool, error)
+	AddMember(ctx context.Context, member *domain.RoomMember) error
+	RemoveMember(ctx context.Context, roomID, userID string) error
+	GetMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+	GetMemberByID(ctx context.Context, roomID, userID string) (*domain.RoomMember, error)
+	GetUserRole(ctx context.Context, roomID, userID string) (domain.Role, error)
+	UpdateMemberRole(ctx context.Context, roomID, userID string, newRole domain.Role) error
+	IsMember(ctx context.Context, roomID, userID string) (bool, error)
 }
 
 type roomMemberRepository struct {
@@ -26,7 +29,7 @@ func NewRoomMemberRepository(db *pgx.Conn) RoomMemberRepository {
 }
 
 // AddMember implements RoomMemberRepository.
-func (r *roomMemberRepository) AddMember(member *domain.RoomMember) error {
+func (r *roomMemberRepository) AddMember(ctx context.Context, member *domain.RoomMember) error {
 	query := `
 		INSERT INTO room_members (room_id, user_id, role, joined_at)
 		VALUES ($1, $2, $3, $4)
@@ -47,21 +50,42 @@ func (r *roomMemberRepository) AddMember(member *domain.RoomMember) error {
 }
 
 // RemoveMember implements RoomMemberRepository.
-func (r *roomMemberRepository) RemoveMember(roomID string, userID string) error {
+func (r *roomMemberRepository) RemoveMember(ctx context.Context, roomID string, userID string) error {
 	query := `DELETE FROM room_members WHERE room_id = $1 AND user_id = $2`
-	_, err := r.db.Exec(context.Background(), query, roomID, userID)
+	_, err := r.db.Exec(ctx, query, roomID, userID)
 	return err
 }
 
+// GetMemberByID implements RoomMemberRepository.
+func (r *roomMemberRepository) GetMemberByID(ctx context.Context, roomID string, userID string) (*domain.RoomMember, error) {
+	query := `
+		SELECT room_id, user_id, role, joined_at
+		FROM room_members
+		WHERE room_id = $1 AND user_id = $2
+	`
+
+	var member domain.RoomMember
+	err := r.db.QueryRow(ctx, query, roomID, userID).Scan(
+		&member.RoomID,
+		&member.UserID,
+		&member.Role,
+		&member.JoinedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &member, nil
+}
+
 // GetMembers implements RoomMemberRepository.
-func (r *roomMemberRepository) GetMembers(roomID string) ([]*domain.RoomMember, error) {
+func (r *roomMemberRepository) GetMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
 	query := `
 		SELECT user_id, role, joined_at
 		FROM room_members
 		WHERE room_id = $1
 	`
 
-	rows, err := r.db.Query(context.Background(), query, roomID)
+	rows, err := r.db.Query(ctx, query, roomID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,11 +108,11 @@ func (r *roomMemberRepository) GetMembers(roomID string) ([]*domain.RoomMember, 
 }
 
 // GetUserRole implements RoomMemberRepository.
-func (r *roomMemberRepository) GetUserRole(roomID string, userID string) (domain.Role, error) {
+func (r *roomMemberRepository) GetUserRole(ctx context.Context, roomID string, userID string) (domain.Role, error) {
 	query := `SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2`
 
 	var roleStr string
-	err := r.db.QueryRow(context.Background(), query, roomID, userID).Scan(roleStr)
+	err := r.db.QueryRow(ctx, query, roomID, userID).Scan(roleStr)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", nil
@@ -98,8 +122,26 @@ func (r *roomMemberRepository) GetUserRole(roomID string, userID string) (domain
 	return domain.Role(roleStr), nil
 }
 
+// UpdateMemberRole implements RoomMemberRepository.
+func (r *roomMemberRepository) UpdateMemberRole(ctx context.Context, roomID string, userID string, newRole domain.Role) error {
+	query := `
+		UPDATE room_members
+		SET role = $1
+		WHERE room_id = $2 AND user_id = $3
+	`
+
+	cmdTag, err := r.db.Exec(ctx, query, newRole, roomID, userID)
+	if err != nil {
+		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return fmt.Errorf("nenhum membro encontrado com room_id=%s e user_id=%s", userID, roomID)
+	}
+	return nil
+}
+
 // IsMember implements RoomMemberRepository.
-func (r *roomMemberRepository) IsMember(roomID string, userID string) (bool, error) {
+func (r *roomMemberRepository) IsMember(ctx context.Context, roomID string, userID string) (bool, error) {
 	query := `SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2`
 
 	var dummy int

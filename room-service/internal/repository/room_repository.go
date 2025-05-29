@@ -10,12 +10,12 @@ import (
 )
 
 type RoomRepository interface {
-	Create(room *domain.Room) error
-	GetByID(id string) (*domain.Room, error)
-	ListPublic() ([]*domain.Room, error)
-	ListByUserID(userID string) ([]*domain.Room, error)
-	Update(room *domain.Room) error
-	Delete(id string) error
+	Create(ctx context.Context, room *domain.Room) error
+	GetByID(ctx context.Context, id string) (*domain.Room, error)
+	ListPublic(ctx context.Context) ([]*domain.Room, error)
+	ListByUserID(ctx context.Context,userID string) ([]*domain.Room, error)
+	Update(ctx context.Context, room *domain.Room) error
+	Delete(ctx context.Context, id string) error
 }
 
 type roomRepository struct {
@@ -27,39 +27,40 @@ func NewRoomRepository(db *pgx.Conn) RoomRepository {
 }
 
 // Create implements RoomRepository.
-func (r *roomRepository) Create(room *domain.Room) error {
-	query := `
-		INSERT INTO rooms (id, name, description, is_public, owner_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	now := time.Now()
 
+func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
+	query := `
+		INSERT INTO rooms (name, description, is_public, owner_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`
+
+	now := time.Now()
 	room.CreatedAt = now
 	room.UpdatedAt = now
 
-	_, err := r.db.Exec(context.Background(), query,
-		room.ID,
+	err := r.db.QueryRow(ctx, query,
 		room.Name,
-		room, room.Description,
+		room.Description,
 		room.IsPublic,
 		room.OwnerID,
 		room.CreatedAt,
 		room.UpdatedAt,
-	)
-	return err
+	).Scan(&room.ID)
 
+	return err
 }
 
 // Delete implements RoomRepository.
-func (r *roomRepository) Delete(id string) error {
+func (r *roomRepository) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM rooms WHERE id = $1`
 
-	_, err := r.db.Exec(context.Background(), query, id)
+	_, err := r.db.Exec(ctx, query, id)
 	return err
 }
 
 // Update implements RoomRepository.
-func (r *roomRepository) Update(room *domain.Room) error {
+func (r *roomRepository) Update(ctx context.Context,room *domain.Room) error {
 	room.UpdatedAt = time.Now()
 
 	query := `
@@ -68,7 +69,7 @@ func (r *roomRepository) Update(room *domain.Room) error {
 		WHERE id = $5
 	`
 
-	_, err := r.db.Exec(context.Background(), query,
+	_, err := r.db.Exec(ctx, query,
 		room.Name,
 		room.Description,
 		room.IsPublic,
@@ -79,13 +80,13 @@ func (r *roomRepository) Update(room *domain.Room) error {
 }
 
 // GetByID implements RoomRepository.
-func (r *roomRepository) GetByID(id string) (*domain.Room, error) {
+func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, error) {
 	query := `
 		SELECT id, name, description, is_public, owner_id, created_at, updated_at
 		FROM rooms
 		WHERE id = $1
 	`
-	row := r.db.QueryRow(context.Background(), query, id)
+	row := r.db.QueryRow(ctx, query, id)
 
 	var room domain.Room
 
@@ -111,7 +112,7 @@ func (r *roomRepository) GetByID(id string) (*domain.Room, error) {
 }
 
 // ListByUserID implements RoomRepository.
-func (r *roomRepository) ListByUserID(userID string) ([]*domain.Room, error) {
+func (r *roomRepository) ListByUserID(ctx context.Context,userID string) ([]*domain.Room, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.created_at, r.updated_at
 		FROM rooms r
@@ -119,7 +120,7 @@ func (r *roomRepository) ListByUserID(userID string) ([]*domain.Room, error) {
 		WHERE m.user_id = $1
 	`
 
-	rows, err := r.db.Query(context.Background(), query, userID)
+	rows, err := r.db.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -146,13 +147,13 @@ func (r *roomRepository) ListByUserID(userID string) ([]*domain.Room, error) {
 }
 
 // ListPublic implements RoomRepository.
-func (r *roomRepository) ListPublic() ([]*domain.Room, error) {
+func (r *roomRepository) ListPublic(ctx context.Context) ([]*domain.Room, error) {
 	query := `
 		SELECT id, name, description, is_public, owner_id, created_at, updated_at
 		FROM rooms
 		WHERE is_public = true
 	`
-	rows, err := r.db.Query(context.Background(), query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		return nil, err
 	}
