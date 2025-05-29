@@ -13,7 +13,7 @@ type RoomService interface {
 	DeleteRoom(ctx context.Context, actorID, roomID string) error
 	AddMember(ctx context.Context, actorID, roomID, userID string, role domain.Role) error
 	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
-	GetRoom(ctx context.Context, roomID string) (*domain.Room, error)
+	GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error)
 	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
 }
 
@@ -66,8 +66,12 @@ func (r *roomService) AddMember(ctx context.Context, actorID string, roomID stri
 }
 
 // GetRoom implements RoomService.
-func (r *roomService) GetRoom(ctx context.Context, roomID string) (*domain.Room, error) {
-	panic("unimplemented")
+func (r *roomService) GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error) {
+	room, err := r.roomRepo.GetByID(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+	return room, nil
 }
 
 // GetRoomMembers implements RoomService.
