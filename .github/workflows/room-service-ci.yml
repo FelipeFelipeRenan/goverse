@@ -27,6 +27,15 @@ jobs:
         with:
           go-version: '1.24.2'
 
+      - name: Check code formatting with gofmt
+        run: |
+          fmt_output=$(gofmt -l .)
+          if [ -n "$fmt_output" ]; then
+            echo "Code is not properly formatted:"
+            echo "$fmt_output"
+            exit 1
+          fi
+
       - name: Build
         run: go build -v ./...
 
