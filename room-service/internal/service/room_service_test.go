@@ -14,7 +14,7 @@ import (
 
 func TestCreateRoom_Success(t *testing.T) {
 	t.Parallel()
-	
+
 	roomRepo := new(mocks.MockRoomRepository)
 	memberRepo := new(mocks.MockRoomMemberRepository)
 

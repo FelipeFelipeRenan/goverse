@@ -98,9 +98,9 @@ func (s *GRPCHandler) GetUserByEmail(ctx context.Context, req *userpb.EmailReque
 	}
 
 	return &userpb.UserResponse{
-		Id:       user.ID,
-		Email:    user.Email,
-		Name: user.Username,
-		Picture:  user.Picture,
+		Id:      user.ID,
+		Email:   user.Email,
+		Name:    user.Username,
+		Picture: user.Picture,
 	}, nil
 }

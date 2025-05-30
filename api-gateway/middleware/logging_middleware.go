@@ -30,7 +30,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 
 		requestID := r.Header.Get("X-Request-ID")
-		if requestID == ""{
+		if requestID == "" {
 			requestID = generateRequestID()
 		}
 
@@ -55,7 +55,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 		switch {
 		case rec.status >= 500:
 			logger.Error.Error("Erro na requisição HTTP", logFields...)
-			
+
 		case rec.status >= 400:
 			logger.Error.Info("Falha na requisição HTTP", logFields...)
 		default:
