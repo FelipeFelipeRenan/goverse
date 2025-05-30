@@ -12,7 +12,7 @@ import "net/http"
 // @Success 200 {object} LoginResponse
 // @Failure 401 {string} string "Credenciais inválidas"
 // @Router /login [post]
-func SwaggerLoginPlaceholder(w http.ResponseWriter, r *http.Request){}
+func SwaggerLoginPlaceholder(w http.ResponseWriter, r *http.Request) {}
 
 // GetUserByID godoc
 // @Summary Obter usuário por ID

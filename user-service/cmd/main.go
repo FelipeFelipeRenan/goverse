@@ -17,7 +17,7 @@ func main() {
 	logger.Init()
 	conn, err := database.Connect()
 	if err != nil {
-		logger.Error.Error("Erro ao conectar com banco de dados","err",  err)
+		logger.Error.Error("Erro ao conectar com banco de dados", "err", err)
 	}
 	defer conn.Close(nil)
 

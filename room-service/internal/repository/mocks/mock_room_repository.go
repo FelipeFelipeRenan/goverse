@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-
 type MockRoomRepository struct {
 	mock.Mock
 }

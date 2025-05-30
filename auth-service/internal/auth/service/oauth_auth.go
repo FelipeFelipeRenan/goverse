@@ -84,7 +84,6 @@ func (a *OAuthAuth) Authenticate(ctx context.Context, credentials domain.Credent
 	return user, nil
 }
 
-
 // NOVO MÉTODO: gera a URL de login OAuth
 func (a *OAuthAuth) GetAuthURL(state string) string {
 	return a.config.AuthCodeURL(state, oauth2.AccessTypeOffline)

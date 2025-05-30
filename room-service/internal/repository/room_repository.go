@@ -13,7 +13,7 @@ type RoomRepository interface {
 	Create(ctx context.Context, room *domain.Room) error
 	GetByID(ctx context.Context, id string) (*domain.Room, error)
 	ListPublic(ctx context.Context) ([]*domain.Room, error)
-	ListByUserID(ctx context.Context,userID string) ([]*domain.Room, error)
+	ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
 	Update(ctx context.Context, room *domain.Room) error
 	Delete(ctx context.Context, id string) error
 }
@@ -60,7 +60,7 @@ func (r *roomRepository) Delete(ctx context.Context, id string) error {
 }
 
 // Update implements RoomRepository.
-func (r *roomRepository) Update(ctx context.Context,room *domain.Room) error {
+func (r *roomRepository) Update(ctx context.Context, room *domain.Room) error {
 	room.UpdatedAt = time.Now()
 
 	query := `
@@ -112,7 +112,7 @@ func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, 
 }
 
 // ListByUserID implements RoomRepository.
-func (r *roomRepository) ListByUserID(ctx context.Context,userID string) ([]*domain.Room, error) {
+func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.created_at, r.updated_at
 		FROM rooms r

@@ -6,8 +6,7 @@ import (
 	"net/url"
 )
 
-
-func NewReverseProxy(target string) http.Handler  {
+func NewReverseProxy(target string) http.Handler {
 	url, err := url.Parse(target)
 	if err != nil {
 		panic(err)

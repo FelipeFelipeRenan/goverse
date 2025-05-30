@@ -28,7 +28,7 @@ var routes = []Route{
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	method := r.Method
-	
+
 	var target string
 	var isPublic bool
 

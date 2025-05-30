@@ -256,7 +256,6 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "Documentação unificada dos serviços do Goverse",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
-
 }
 
 func init() {

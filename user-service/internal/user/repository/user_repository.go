@@ -98,7 +98,7 @@ func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*dom
 
 	var user domain.User
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.IsOAuth)
-	if errors.Is(err, pgx.ErrNoRows){
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrUserNotFound
 	}
 	if err != nil {

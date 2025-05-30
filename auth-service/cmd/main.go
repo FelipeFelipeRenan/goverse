@@ -47,7 +47,7 @@ func main() {
 	http.HandleFunc("/oauth/google/callback", middleware.LoggingMiddleware(authHandler.GoogleCallback))
 
 	port := os.Getenv("APP_PORT")
-	logger.Info.Info("Service de autenticação rodando","port",  port)
+	logger.Info.Info("Service de autenticação rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		logger.Error.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
 	}
