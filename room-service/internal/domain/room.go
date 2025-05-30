@@ -8,7 +8,7 @@ const (
 	RoleOwner  Role = "owner"
 	RoleAdmin  Role = "admin"
 	RoleMember Role = "member"
-	RoleGuest   Role = "guest"
+	RoleGuest  Role = "guest"
 )
 
 type Room struct {
