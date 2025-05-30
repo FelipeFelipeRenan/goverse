@@ -15,7 +15,7 @@ type RoomMemberRepository interface {
 	RemoveMember(ctx context.Context, roomID, userID string) error
 	GetMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
 	GetMemberByID(ctx context.Context, roomID, userID string) (*domain.RoomMember, error)
-	GetUserRole(ctx context.Context, roomID, userID string) (domain.Role, error)
+	GetMemberRole(ctx context.Context, roomID, userID string) (domain.Role, error)
 	UpdateMemberRole(ctx context.Context, roomID, userID string, newRole domain.Role) error
 	IsMember(ctx context.Context, roomID, userID string) (bool, error)
 }
@@ -108,7 +108,7 @@ func (r *roomMemberRepository) GetMembers(ctx context.Context, roomID string) ([
 }
 
 // GetUserRole implements RoomMemberRepository.
-func (r *roomMemberRepository) GetUserRole(ctx context.Context, roomID string, userID string) (domain.Role, error) {
+func (r *roomMemberRepository) GetMemberRole(ctx context.Context, roomID string, userID string) (domain.Role, error) {
 	query := `SELECT role FROM room_members WHERE room_id = $1 AND user_id = $2`
 
 	var roleStr string
