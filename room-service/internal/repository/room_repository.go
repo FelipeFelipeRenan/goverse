@@ -71,14 +71,16 @@ func (r *roomRepository) Update(ctx context.Context, room *domain.Room) error {
 
 	query := `
 		UPDATE rooms
-		SET name = $1, description = $2, is_public = $3, updated_at = $4
-		WHERE id = $5
+		SET name = $1, description = $2, is_public = $3, member_count = $4, max_members = $5, updated_at = $6
+		WHERE id = $5 AND deleted_at IS NULL
 	`
 
 	_, err := r.db.Exec(ctx, query,
 		room.Name,
 		room.Description,
 		room.IsPublic,
+		room.MemberCount,
+		room.MaxMembers,
 		room.UpdatedAt,
 		room.ID,
 	)
@@ -124,10 +126,11 @@ func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, 
 // ListByUserID implements RoomRepository.
 func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
 	query := `
-		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.created_at, r.updated_at
+		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.member_count, r.max_members ,
+			r.created_at, r.updated_at, r.deleted_at
 		FROM rooms r
 		JOIN room_members m ON r.id = m.room_id
-		WHERE m.user_id = $1
+		WHERE m.user_id = $1 AND r.deleted_at IS NULL
 	`
 
 	rows, err := r.db.Query(ctx, query, userID)
@@ -144,8 +147,11 @@ func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*do
 			&room.Description,
 			&room.IsPublic,
 			&room.OwnerID,
+			&room.MemberCount,
+			&room.MaxMembers,
 			&room.CreatedAt,
 			&room.UpdatedAt,
+			&room.DeletedAt,
 		)
 
 		if err != nil {
@@ -159,9 +165,10 @@ func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*do
 // ListPublic implements RoomRepository.
 func (r *roomRepository) ListPublic(ctx context.Context) ([]*domain.Room, error) {
 	query := `
-		SELECT id, name, description, is_public, owner_id, created_at, updated_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members,
+		 created_at, updated_at, deleted_at
 		FROM rooms
-		WHERE is_public = true
+		WHERE is_public = true AND deleted_at IS NULL
 	`
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -179,8 +186,11 @@ func (r *roomRepository) ListPublic(ctx context.Context) ([]*domain.Room, error)
 			&room.Description,
 			&room.IsPublic,
 			&room.OwnerID,
+			&room.MemberCount,
+			&room.MaxMembers,
 			&room.CreatedAt,
 			&room.UpdatedAt,
+			&room.DeletedAt,
 		)
 
 		if err != nil {
