@@ -30,8 +30,9 @@ func NewRoomRepository(db *pgx.Conn) RoomRepository {
 
 func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
 	query := `
-		INSERT INTO rooms (name, description, is_public, owner_id, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO rooms (name, description, is_public, owner_id, member_count, max_members,
+		  created_at, updated_at, deleted_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id
 	`
 
@@ -44,8 +45,11 @@ func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
 		room.Description,
 		room.IsPublic,
 		room.OwnerID,
+		room.MemberCount,
+		room.MaxMembers,
 		room.CreatedAt,
 		room.UpdatedAt,
+		room.DeletedAt,
 	).Scan(&room.ID)
 
 	return err
@@ -53,9 +57,11 @@ func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
 
 // Delete implements RoomRepository.
 func (r *roomRepository) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM rooms WHERE id = $1`
+	query := ` UPDATE rooms
+				SET deleted_at = $1, updated_at = $1
+				WHERE id = $2 AND deleted_at IS NULL `
 
-	_, err := r.db.Exec(ctx, query, id)
+	_, err := r.db.Exec(ctx, query, time.Now(), id)
 	return err
 }
 
@@ -82,9 +88,10 @@ func (r *roomRepository) Update(ctx context.Context, room *domain.Room) error {
 // GetByID implements RoomRepository.
 func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, error) {
 	query := `
-		SELECT id, name, description, is_public, owner_id, created_at, updated_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, 
+		 created_at, updated_at, deleted_at
 		FROM rooms
-		WHERE id = $1
+		WHERE id = $1 AND deleted_at IS NULL
 	`
 	row := r.db.QueryRow(ctx, query, id)
 
@@ -96,8 +103,11 @@ func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, 
 		&room.Description,
 		&room.IsPublic,
 		&room.OwnerID,
+		&room.MemberCount,
+		&room.MaxMembers,
 		&room.CreatedAt,
 		&room.UpdatedAt,
+		&room.DeletedAt,
 	)
 
 	if err != nil {

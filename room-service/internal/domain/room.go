@@ -18,6 +18,7 @@ type Room struct {
 	IsPublic    bool      `json:"is_public"`
 	OwnerID     string    `json:"owner_id"`
 	MemberCount int       `json:"member_count"`
+	MaxMembers  int       `json:"max_members"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 	DeletedAt   time.Time `json:"deleted_at"`
