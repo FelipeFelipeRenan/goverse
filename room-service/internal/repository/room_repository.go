@@ -7,6 +7,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RoomRepository interface {
@@ -16,13 +17,14 @@ type RoomRepository interface {
 	ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
 	Update(ctx context.Context, room *domain.Room) error
 	Delete(ctx context.Context, id string) error
+	Exists(ctx context.Context, id string) (bool, error)
 }
 
 type roomRepository struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func NewRoomRepository(db *pgx.Conn) RoomRepository {
+func NewRoomRepository(db *pgxpool.Pool) RoomRepository {
 	return &roomRepository{db: db}
 }
 
@@ -200,4 +202,11 @@ func (r *roomRepository) ListPublic(ctx context.Context) ([]*domain.Room, error)
 	}
 	return rooms, nil
 
+}
+
+func (r *roomRepository) Exists(ctx context.Context, id string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM rooms WHERE id = $1 AND deleted_at IS NULL)`
+	var exists bool
+	err := r.db.QueryRow(ctx, query, id).Scan(&exists)
+	return exists, err
 }

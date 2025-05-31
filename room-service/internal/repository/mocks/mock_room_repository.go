@@ -43,3 +43,8 @@ func (m *MockRoomRepository) Delete(ctx context.Context, id string) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
 }
+
+// Exists implements repository.RoomRepository.
+func (m *MockRoomRepository) Exists(ctx context.Context, id string) (bool, error) {
+	panic("unimplemented")
+}
