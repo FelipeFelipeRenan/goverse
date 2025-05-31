@@ -29,5 +29,5 @@ type RoomMember struct {
 	Role      Role      `json:"role"`
 	JoinedAt  time.Time `json:"joined_at"`
 	UpdatedAt time.Time `json:"updated_at"`
-	DeletedAt       time.Time `json:"deleted_at"`
+	DeletedAt time.Time `json:"deleted_at"`
 }
