@@ -104,10 +104,10 @@ Para realizar o acesso à rotas protegidas, utilize o comando:
   curl -X GET http://localhost:8080/user/2 \
   -H "Authorization: Bearer <TOKEN>"    
 ```
-
-## Em breve serão implementadas as features relacionadas a criação de salas e bate papo por texto
-
 Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
+
+## Em breve serão implementadas as features relacionadas a criação de salas e bate papo por texto, e também, a possibilidade de gravação de tela e videochamada
+
 
 ## 📄 Licença
 
