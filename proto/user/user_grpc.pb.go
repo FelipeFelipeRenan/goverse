@@ -8,7 +8,6 @@ package userpb
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -23,6 +22,7 @@ const (
 	UserService_ValidateCredentials_FullMethodName = "/user.UserService/ValidateCredentials"
 	UserService_GetUserByEmail_FullMethodName      = "/user.UserService/GetUserByEmail"
 	UserService_Register_FullMethodName            = "/user.UserService/Register"
+	UserService_ExistsUserByID_FullMethodName      = "/user.UserService/ExistsUserByID"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -34,6 +34,7 @@ type UserServiceClient interface {
 	ValidateCredentials(ctx context.Context, in *CredentialsRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	GetUserByEmail(ctx context.Context, in *EmailRequest, opts ...grpc.CallOption) (*UserResponse, error)
 	Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
+	ExistsUserByID(ctx context.Context, in *UserIDRequest, opts ...grpc.CallOption) (*UserExistsResponse, error)
 }
 
 type userServiceClient struct {
@@ -74,6 +75,16 @@ func (c *userServiceClient) Register(ctx context.Context, in *RegisterRequest, o
 	return out, nil
 }
 
+func (c *userServiceClient) ExistsUserByID(ctx context.Context, in *UserIDRequest, opts ...grpc.CallOption) (*UserExistsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UserExistsResponse)
+	err := c.cc.Invoke(ctx, UserService_ExistsUserByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServiceServer is the server API for UserService service.
 // All implementations must embed UnimplementedUserServiceServer
 // for forward compatibility.
@@ -83,6 +94,7 @@ type UserServiceServer interface {
 	ValidateCredentials(context.Context, *CredentialsRequest) (*UserResponse, error)
 	GetUserByEmail(context.Context, *EmailRequest) (*UserResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	ExistsUserByID(context.Context, *UserIDRequest) (*UserExistsResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -101,6 +113,9 @@ func (UnimplementedUserServiceServer) GetUserByEmail(context.Context, *EmailRequ
 }
 func (UnimplementedUserServiceServer) Register(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Register not implemented")
+}
+func (UnimplementedUserServiceServer) ExistsUserByID(context.Context, *UserIDRequest) (*UserExistsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExistsUserByID not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -177,6 +192,24 @@ func _UserService_Register_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserService_ExistsUserByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).ExistsUserByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_ExistsUserByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).ExistsUserByID(ctx, req.(*UserIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserService_ServiceDesc is the grpc.ServiceDesc for UserService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -195,6 +228,10 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Register",
 			Handler:    _UserService_Register_Handler,
+		},
+		{
+			MethodName: "ExistsUserByID",
+			Handler:    _UserService_ExistsUserByID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

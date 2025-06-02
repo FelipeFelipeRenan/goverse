@@ -46,22 +46,40 @@ func TestRoomService_AddMember_Success(t *testing.T) {
 
 	roomRepo := new(mocks.MockRoomRepository)
 	memberRepo := new(mocks.MockRoomMemberRepository)
+	userClient := new(mocks.MockUserServiceClient)
 
-	roomService := service.NewRoomService(roomRepo, memberRepo)
+	memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
 
 	ctx := context.Background()
 	roomID := "1"
 	userID := "2"
-	actorID := "999"
+	actorID := "999" // deve ser OwnerID da sala para passar autorização
 	role := domain.RoleMember
 
-	memberRepo.On("IsMember", ctx, roomID, userID).Return(false, nil)
+	// Mocka retorno da sala com OwnerID == actorID para autorização
+	roomRepo.On("GetByID", ctx, roomID).Return(&domain.Room{
+		ID:      roomID,
+		OwnerID: actorID,
+	}, nil)
+
+	// Mocka consulta de existência de usuário via gRPC
+	userClient.On("ExistsUserByID", ctx, userID).Return(true, nil)
+
+	// Mocka verificação de que o usuário ainda não é membro
+	memberRepo.On("GetMemberByID", ctx, roomID, userID).Return(nil, domain.ErrMemberNotFound)
+
+	// Mocka inserção do novo membro
 	memberRepo.On("AddMember", ctx, mock.MatchedBy(func(member *domain.RoomMember) bool {
 		return member.RoomID == roomID && member.UserID == userID && member.Role == role
 	})).Return(nil)
 
-	err := roomService.AddMember(ctx, actorID, roomID, userID, role)
+	// Mocka incremento do contador de membros
+	roomRepo.On("IncrementMemberCount", ctx, roomID, 1).Return(nil)
+
+	err := memberService.AddMember(ctx, actorID, roomID, userID, role)
 
 	require.NoError(t, err)
 	memberRepo.AssertExpectations(t)
+	roomRepo.AssertExpectations(t)
+	userClient.AssertExpectations(t)
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,11 +17,14 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	Authenticate(ctx context.Context, email, password string) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
+	ExistsByID(ctx context.Context, id string) (bool, error)
 }
 
 type userService struct {
 	repo repository.UserRepository
 }
+
+// ExistsByID implements UserService.
 
 func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{
@@ -77,4 +81,15 @@ func (s *userService) GetByEmail(ctx context.Context, email string) (*domain.Use
 		Username: user.Username,
 		Picture:  user.Picture,
 	}, nil
+}
+
+func (s *userService) ExistsByID(ctx context.Context, id string) (bool, error) {
+	user, err := s.repo.GetUserByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return user != nil, nil
 }

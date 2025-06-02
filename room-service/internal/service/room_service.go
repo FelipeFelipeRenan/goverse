@@ -12,11 +12,9 @@ import (
 type RoomService interface {
 	CreateRoom(ctx context.Context, ownerID string, room *domain.Room) (*domain.Room, error)
 	DeleteRoom(ctx context.Context, actorID, roomID string) error
-	AddMember(ctx context.Context, actorID, roomID, userID string, role domain.Role) error
-	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
-	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
 	GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error)
-	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+	ListRooms(ctx context.Context, limit, offset int, publicOnly bool, keyword string) ([]*domain.Room, error)
+	UpdateRoom(ctx context.Context, actorID string, room *domain.Room) error
 }
 
 type roomService struct {
@@ -84,8 +82,12 @@ func (r *roomService) AddMember(ctx context.Context, actorID string, roomID stri
 		Role:     role,
 		JoinedAt: time.Now(),
 	}
+	err = r.memberRepo.AddMember(ctx, member)
+	if err != nil {
+		return err
+	}
 
-	return r.memberRepo.AddMember(ctx, member)
+	return r.roomRepo.IncrementMemberCount(ctx, roomID, 1)
 }
 
 // UpdateMemberRole implements RoomService.
@@ -157,7 +159,43 @@ func (r *roomService) RemoveMember(ctx context.Context, actorID string, roomID s
 		return fmt.Errorf("usuario %s não tem permissão para remover membros", actorID)
 
 	}
+	err = r.memberRepo.RemoveMember(ctx, roomID, userID)
+	if err != nil {
+		return err
+	}
+	return r.roomRepo.IncrementMemberCount(ctx, roomID, -1)
 
-	return r.memberRepo.RemoveMember(ctx, roomID, userID)
+}
 
+// ListRooms implements RoomService.
+func (r *roomService) ListRooms(ctx context.Context, limit int, offset int, publicOnly bool, keyword string) ([]*domain.Room, error) {
+	if keyword != "" {
+		return r.roomRepo.SearchByName(ctx, keyword)
+	}
+	if publicOnly {
+		return r.roomRepo.ListPublic(ctx, limit, offset)
+	}
+	return r.roomRepo.ListAll(ctx, limit, offset)
+}
+
+// UpdateRoom implements RoomService.
+func (r *roomService) UpdateRoom(ctx context.Context, actorID string, room *domain.Room) error {
+	existingRoom, err := r.roomRepo.GetByID(ctx, room.ID)
+	if err != nil {
+		return fmt.Errorf("sala não encontrada: %w", err)
+	}
+
+	member, err := r.memberRepo.GetMemberByID(ctx, room.ID, actorID)
+	if err != nil {
+		return fmt.Errorf("usuario %s não é membro da sala", actorID)
+	}
+	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdmin {
+		return fmt.Errorf("usuario %s não tem permissão para atualizar a sala", actorID)
+	}
+
+	existingRoom.Name = room.Name
+	existingRoom.Description = room.Description
+	existingRoom.UpdatedAt = time.Now()
+
+	return r.roomRepo.Update(ctx, existingRoom)
 }

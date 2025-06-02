@@ -17,7 +17,7 @@ message RegisterRequest {
     string password = 3;
     string picture = 4;
     string created_at = 5;
-    bool is_oauth = 6; // <--- campo adicionado
+    bool is_oauth = 6; 
 }
 
 // Resposta do registro
@@ -45,9 +45,18 @@ message EmailRequest {
     string email = 1;
 }
 
+message UserIDRequest {
+    string id = 1;
+}
+
+message UserExistsResponse {
+    bool exists = 1;
+}
+
 // Serviço gRPC
 service UserService {
     rpc ValidateCredentials(CredentialsRequest) returns (UserResponse);
     rpc GetUserByEmail(EmailRequest) returns (UserResponse);
     rpc Register(RegisterRequest) returns (RegisterResponse);
+    rpc ExistsUserByID(UserIDRequest) returns (UserExistsResponse);
 }
