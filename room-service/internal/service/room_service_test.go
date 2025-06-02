@@ -60,6 +60,8 @@ func TestRoomService_AddMember_Success(t *testing.T) {
 		return member.RoomID == roomID && member.UserID == userID && member.Role == role
 	})).Return(nil)
 
+	roomRepo.On("IncrementMemberCount", ctx, roomID, 1).Return(nil)
+
 	err := roomService.AddMember(ctx, actorID, roomID, userID, role)
 
 	require.NoError(t, err)
