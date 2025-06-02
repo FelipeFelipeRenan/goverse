@@ -251,5 +251,11 @@ func (r *roomRepository) SearchByName(ctx context.Context, keyword string) ([]*d
 
 // IncrementMemberCount implements RoomRepository.
 func (r *roomRepository) IncrementMemberCount(ctx context.Context, roomID string, delta int) error {
-	panic("unimplemented")
+	query := `
+		UPDATE rooms
+		SET member_count = member_count + $1, updated_at = $2
+		WHERE id = $3 AND deleted_at IS NULL
+	`
+	_, err := r.db.Exec(ctx, query, delta, time.Now(), roomID)
+	return err
 }
