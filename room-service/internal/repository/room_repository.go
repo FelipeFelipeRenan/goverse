@@ -18,6 +18,8 @@ type RoomRepository interface {
 	Update(ctx context.Context, room *domain.Room) error
 	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
+	SearchByName(ctx context.Context, keyword string) ([]*domain.Room, error)
+	IncrementMemberCount(ctx context.Context, roomID string, delta int) error
 }
 
 type roomRepository struct {
@@ -209,4 +211,41 @@ func (r *roomRepository) Exists(ctx context.Context, id string) (bool, error) {
 	var exists bool
 	err := r.db.QueryRow(ctx, query, id).Scan(&exists)
 	return exists, err
+}
+
+// SearchByName implements RoomRepository.
+func (r *roomRepository) SearchByName(ctx context.Context, keyword string) ([]*domain.Room, error) {
+	query := `
+		SELECT id, name, description, is_public, owner_id,
+		       member_count, max_members, created_at, updated_at, deleted_at
+		FROM rooms
+		WHERE name ILIKE '%' || $1 || '%' AND deleted_at IS NULL
+	`
+
+	rows, err := r.db.Query(ctx, query, keyword)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []*domain.Room
+
+	for rows.Next() {
+		var room domain.Room
+		err := rows.Scan(
+			&room.ID, &room.Name, &room.Description, &room.IsPublic,
+			&room.OwnerID, &room.MemberCount, &room.MaxMembers,
+			&room.CreatedAt, &room.UpdatedAt, &room.DeletedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, &room)
+	}
+	return rooms, nil
+}
+
+// IncrementMemberCount implements RoomRepository.
+func (r *roomRepository) IncrementMemberCount(ctx context.Context, roomID string, delta int) error {
+	panic("unimplemented")
 }
