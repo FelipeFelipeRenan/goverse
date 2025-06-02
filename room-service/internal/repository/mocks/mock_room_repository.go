@@ -11,6 +11,12 @@ type MockRoomRepository struct {
 	mock.Mock
 }
 
+// ListAll implements repository.RoomRepository.
+func (m *MockRoomRepository) ListAll(ctx context.Context, limit int, offset int) ([]*domain.Room, error) {
+	args := m.Called(ctx, limit, offset)
+	return args.Get(0).([]*domain.Room), args.Error(1)
+}
+
 func (m *MockRoomRepository) Create(ctx context.Context, room *domain.Room) error {
 	args := m.Called(ctx, room)
 	return args.Error(0)

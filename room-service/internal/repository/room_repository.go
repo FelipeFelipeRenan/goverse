@@ -13,6 +13,7 @@ import (
 type RoomRepository interface {
 	Create(ctx context.Context, room *domain.Room) error
 	GetByID(ctx context.Context, id string) (*domain.Room, error)
+	ListAll(ctx context.Context, limit, offset int) ([]*domain.Room, error)
 	ListPublic(ctx context.Context, limit, offset int) ([]*domain.Room, error)
 	ListByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Room, error)
 	Update(ctx context.Context, room *domain.Room) error
@@ -258,4 +259,44 @@ func (r *roomRepository) IncrementMemberCount(ctx context.Context, roomID string
 	`
 	_, err := r.db.Exec(ctx, query, delta, time.Now(), roomID)
 	return err
+}
+
+// ListAll implements RoomRepository.
+func (r *roomRepository) ListAll(ctx context.Context, limit int, offset int) ([]*domain.Room, error) {
+	query := `
+        SELECT id, name, description, owner_id, is_public, member_count, created_at, updated_at
+        FROM rooms
+        WHERE deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(ctx, query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var rooms []*domain.Room
+
+	for rows.Next() {
+		var room domain.Room
+		err := rows.Scan(
+			&room.ID,
+			&room.Name,
+			&room.Description,
+			&room.OwnerID,
+			&room.IsPublic,
+			&room.MemberCount,
+			&room.CreatedAt,
+			&room.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, &room)
+	}
+
+	return rooms, nil
 }
