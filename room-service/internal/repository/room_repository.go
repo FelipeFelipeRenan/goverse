@@ -13,8 +13,8 @@ import (
 type RoomRepository interface {
 	Create(ctx context.Context, room *domain.Room) error
 	GetByID(ctx context.Context, id string) (*domain.Room, error)
-	ListPublic(ctx context.Context) ([]*domain.Room, error)
-	ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
+	ListPublic(ctx context.Context, limit, offset int) ([]*domain.Room, error)
+	ListByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Room, error)
 	Update(ctx context.Context, room *domain.Room) error
 	Delete(ctx context.Context, id string) error
 	Exists(ctx context.Context, id string) (bool, error)
@@ -128,16 +128,18 @@ func (r *roomRepository) GetByID(ctx context.Context, id string) (*domain.Room, 
 }
 
 // ListByUserID implements RoomRepository.
-func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
+func (r *roomRepository) ListByUserID(ctx context.Context, userID string, limit, offset int) ([]*domain.Room, error) {
 	query := `
 		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.member_count, r.max_members ,
 			r.created_at, r.updated_at, r.deleted_at
 		FROM rooms r
 		JOIN room_members m ON r.id = m.room_id
 		WHERE m.user_id = $1 AND r.deleted_at IS NULL
+		ORDER BY r.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.db.Query(ctx, query, userID)
+	rows, err := r.db.Query(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -167,14 +169,16 @@ func (r *roomRepository) ListByUserID(ctx context.Context, userID string) ([]*do
 }
 
 // ListPublic implements RoomRepository.
-func (r *roomRepository) ListPublic(ctx context.Context) ([]*domain.Room, error) {
+func (r *roomRepository) ListPublic(ctx context.Context, limit, offset int) ([]*domain.Room, error) {
 	query := `
 		SELECT id, name, description, is_public, owner_id, member_count, max_members,
 		 created_at, updated_at, deleted_at
 		FROM rooms
 		WHERE is_public = true AND deleted_at IS NULL
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
 	`
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query, limit, offset)
 	if err != nil {
 		return nil, err
 	}
