@@ -7,12 +7,11 @@
 package userpb
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -375,6 +374,94 @@ func (x *EmailRequest) GetEmail() string {
 	return ""
 }
 
+type UserIDRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserIDRequest) Reset() {
+	*x = UserIDRequest{}
+	mi := &file_proto_user_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserIDRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserIDRequest) ProtoMessage() {}
+
+func (x *UserIDRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserIDRequest.ProtoReflect.Descriptor instead.
+func (*UserIDRequest) Descriptor() ([]byte, []int) {
+	return file_proto_user_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *UserIDRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type UserExistsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Exists        bool                   `protobuf:"varint,1,opt,name=exists,proto3" json:"exists,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserExistsResponse) Reset() {
+	*x = UserExistsResponse{}
+	mi := &file_proto_user_user_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserExistsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserExistsResponse) ProtoMessage() {}
+
+func (x *UserExistsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_user_user_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserExistsResponse.ProtoReflect.Descriptor instead.
+func (*UserExistsResponse) Descriptor() ([]byte, []int) {
+	return file_proto_user_user_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UserExistsResponse) GetExists() bool {
+	if x != nil {
+		return x.Exists
+	}
+	return false
+}
+
 var File_proto_user_user_proto protoreflect.FileDescriptor
 
 const file_proto_user_user_proto_rawDesc = "" +
@@ -408,11 +495,16 @@ const file_proto_user_user_proto_rawDesc = "" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x19\n" +
 	"\bis_oauth\x18\x06 \x01(\bR\aisOauth\"$\n" +
 	"\fEmailRequest\x12\x14\n" +
-	"\x05email\x18\x01 \x01(\tR\x05email2\xc7\x01\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"\x1f\n" +
+	"\rUserIDRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\",\n" +
+	"\x12UserExistsResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists2\x88\x02\n" +
 	"\vUserService\x12C\n" +
 	"\x13ValidateCredentials\x12\x18.user.CredentialsRequest\x1a\x12.user.UserResponse\x128\n" +
 	"\x0eGetUserByEmail\x12\x12.user.EmailRequest\x1a\x12.user.UserResponse\x129\n" +
-	"\bRegister\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponseB\x13Z\x11proto/user;userpbb\x06proto3"
+	"\bRegister\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponse\x12?\n" +
+	"\x0eExistsUserByID\x12\x13.user.UserIDRequest\x1a\x18.user.UserExistsResponseB\x13Z\x11proto/user;userpbb\x06proto3"
 
 var (
 	file_proto_user_user_proto_rawDescOnce sync.Once
@@ -426,23 +518,27 @@ func file_proto_user_user_proto_rawDescGZIP() []byte {
 	return file_proto_user_user_proto_rawDescData
 }
 
-var file_proto_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_proto_user_user_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_user_user_proto_goTypes = []any{
 	(*CredentialsRequest)(nil), // 0: user.CredentialsRequest
 	(*RegisterRequest)(nil),    // 1: user.RegisterRequest
 	(*RegisterResponse)(nil),   // 2: user.RegisterResponse
 	(*UserResponse)(nil),       // 3: user.UserResponse
 	(*EmailRequest)(nil),       // 4: user.EmailRequest
+	(*UserIDRequest)(nil),      // 5: user.UserIDRequest
+	(*UserExistsResponse)(nil), // 6: user.UserExistsResponse
 }
 var file_proto_user_user_proto_depIdxs = []int32{
 	0, // 0: user.UserService.ValidateCredentials:input_type -> user.CredentialsRequest
 	4, // 1: user.UserService.GetUserByEmail:input_type -> user.EmailRequest
 	1, // 2: user.UserService.Register:input_type -> user.RegisterRequest
-	3, // 3: user.UserService.ValidateCredentials:output_type -> user.UserResponse
-	3, // 4: user.UserService.GetUserByEmail:output_type -> user.UserResponse
-	2, // 5: user.UserService.Register:output_type -> user.RegisterResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	5, // 3: user.UserService.ExistsUserByID:input_type -> user.UserIDRequest
+	3, // 4: user.UserService.ValidateCredentials:output_type -> user.UserResponse
+	3, // 5: user.UserService.GetUserByEmail:output_type -> user.UserResponse
+	2, // 6: user.UserService.Register:output_type -> user.RegisterResponse
+	6, // 7: user.UserService.ExistsUserByID:output_type -> user.UserExistsResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -459,7 +555,7 @@ func file_proto_user_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_user_user_proto_rawDesc), len(file_proto_user_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

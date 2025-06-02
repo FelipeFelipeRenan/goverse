@@ -12,6 +12,8 @@ type MemberService interface {
 	AddMember(ctx context.Context, actorID, roomID, userID string, role domain.Role) error
 	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
 	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
+	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+
 	IsUserValid(ctx context.Context, userID string) (bool, error)
 }
 
@@ -54,7 +56,7 @@ func (m *memberService) AddMember(ctx context.Context, actorID string, roomID st
 
 	// verifica se o usuario ja está na sala
 	_, err = m.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err != nil {
+	if err == nil {
 		return domain.ErrMemberAlreadyExists
 	}
 
@@ -141,6 +143,11 @@ func (m *memberService) UpdateMemberRole(ctx context.Context, actorID string, ro
 
 	member.Role = newRole
 	return m.memberRepo.UpdateMemberRole(ctx, roomID, member.UserID, newRole)
+}
+
+// GetRoomMembers implements MemberService.
+func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
+	return m.memberRepo.GetMembers(ctx, roomID)
 }
 
 // IsUserValid implements MemberService.

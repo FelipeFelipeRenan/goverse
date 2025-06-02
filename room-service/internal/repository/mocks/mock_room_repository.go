@@ -11,6 +11,41 @@ type MockRoomRepository struct {
 	mock.Mock
 }
 
+// AddMember implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) AddMember(ctx context.Context, member *domain.RoomMember) error {
+	panic("unimplemented")
+}
+
+// GetMemberByID implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) GetMemberByID(ctx context.Context, roomID string, userID string) (*domain.RoomMember, error) {
+	panic("unimplemented")
+}
+
+// GetMemberRole implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) GetMemberRole(ctx context.Context, roomID string, userID string) (domain.Role, error) {
+	panic("unimplemented")
+}
+
+// GetMembers implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) GetMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
+	panic("unimplemented")
+}
+
+// IsMember implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) IsMember(ctx context.Context, roomID string, userID string) (bool, error) {
+	panic("unimplemented")
+}
+
+// RemoveMember implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) RemoveMember(ctx context.Context, roomID string, userID string) error {
+	panic("unimplemented")
+}
+
+// UpdateMemberRole implements repository.RoomMemberRepository.
+func (m *MockRoomRepository) UpdateMemberRole(ctx context.Context, roomID string, userID string, newRole domain.Role) error {
+	panic("unimplemented")
+}
+
 // ListAll implements repository.RoomRepository.
 func (m *MockRoomRepository) ListAll(ctx context.Context, limit int, offset int) ([]*domain.Room, error) {
 	args := m.Called(ctx, limit, offset)

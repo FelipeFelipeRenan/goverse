@@ -104,3 +104,13 @@ func (s *GRPCHandler) GetUserByEmail(ctx context.Context, req *userpb.EmailReque
 		Picture: user.Picture,
 	}, nil
 }
+
+func (h *GRPCHandler) ExistsUserByID(ctx context.Context, req *userpb.UserIDRequest) (*userpb.UserExistsResponse, error) {
+	exists, err := h.userService.ExistsByID(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "erro ao verificar usuário: %v", err)
+	}
+	return &userpb.UserExistsResponse{
+		Exists: exists,
+	}, nil
+}

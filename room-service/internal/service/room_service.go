@@ -12,11 +12,7 @@ import (
 type RoomService interface {
 	CreateRoom(ctx context.Context, ownerID string, room *domain.Room) (*domain.Room, error)
 	DeleteRoom(ctx context.Context, actorID, roomID string) error
-	AddMember(ctx context.Context, actorID, roomID, userID string, role domain.Role) error
-	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
-	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
 	GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error)
-	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
 	ListRooms(ctx context.Context, limit, offset int, publicOnly bool, keyword string) ([]*domain.Room, error)
 	UpdateRoom(ctx context.Context, actorID string, room *domain.Room) error
 }

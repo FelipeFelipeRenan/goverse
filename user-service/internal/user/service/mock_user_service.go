@@ -11,6 +11,11 @@ type MockUserService struct {
 	mock.Mock
 }
 
+// ExistsByID implements UserService.
+func (m *MockUserService) ExistsByID(ctx context.Context, id string) (bool, error) {
+	panic("unimplemented")
+}
+
 // GetByEmail implements UserService.
 func (m *MockUserService) GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error) {
 	panic("unimplemented")
