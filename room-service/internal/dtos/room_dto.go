@@ -15,13 +15,16 @@ type RoomResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	OwnerID     string `json:"owner_id"`
-	IsPublic    bool   `json:"is_private"`
+	IsPublic    bool   `json:"is_public"`
 	MemberCount int    `json:"member_count"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 }
 
 func FromRoom(room *domain.Room) *RoomResponse {
+	if room == nil {
+		return nil
+	}
 	return &RoomResponse{
 		ID:          room.ID,
 		Name:        room.Name,

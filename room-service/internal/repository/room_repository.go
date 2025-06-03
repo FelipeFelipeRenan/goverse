@@ -44,7 +44,7 @@ func (r *roomRepository) Create(ctx context.Context, room *domain.Room) error {
 	now := time.Now()
 	room.CreatedAt = now
 	room.UpdatedAt = now
-
+	room.DeletedAt = nil
 	err := r.db.QueryRow(ctx, query,
 		room.Name,
 		room.Description,

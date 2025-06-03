@@ -8,7 +8,6 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/dtos"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
-	"github.com/google/uuid"
 )
 
 type RoomHandler struct {
@@ -28,9 +27,9 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID, err := uuid.Parse(req.OwnerID)
-	if err != nil {
-		sendError(w, http.StatusBadRequest, fmt.Sprintf("ID do dono inválido: %v", err))
+	ownerID := req.OwnerID
+	if ownerID == "" {
+		sendError(w, http.StatusBadRequest, "ID do dono inválido")
 		return
 	}
 
@@ -40,8 +39,12 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		IsPublic:    req.IsPublic,
 		MaxMembers:  req.MaxMembers,
 	}
+	if room.MaxMembers <= 0 {
+		room.MaxMembers = 10 // valor padrao para nao quebrar constraint da migração max_members > 0
+	}
 
-	createdRoom, err := h.RoomService.CreateRoom(r.Context(), ownerID.String(), room)
+	room.MemberCount = 1
+	createdRoom, err := h.RoomService.CreateRoom(r.Context(), ownerID, room)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -55,15 +58,20 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 func (h *RoomHandler) GetRoomByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
-	roomID, err := uuid.Parse(idStr)
-	if err != nil {
-		sendError(w, http.StatusBadRequest, fmt.Sprintf("ID de sala inválido: %v", err))
+	roomID := idStr
+	if roomID == "" {
+		sendError(w, http.StatusBadRequest, "ID de sala inválido")
 		return
 	}
 
-	room, err := h.RoomService.GetRoomByID(r.Context(), roomID.String())
+	room, err := h.RoomService.GetRoomByID(r.Context(), roomID)
 	if err != nil {
 		sendError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	if room == nil {
+		sendError(w, http.StatusNotFound, "room not found")
 		return
 	}
 

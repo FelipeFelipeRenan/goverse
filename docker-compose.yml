@@ -14,6 +14,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "${POSTGRES_PORT}:5432"
     networks:
@@ -76,6 +77,24 @@ services:
     environment:
       - GATEWAY_PORT=${GATEWAY_PORT}
       - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - goverse_network
+  room-service:
+    build:
+      context: .
+      dockerfile: ./room-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    volumes:
+      - ./room-service/.env:/app/.env
+    ports:
+      - "${ROOM_SERVICE_PORT}:8082"
+    environment:
+      - ROOM_SERVICE_PORT=${ROOM_SERVICE_PORT}
+      - USER_SERVICE_GRPC_ADDR=user-service:50051
     networks:
       - goverse_network
 
