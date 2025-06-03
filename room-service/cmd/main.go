@@ -1,5 +1,94 @@
 package main
 
-func main() {
+import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	//userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/delivery/routes"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
+	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
+	"github.com/joho/godotenv"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
+
+func main() {
+	logger.Init()
+
+	if err := godotenv.Load(".env"); err != nil {
+		logger.Error.Error("Erro ao carregar .env", "err", err)
+	}
+
+	// Conexão com banco de dados
+	dbPool, err := database.Connect()
+	if err != nil {
+		logger.Error.Error("Erro ao conectar ao banco de dados", "err", err)
+		return
+	}
+	defer dbPool.Close()
+
+	if err := database.RunMigration(dbPool); err != nil {
+		logger.Error.Error("Erro ao rodar migrações", "err", err)
+		return
+	}
+
+	grpc_host := os.Getenv("GRPC_SERVER_HOST")
+	grpc_port := os.Getenv("GRPC_SERVER_PORT")
+	// Conexão com user-service via gRPC
+	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error.Error("falha ao conectar ao user-service: ", "err", err)
+	}
+	defer conn.Close()
+	//userClient := userpb.NewUserServiceClient(userConn)
+
+	// Inicializa repositórios e serviços
+	roomRepo := repository.NewRoomRepository(dbPool)
+	memberRepo := repository.NewRoomMemberRepository(dbPool)
+	roomService := service.NewRoomService(roomRepo, memberRepo)
+	//memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
+
+	// Inicializa handlers e rotas
+	roomHandler := handler.NewRoomHandler(roomService)
+
+	routes.RegisterRoutes(roomHandler)
+
+	port := os.Getenv("ROOM_SERVICE_PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	// Graceful shutdown
+	go func() {
+		logger.Info.Info("Room service rodando na porta " + port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error.Error("Erro ao iniciar servidor HTTP", "err", err)
+		}
+	}()
+
+	// Espera sinal de encerramento (CTRL+C ou kill)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	logger.Info.Info("Encerrando room service...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error.Error("Erro ao encerrar servidor HTTP", "err", err)
+	}
 }

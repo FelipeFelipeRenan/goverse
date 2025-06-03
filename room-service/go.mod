@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/FelipeFelipeRenan/goverse/proto v0.0.0-20250601203113-0fd0ac0298da
 	github.com/jackc/pgx/v5 v5.7.5
+	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.10.0
 	google.golang.org/grpc v1.72.2
 )

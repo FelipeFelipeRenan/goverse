@@ -86,7 +86,7 @@ curl http://localhost:8088/users
 
 Para retornar um usuário pelo seu ID, utilize o comando: 
 ```bash
-curl http://localhost:8088/users/{id do usuario}
+curl http://localhost:8088/users/<id do usuario>
 ```
 
 Para realizar testes de login com senha, utilize o comando: 
@@ -106,7 +106,25 @@ Para realizar o acesso à rotas protegidas, utilize o comando:
 ```
 Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
 
-## Em breve serão implementadas as features relacionadas a criação de salas e bate papo por texto, e também, a possibilidade de gravação de tela e videochamada
+Para criação de salas, utilize o comando:
+
+```bash
+curl -X POST http://localhost:8082/rooms \
+  -H "Content-Type: application/json" \
+  -d '{"owner_id": "<id do dono>",
+    "name": "<nome da sala>",
+    "description": "<descrição da sala>",
+    "is_public": <boleano indicando se a sala é publica ou não>
+  }'
+```
+
+Para verificar retornar uma sala por ID, utilize o comando:
+
+```bash
+curl -X GET http://localhost:8082/rooms/<id da sala>
+```
+
+### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
 
 ## 📄 Licença

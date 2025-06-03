@@ -8,6 +8,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type RoomMemberRepository interface {
@@ -21,10 +22,10 @@ type RoomMemberRepository interface {
 }
 
 type roomMemberRepository struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
-func NewRoomMemberRepository(db *pgx.Conn) RoomMemberRepository {
+func NewRoomMemberRepository(db *pgxpool.Pool) RoomMemberRepository {
 	return &roomMemberRepository{db: db}
 }
 
