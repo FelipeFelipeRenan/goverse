@@ -4,8 +4,10 @@ import "github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 
 type CreateRoomRequest struct {
 	Name        string `json:"name"`
+	OwnerID     string `json:"owner_id"`
 	Description string `json:"description"`
 	IsPublic    bool   `json:"is_public"`
+	MaxMembers  int    `json:"max_members"`
 }
 
 type RoomResponse struct {

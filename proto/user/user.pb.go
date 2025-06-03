@@ -82,7 +82,7 @@ type RegisterRequest struct {
 	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	Picture       string                 `protobuf:"bytes,4,opt,name=picture,proto3" json:"picture,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	IsOauth       bool                   `protobuf:"varint,6,opt,name=is_oauth,json=isOauth,proto3" json:"is_oauth,omitempty"` // <--- campo adicionado
+	IsOauth       bool                   `protobuf:"varint,6,opt,name=is_oauth,json=isOauth,proto3" json:"is_oauth,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
