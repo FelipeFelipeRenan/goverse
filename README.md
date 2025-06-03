@@ -2,6 +2,7 @@
 
 [![Build](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/auth-service-ci.yml/badge.svg)](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/auth-service-ci.yml)
 [![Build](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/user-service-ci.yml/badge.svg)](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/user-service-service-ci.yml)
+[![Build](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/room-service-ci.yml/badge.svg)](https://github.com/FelipeFelipeRenan/goverse/actions/workflows/room-service-service-ci.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/FelipeFelipeRenan/goverse)](https://pkg.go.dev/github.com/FelipeFelipeRenan/goverse)
 
 > Goverse é uma plataforma moderna de comunicação em tempo real inspirada em soluções como Discord e Google Meet, desenvolvida com arquitetura de microsserviços em Go.
@@ -85,7 +86,7 @@ curl http://localhost:8088/users
 
 Para retornar um usuário pelo seu ID, utilize o comando: 
 ```bash
-curl http://localhost:8088/users/{id do usuario}
+curl http://localhost:8088/users/<id do usuario>
 ```
 
 Para realizar testes de login com senha, utilize o comando: 
@@ -103,6 +104,7 @@ Para realizar o acesso à rotas protegidas, utilize o comando:
   curl -X GET http://localhost:8080/user/2 \
   -H "Authorization: Bearer <TOKEN>"    
 ```
+Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
 
 Para criação de salas, utilize o comando:
 
@@ -121,8 +123,6 @@ Para verificar retornar uma sala por ID, utilize o comando:
 ```bash
 curl -X GET http://localhost:8082/rooms/<id da sala>
 ```
-
-Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
 
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
