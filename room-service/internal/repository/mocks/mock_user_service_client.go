@@ -12,6 +12,12 @@ type MockUserServiceClient struct {
 	mock.Mock
 }
 
+// IsUserValid implements client.UserServiceClient.
+func (m *MockUserServiceClient) IsUserValid(ctx context.Context, userID string) (bool, error) {
+	args := m.Called(ctx, userID)
+	return args.Bool(0), args.Error(1)
+}
+
 // ExistsUserByID implements client.UserServiceClient.
 func (m *MockUserServiceClient) ExistsUserByID(ctx context.Context, userID string) (bool, error) {
 	args := m.Called(ctx, userID)

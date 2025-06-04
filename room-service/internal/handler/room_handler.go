@@ -11,12 +11,14 @@ import (
 )
 
 type RoomHandler struct {
-	RoomService service.RoomService
+	RoomService   service.RoomService
+	UserValidator service.UserValidator
 }
 
-func NewRoomHandler(roomService service.RoomService) *RoomHandler {
+func NewRoomHandler(roomService service.RoomService, validator service.UserValidator) *RoomHandler {
 	return &RoomHandler{
-		RoomService: roomService,
+		RoomService:   roomService,
+		UserValidator: validator,
 	}
 }
 
@@ -30,6 +32,15 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 	ownerID := req.OwnerID
 	if ownerID == "" {
 		sendError(w, http.StatusBadRequest, "ID do dono inválido")
+		return
+	}
+	valid, err := h.UserValidator.IsUserValid(r.Context(), ownerID)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao validar o usuário: %v", err))
+		return
+	}
+	if !valid {
+		sendError(w, http.StatusBadRequest, "owner_id inválido")
 		return
 	}
 

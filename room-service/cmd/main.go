@@ -9,6 +9,7 @@ import (
 	"time"
 
 	//userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/delivery/routes"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
@@ -48,7 +49,7 @@ func main() {
 		logger.Error.Error("falha ao conectar ao user-service: ", "err", err)
 	}
 	defer conn.Close()
-	//userClient := userpb.NewUserServiceClient(userConn)
+	userClient := client.NewUserServiceClient(conn)
 
 	// Inicializa repositórios e serviços
 	roomRepo := repository.NewRoomRepository(dbPool)
@@ -57,7 +58,7 @@ func main() {
 	//memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
 
 	// Inicializa handlers e rotas
-	roomHandler := handler.NewRoomHandler(roomService)
+	roomHandler := handler.NewRoomHandler(roomService, userClient)
 
 	routes.RegisterRoutes(roomHandler)
 
