@@ -2,9 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/dtos"
@@ -130,6 +132,70 @@ func (h *RoomHandler) ListPublicRooms(w http.ResponseWriter, r *http.Request) {
 
 	sendResponse(w, http.StatusOK, rooms)
 
+}
+
+func (h *RoomHandler) UpdateRoom(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	roomID := r.PathValue("id")
+	if roomID == "" {
+		sendError(w, http.StatusBadRequest, "room_id é obrigatorio")
+		return
+	}
+
+	// Extrair userID do contexto ou header
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		sendError(w, http.StatusUnauthorized, "Falta user ID")
+		return
+	}
+
+	var req struct {
+		Name        *string `json:"name,omitempty"`
+		Description *string `json:"description,omitempty"`
+		IsPublic    *bool   `json:"is_public,omitempty"`
+		MaxMembers  *int    `json:"max_members,omitempty"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendError(w, http.StatusBadRequest, "Corpo de requisição inválido")
+		return
+	}
+
+	existingRoom, err := h.RoomService.GetRoomByID(ctx, roomID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRoomNotFound) {
+			sendError(w, http.StatusNotFound, "Sala não encontrada")
+			return
+		}
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao buscar sala: %v", err))
+		return
+	}
+
+	// Merge dos campos atualizaveis, apenas os fornecidos
+	if req.Name != nil {
+		existingRoom.Name = *req.Name
+	}
+	if req.Description != nil {
+		existingRoom.Description = *req.Description
+	}
+	if req.IsPublic != nil {
+		existingRoom.IsPublic = *req.IsPublic
+	}
+	if req.MaxMembers != nil {
+		existingRoom.MaxMembers = *req.MaxMembers
+	}
+
+	if err := h.RoomService.UpdateRoom(ctx, userID, existingRoom); err != nil {
+		if strings.Contains(err.Error(), "não tem permissão") {
+			sendError(w, http.StatusForbidden, "Sem permissão para editar esta sala")
+			return
+		}
+		sendError(w, http.StatusInternalServerError, "Erro ao atualizar sala")
+		return
+	}
+
+	sendResponse(w, http.StatusOK, existingRoom)
 }
 
 func sendError(w http.ResponseWriter, statusCode int, message string) {

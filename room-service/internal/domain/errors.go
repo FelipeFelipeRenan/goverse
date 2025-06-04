@@ -9,4 +9,6 @@ var (
 	ErrCannotRemoveOwner     = errors.New("não é possível remover o dono da sala")
 	ErrCannotUpdateOwnerRole = errors.New("não é possível alterar a role do dono da sala")
 	ErrMemberNotFound        = errors.New("membro não encontrado")
+	ErrForbidden             = errors.New("forbidden")
+	ErrRoomNotFound          = errors.New("room not found")
 )

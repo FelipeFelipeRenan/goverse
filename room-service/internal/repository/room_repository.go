@@ -77,7 +77,7 @@ func (r *roomRepository) Update(ctx context.Context, room *domain.Room) error {
 	query := `
 		UPDATE rooms
 		SET name = $1, description = $2, is_public = $3, member_count = $4, max_members = $5, updated_at = $6
-		WHERE id = $5 AND deleted_at IS NULL
+		WHERE id = $7 AND deleted_at IS NULL
 	`
 
 	_, err := r.db.Exec(ctx, query,
@@ -264,7 +264,7 @@ func (r *roomRepository) IncrementMemberCount(ctx context.Context, roomID string
 // ListAll implements RoomRepository.
 func (r *roomRepository) ListAll(ctx context.Context, limit int, offset int) ([]*domain.Room, error) {
 	query := `
-        SELECT id, name, description, owner_id, is_public, member_count, created_at, updated_at
+        SELECT id, name, description, owner_id, is_public, member_count, max_members created_at, updated_at
         FROM rooms
         WHERE deleted_at IS NULL
         ORDER BY created_at DESC
@@ -289,6 +289,7 @@ func (r *roomRepository) ListAll(ctx context.Context, limit int, offset int) ([]
 			&room.OwnerID,
 			&room.IsPublic,
 			&room.MemberCount,
+			&room.MaxMembers,
 			&room.CreatedAt,
 			&room.UpdatedAt,
 		)
