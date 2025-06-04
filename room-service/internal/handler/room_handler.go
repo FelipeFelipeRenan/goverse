@@ -98,7 +98,7 @@ func (h *RoomHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao deletar sala: %v", err))
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	sendResponse(w, http.StatusOK, roomID)
 }
 
 func (h *RoomHandler) GetRoomByID(w http.ResponseWriter, r *http.Request) {
