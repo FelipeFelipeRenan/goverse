@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/dtos"
@@ -89,6 +90,46 @@ func (h *RoomHandler) GetRoomByID(w http.ResponseWriter, r *http.Request) {
 	resp := dtos.FromRoom(room)
 
 	sendResponse(w, http.StatusOK, resp)
+}
+
+func (h *RoomHandler) ListPublicRooms(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	limit := 10 // valor default
+	offset := 0
+	publicOnly := true
+	keyword := ""
+
+	// parse do limite
+	if l := r.URL.Query().Get("limit"); l != "" {
+		if v, err := strconv.Atoi(l); err == nil && v > 0 {
+			limit = v
+		}
+	}
+
+	// parse do offset
+	if o := r.URL.Query().Get("offset"); o != "" {
+		if v, err := strconv.Atoi(o); err == nil && v >= 0 {
+			offset = v
+		}
+	}
+
+	// parse do publicOnly
+	if p := r.URL.Query().Get("public_only"); p != "" {
+		publicOnly = (p == "true" || p == "1")
+	}
+
+	// parse do keyword
+	keyword = r.URL.Query().Get("keyword")
+
+	rooms, err := h.RoomService.ListRooms(ctx, limit, offset, publicOnly, keyword)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao listar salas: %v", err))
+		return
+	}
+
+	sendResponse(w, http.StatusOK, rooms)
+
 }
 
 func sendError(w http.ResponseWriter, statusCode int, message string) {
