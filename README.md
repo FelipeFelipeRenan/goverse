@@ -124,6 +124,11 @@ Para verificar retornar uma sala por ID, utilize o comando:
 ```bash
 curl -X GET http://localhost:8082/rooms/<id da sala>
 ```
+Para listar todas as salas, junto com ulitização de filtros, utilize o comando:
+```bash
+ curl "http://localhost:8082/rooms?limit=<numero de salas>&offset=<numero de salas puladas >&public_only=<true ou false>&keyword=<palavra chave da sala>"
+```
+Caso deseje, basta omitir o filtro
 
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
