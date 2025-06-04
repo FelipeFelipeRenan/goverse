@@ -130,6 +130,25 @@ Para listar todas as salas, junto com ulitização de filtros, utilize o comando
 ```
 Caso deseje, basta omitir o filtro
 
+Para atualizar informações de uma sala, utilize o comando:
+```bash
+curl -X PATCH http://localhost:8082/rooms/3 
+  -H "Content-Type: application/json" 
+  -H "X-User-ID: 1"
+    -d '{
+      "name": "<novo nome>",
+      "description": "<nova descrição>"
+       }'
+```
+Podem ser adicionados outros campos para ser modificado, como o is_public, ou omitido os que desejar não atualizar
+
+Para deletar uma sala, utilize o comando
+```bash
+  curl -X DELETE http://localhost:8082/rooms/<id da sala> \
+  -H "X-User-ID: <id do dono da sala>"
+
+```
+
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
 
