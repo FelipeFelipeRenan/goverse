@@ -69,54 +69,6 @@ func (r *roomService) DeleteRoom(ctx context.Context, actorID string, roomID str
 	return r.roomRepo.Delete(ctx, roomID)
 }
 
-// AddMember implements RoomService.
-func (r *roomService) AddMember(ctx context.Context, actorID string, roomID string, userID string, role domain.Role) error {
-
-	existingMember, err := r.memberRepo.IsMember(ctx, roomID, userID)
-	if err != nil && existingMember {
-		return fmt.Errorf("usuario %s já é membro da sala %s", userID, roomID)
-	}
-	member := &domain.RoomMember{
-		RoomID:   roomID,
-		UserID:   userID,
-		Role:     role,
-		JoinedAt: time.Now(),
-	}
-	err = r.memberRepo.AddMember(ctx, member)
-	if err != nil {
-		return err
-	}
-
-	return r.roomRepo.IncrementMemberCount(ctx, roomID, 1)
-}
-
-// UpdateMemberRole implements RoomService.
-func (r *roomService) UpdateMemberRole(ctx context.Context, actorID string, roomID string, userID string, newRole domain.Role) error {
-
-	// verifica se actor é membro da sala
-	actor, err := r.memberRepo.GetMemberByID(ctx, roomID, actorID)
-	if err != nil {
-		return fmt.Errorf("usuario %s não é membro da sala", actorID)
-	}
-
-	// verifica se actor tem permissão
-	if actor.Role != domain.RoleOwner && actor.Role != domain.RoleAdmin {
-		return fmt.Errorf("usuario %s não tem permissão para alterar cargos", actorID)
-	}
-
-	// Evita que se mude o cargo do owner
-	target, err := r.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err != nil {
-		return fmt.Errorf("usuario %s não é membro da sala", userID)
-	}
-	if target.Role == domain.RoleOwner {
-		return fmt.Errorf("não é possivel alterar o cargo do dono da sala")
-	}
-
-	// atualiza a role do membro
-	return r.memberRepo.UpdateMemberRole(ctx, roomID, userID, newRole)
-}
-
 // GetRoom implements RoomService.
 func (r *roomService) GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error) {
 	room, err := r.roomRepo.GetByID(ctx, roomID)
@@ -129,42 +81,6 @@ func (r *roomService) GetRoomByID(ctx context.Context, roomID string) (*domain.R
 // GetRoomMembers implements RoomService.
 func (r *roomService) GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
 	return r.memberRepo.GetMembers(ctx, roomID)
-}
-
-// RemoveMember implements RoomService.
-func (r *roomService) RemoveMember(ctx context.Context, actorID string, roomID string, userID string) error {
-
-	actor, err := r.memberRepo.GetMemberByID(ctx, roomID, actorID)
-	if err != nil {
-		return fmt.Errorf("usuario %s não é membro da sala", actorID)
-	}
-
-	// busca o alvo da remoção
-	target, err := r.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err != nil {
-		return fmt.Errorf("usuario não é membro da sala")
-	}
-
-	// verifica as permissões
-	switch actor.Role {
-	case domain.RoleOwner:
-		if target.UserID == actor.UserID {
-			return fmt.Errorf("O dono da sala não pode se remover")
-		}
-	case domain.RoleAdmin:
-		if target.Role == domain.RoleAdmin || target.Role == domain.RoleOwner {
-			return fmt.Errorf("admins não podem remover outros admins ou o dono")
-		}
-	default:
-		return fmt.Errorf("usuario %s não tem permissão para remover membros", actorID)
-
-	}
-	err = r.memberRepo.RemoveMember(ctx, roomID, userID)
-	if err != nil {
-		return err
-	}
-	return r.roomRepo.IncrementMemberCount(ctx, roomID, -1)
-
 }
 
 // ListRooms implements RoomService.

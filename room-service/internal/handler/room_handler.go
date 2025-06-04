@@ -70,6 +70,37 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *RoomHandler) DeleteRoom(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	roomID := r.PathValue("id")
+	if roomID == "" {
+		sendError(w, http.StatusBadRequest, "room_id é obrigatório")
+		return
+	}
+
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		sendError(w, http.StatusUnauthorized, "Falta user ID")
+		return
+	}
+
+	err := h.RoomService.DeleteRoom(ctx, userID, roomID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRoomNotFound) {
+			sendError(w, http.StatusNotFound, "Sala não encontrada")
+			return
+		}
+		if strings.Contains(err.Error(), "somente o dono") {
+			sendError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao deletar sala: %v", err))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *RoomHandler) GetRoomByID(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	roomID := idStr
@@ -94,7 +125,7 @@ func (h *RoomHandler) GetRoomByID(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, http.StatusOK, resp)
 }
 
-func (h *RoomHandler) ListPublicRooms(w http.ResponseWriter, r *http.Request) {
+func (h *RoomHandler) ListRooms(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	limit := 10 // valor default
