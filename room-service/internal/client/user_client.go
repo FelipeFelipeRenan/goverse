@@ -10,6 +10,7 @@ import (
 
 type UserServiceClient interface {
 	ExistsUserByID(ctx context.Context, userID string) (bool, error)
+	IsUserValid(ctx context.Context, userID string) (bool, error)
 }
 
 type userServiceClient struct {
@@ -29,4 +30,8 @@ func (u *userServiceClient) ExistsUserByID(ctx context.Context, userID string) (
 		return false, fmt.Errorf("erro ao verificar existencia do usuário: %w", err)
 	}
 	return resp.GetExists(), nil
+}
+
+func (c *userServiceClient) IsUserValid(ctx context.Context, userID string) (bool, error) {
+	return c.ExistsUserByID(ctx, userID)
 }
