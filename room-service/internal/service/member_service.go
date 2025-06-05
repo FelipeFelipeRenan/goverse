@@ -13,6 +13,7 @@ type MemberService interface {
 	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
 	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
 	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+	JoinRoom(ctx context.Context, roomId, userID, inviteToken string) error
 
 	IsUserValid(ctx context.Context, userID string) (bool, error)
 }
@@ -153,4 +154,37 @@ func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*d
 // IsUserValid implements MemberService.
 func (m *memberService) IsUserValid(ctx context.Context, userID string) (bool, error) {
 	return m.userClient.ExistsUserByID(ctx, userID)
+}
+
+func (m *memberService) JoinRoom(ctx context.Context, roomID, userID, inviteToken string) error {
+
+	member, _ := m.memberRepo.GetMemberByID(ctx, roomID, userID)
+	if member != nil {
+		return nil
+	}
+
+	exists, err := m.userClient.ExistsUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return domain.ErrUserNotFound
+	}
+
+	room, err := m.roomRepo.GetByID(ctx, roomID)
+	if err != nil {
+		return err
+	}
+	if !room.IsPublic && inviteToken == "" {
+		return domain.ErrForbidden
+	}
+
+	role := "guest"
+	if inviteToken != "" {
+		role = "moderator"
+	}
+
+	return m.memberRepo.AddMember(ctx, &domain.RoomMember{
+		RoomID: roomID, UserID: userID, Role: domain.Role(role),
+	})
 }
