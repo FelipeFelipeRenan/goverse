@@ -55,12 +55,12 @@ func main() {
 	roomRepo := repository.NewRoomRepository(dbPool)
 	memberRepo := repository.NewRoomMemberRepository(dbPool)
 	roomService := service.NewRoomService(roomRepo, memberRepo)
-	//memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
+	memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
 
 	// Inicializa handlers e rotas
 	roomHandler := handler.NewRoomHandler(roomService, userClient)
-
-	routes.RegisterRoutes(roomHandler)
+	memberHandler := handler.NewMemberHandler(memberService)
+	routes.RegisterRoutes(roomHandler, memberHandler)
 
 	port := os.Getenv("ROOM_SERVICE_PORT")
 	if port == "" {
