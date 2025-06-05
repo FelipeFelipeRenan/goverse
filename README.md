@@ -148,6 +148,36 @@ Para deletar uma sala, utilize o comando
   -H "X-User-ID: <id do dono da sala>"
 
 ```
+Para mostrar todos os membros de uma sala, utilize o comando:
+```bash
+curl -X GET http://localhost:8082/rooms/<id da sala>/members \
+```
+
+Para adicionar um membro a sala, utilize o comando: 
+```bash
+  curl -X POST http://localhost:8082/rooms/<id da sala>/members \
+    -H "X-User-ID: <id do dono da sala>" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "user_id": "<id do usuario>",
+        "role": "<role>"
+      }'
+```
+
+Para deletar um membro da sala, utilize o comando: 
+
+```bash
+curl -X DELETE http://localhost:8082/rooms/<id da sala>/members/<id do membro> \
+  -H "X-User-ID: <id do dono da sala>"
+```
+Para mudar a role de um membro, utilize o comando: 
+```bash
+ curl -X PUT http://localhost:8082/rooms/<id da sala>/members/<id do membro>/role \
+  -H "X-User-ID: <id do dono da sala>" \
+  -H "Content-Type: application/json" \
+  -d '{ "new_role": "<role>" }'
+
+```
 
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
