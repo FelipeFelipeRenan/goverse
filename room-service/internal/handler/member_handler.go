@@ -86,17 +86,15 @@ func (h *MemberHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 	sendResponse(w, http.StatusOK, members)
 }
 
-// func sendError(w http.ResponseWriter, statusCode int, message string) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(statusCode)
-// 	json.NewEncoder(w).Encode(map[string]string{"error": message})
-// }
+func (h *MemberHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
+	roomID := r.PathValue("roomID")
+	userID := r.Header.Get("X-User-ID")
+	invite := r.URL.Query().Get("invite")
 
-// func sendResponse(w http.ResponseWriter, statusCode int, data interface{}) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(statusCode)
+	if err := h.memberService.JoinRoom(r.Context(), roomID, userID, invite); err != nil {
+		sendError(w, http.StatusForbidden, fmt.Sprintf("Não foi possivel entrar na sala: %v", err))
+		return
+	}
 
-// 	if data != nil {
-// 		json.NewEncoder(w).Encode(data)
-// 	}
-// }
+	sendResponse(w, http.StatusOK, map[string]string{"message": "Entrada bem-sucedida"})
+}
