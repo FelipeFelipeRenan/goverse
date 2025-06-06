@@ -2,7 +2,6 @@ package jwtutils
 
 import (
 	"errors"
-	"log"
 	"os"
 	"time"
 
@@ -20,8 +19,6 @@ func ValidateToken(tokenString string) (*CustomClaims, error) {
 	if secret == "" {
 		return nil, errors.New("JWT_SECRET não configurado no ambiente")
 	}
-
-	log.Println("JWT_SECRET =", os.Getenv("JWT_SECRET"))
 
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (any, error) {
 		return []byte(secret), nil

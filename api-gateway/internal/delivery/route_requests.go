@@ -18,11 +18,27 @@ type Route struct {
 }
 
 var routes = []Route{
+	// Users
 	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true, Public: false},
 	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080", Public: true},
 	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080", Public: true},
+
+	// Rooms
+	{Method: http.MethodPost, Path: "/rooms", Target: "http://room-service:8082", Public: true},                  // exato
+	{Method: http.MethodGet, Path: "/rooms", Target: "http://room-service:8082", Public: true},                   // exato
+	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},    // para /rooms/{id}
+	{Method: http.MethodPatch, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},  // para /rooms/{id}
+	{Method: http.MethodDelete, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true}, // para /rooms/{id}
+
+	// Membros
+	{Method: http.MethodPost, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},   // cobre /rooms/{roomID}/join
+	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},    // cobre /rooms/{roomID}/members
+	{Method: http.MethodPost, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},   // cobre /rooms/{roomID}/members
+	{Method: http.MethodPut, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},    // cobre /rooms/{roomID}/members/{memberID}/role
+	{Method: http.MethodDelete, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true}, // cobre /rooms/{roomID}/members/{memberID}
+
 }
 
 func RouteRequest(w http.ResponseWriter, r *http.Request) {

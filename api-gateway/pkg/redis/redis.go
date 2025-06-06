@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 
-	//"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -19,6 +18,6 @@ func Init() {
 	ctx := context.Background()
 
 	if err := Client.Ping(ctx).Err(); err != nil {
-		logger.Error.Info("Erro no redis", "err", err)
+		logger.Error.Error("Erro no redis", "err", err)
 	}
 }
