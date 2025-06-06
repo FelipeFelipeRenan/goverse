@@ -37,7 +37,7 @@ func main() {
 
 	err := godotenv.Load(".env")
 	if err != nil {
-		logger.Error.Info("Erro ao carregar o .env", "err", err)
+		logger.Error.Error("Erro ao carregar o .env", "err", err)
 	}
 
 	logger.Init()
@@ -66,6 +66,6 @@ func main() {
 
 	logger.Info.Info("API Gateway rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		logger.Error.Info("Erro ao iniciar o API Gateway", "err", err)
+		logger.Error.Error("Erro ao iniciar o API Gateway", "err", err)
 	}
 }

@@ -1,5 +1,27 @@
 basePath: /
 definitions:
+  swagger.AddMemberRequest:
+    properties:
+      role:
+        example: member
+        type: string
+      user_id:
+        example: 3
+        type: integer
+    required:
+    - user_id
+    type: object
+  swagger.CreateRoomRequest:
+    properties:
+      description:
+        example: Sala para estudo de algoritmos
+        type: string
+      name:
+        example: Sala de Estudos
+        type: string
+    required:
+    - name
+    type: object
   swagger.CreateUserRequest:
     properties:
       email:
@@ -24,6 +46,65 @@ definitions:
   swagger.LoginResponse:
     properties:
       token:
+        type: string
+    type: object
+  swagger.MemberResponse:
+    properties:
+      id:
+        example: 5
+        type: integer
+      joined_at:
+        example: "2025-06-05T20:00:00Z"
+        type: string
+      role:
+        example: admin
+        type: string
+      room_id:
+        example: 1
+        type: integer
+      user_id:
+        example: 2
+        type: integer
+      username:
+        example: joaogate
+        type: string
+    type: object
+  swagger.RoomResponse:
+    properties:
+      created_at:
+        example: "2025-06-06T18:30:00Z"
+        type: string
+      description:
+        example: Sala para estudo de algoritmos
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: Sala de Estudos
+        type: string
+      owner_id:
+        example: 1
+        type: integer
+      updated_at:
+        example: "2025-06-06T19:00:00Z"
+        type: string
+    type: object
+  swagger.UpdateRoleRequest:
+    properties:
+      role:
+        example: admin
+        type: string
+    required:
+    - role
+    type: object
+  swagger.UpdateRoomRequest:
+    properties:
+      description:
+        example: Descrição atualizada
+        type: string
+      name:
+        example: Sala Atualizada
         type: string
     type: object
   swagger.UserResponse:
@@ -79,6 +160,276 @@ paths:
       summary: Login
       tags:
       - Auth
+  /rooms:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/swagger.RoomResponse'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Listar salas
+      tags:
+      - Room
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dados da nova sala
+        in: body
+        name: room
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.CreateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/swagger.RoomResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Criar nova sala
+      tags:
+      - Room
+  /rooms/{id}:
+    delete:
+      parameters:
+      - description: ID da sala
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Sala excluída
+          schema:
+            type: string
+        "404":
+          description: Sala não encontrada
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Excluir sala
+      tags:
+      - Room
+    get:
+      parameters:
+      - description: ID da sala
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.RoomResponse'
+        "404":
+          description: Sala não encontrada
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Buscar sala por ID
+      tags:
+      - Room
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID da sala
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Dados atualizados da sala
+        in: body
+        name: room
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.UpdateRoomRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.RoomResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar sala
+      tags:
+      - Room
+  /rooms/{roomID}/join:
+    post:
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID da sala
+        in: path
+        name: roomID
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MemberResponse'
+        "403":
+          description: Acesso negado
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Entrar em uma sala
+      tags:
+      - Member
+  /rooms/{roomID}/members:
+    get:
+      parameters:
+      - description: ID da sala
+        in: path
+        name: roomID
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/swagger.MemberResponse'
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Listar membros da sala
+      tags:
+      - Member
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID da sala
+        in: path
+        name: roomID
+        required: true
+        type: integer
+      - description: Dados do membro
+        in: body
+        name: member
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.AddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/swagger.MemberResponse'
+        "400":
+          description: Dados inválidos
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Adicionar membro à sala
+      tags:
+      - Member
+  /rooms/{roomID}/members/{memberID}:
+    delete:
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID da sala
+        in: path
+        name: roomID
+        required: true
+        type: integer
+      - description: ID do membro
+        in: path
+        name: memberID
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Removido com sucesso
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Remover membro da sala
+      tags:
+      - Member
+  /rooms/{roomID}/members/{memberID}/role:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: ID da sala
+        in: path
+        name: roomID
+        required: true
+        type: integer
+      - description: ID do membro
+        in: path
+        name: memberID
+        required: true
+        type: integer
+      - description: Novo papel
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.UpdateRoleRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.MemberResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Atualizar papel do membro
+      tags:
+      - Member
   /user:
     post:
       consumes:

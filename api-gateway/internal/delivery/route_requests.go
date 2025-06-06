@@ -2,10 +2,9 @@ package delivery
 
 import (
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strings"
 
+	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/proxy"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 )
 
@@ -18,11 +17,25 @@ type Route struct {
 }
 
 var routes = []Route{
+	// Users
 	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true, Public: false},
 	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080", Public: true},
 	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080", Public: true},
+
+	// Membros (ordem importa!)
+	{Method: http.MethodPut, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},    // /rooms/{roomID}/members/{memberID}/role
+	{Method: http.MethodDelete, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true}, // /rooms/{roomID}/members/{memberID}
+	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},    // /rooms/{roomID}/members
+	{Method: http.MethodPost, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},   // /rooms/{roomID}/members
+
+	// Salas
+	{Method: http.MethodPatch, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},
+	{Method: http.MethodDelete, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},
+	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},
+	{Method: http.MethodPost, Path: "/rooms", Target: "http://room-service:8082", Public: false},
+	{Method: http.MethodGet, Path: "/rooms", Target: "http://room-service:8082", Public: true},
 }
 
 func RouteRequest(w http.ResponseWriter, r *http.Request) {
@@ -55,12 +68,9 @@ func RouteRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(&url.URL{
-		Scheme: "http",
-		Host:   strings.TrimPrefix(target, "http://"),
-	})
+	proxyHandler := proxy.NewReverseProxy(target)
 
-	handler := http.Handler(proxy)
+	handler := http.Handler(proxyHandler)
 
 	// Apenas rotas privadas passam pelo middleware de autenticação
 	if !isPublic {
