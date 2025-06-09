@@ -20,7 +20,7 @@ func RegisterRoutes(roomHandler *handler.RoomHandler, memberHandler *handler.Mem
 	http.HandleFunc("POST /rooms/{roomID}/join", middleware.LoggingMiddleware(memberHandler.JoinRoom))
 
 	http.HandleFunc("GET /rooms/{roomID}/members", middleware.LoggingMiddleware(memberHandler.ListMembers))
-	http.HandleFunc("GET /users/rooms", middleware.LoggingMiddleware(memberHandler.GetRoomsByUserID))
+	http.HandleFunc("GET /user/rooms", middleware.LoggingMiddleware(memberHandler.GetRoomsByUserID))
 	http.HandleFunc("GET /rooms/mine", middleware.LoggingMiddleware(memberHandler.GetRoomsOwnedByUser))
 
 	http.HandleFunc("POST /rooms/{roomID}/members", middleware.LoggingMiddleware(memberHandler.AddMember))
