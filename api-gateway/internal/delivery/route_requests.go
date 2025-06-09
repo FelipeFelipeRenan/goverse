@@ -39,8 +39,8 @@ var routes = []Route{
 	{Method: http.MethodGet, Path: "/rooms", Target: "http://room-service:8082", Public: true},
 
 	// Listar salas de um usuário
-	{Method: http.MethodGet, Path: "/users/rooms", Target: "http://room-service:8082", Public: false, Prefix: true}, // cobre /users/rooms
-	{Method: http.MethodGet, Path: "/rooms/mine", Target: "http://room-service:8082", Public: false, Prefix: true},  // cobre /users/mine
+	{Method: http.MethodGet, Path: "/user/rooms", Target: "http://room-service:8082", Public: false, Prefix: true}, // cobre /user/rooms
+	{Method: http.MethodGet, Path: "/rooms/mine", Target: "http://room-service:8082", Public: false, Prefix: true}, // cobre /users/mine
 
 }
 

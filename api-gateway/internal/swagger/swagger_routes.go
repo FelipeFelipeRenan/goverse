@@ -170,7 +170,7 @@ func SwaggerRemoveMember(w http.ResponseWriter, r *http.Request) {}
 // @Success 200 {array} RoomResponse
 // @Failure 401 {string} string "Não autorizado"
 // @Failure 500 {string} string "Erro interno"
-// @Router /users/rooms [get]
+// @Router /user/rooms [get]
 func SwaggerGetRoomsByUserIDPlaceholder(w http.ResponseWriter, r *http.Request) {}
 
 // GetOwnedRooms godoc
