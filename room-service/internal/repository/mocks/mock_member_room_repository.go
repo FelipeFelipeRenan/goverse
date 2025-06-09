@@ -11,6 +11,16 @@ type MockRoomMemberRepository struct {
 	mock.Mock
 }
 
+// GetRoomsByOwnerID implements repository.RoomMemberRepository.
+func (m *MockRoomMemberRepository) GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	panic("unimplemented")
+}
+
+// GetRoomsByUserID implements repository.RoomMemberRepository.
+func (m *MockRoomMemberRepository) GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	panic("unimplemented")
+}
+
 func (m *MockRoomMemberRepository) AddMember(ctx context.Context, member *domain.RoomMember) error {
 	args := m.Called(ctx, member)
 	return args.Error(0)

@@ -430,6 +430,38 @@ paths:
       summary: Atualizar papel do membro
       tags:
       - Member
+  /rooms/mine:
+    get:
+      description: Retorna todas as salas onde o usuário autenticado é o proprietário
+        (owner_id)
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de salas
+          schema:
+            items:
+              $ref: '#/definitions/swagger.RoomResponse'
+            type: array
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+        "500":
+          description: Erro interno no servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Listar salas criadas pelo usuário autenticado
+      tags:
+      - Room
   /user:
     post:
       consumes:
@@ -500,6 +532,37 @@ paths:
       summary: Listar todos os usuários
       tags:
       - User
+  /users/rooms:
+    get:
+      description: Retorna todas as salas das quais o usuário participa
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/swagger.RoomResponse'
+            type: array
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+        "500":
+          description: Erro interno
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Listar salas na qual um usuário é membro
+      tags:
+      - Room
 securityDefinitions:
   ApiKeyAuth:
     in: header

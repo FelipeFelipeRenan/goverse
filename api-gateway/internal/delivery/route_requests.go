@@ -29,6 +29,7 @@ var routes = []Route{
 	{Method: http.MethodDelete, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true}, // /rooms/{roomID}/members/{memberID}
 	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},    // /rooms/{roomID}/members
 	{Method: http.MethodPost, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},   // /rooms/{roomID}/members
+	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},
 
 	// Salas
 	{Method: http.MethodPatch, Path: "/rooms/", Target: "http://room-service:8082", Public: false, Prefix: true},
@@ -36,6 +37,11 @@ var routes = []Route{
 	{Method: http.MethodGet, Path: "/rooms/", Target: "http://room-service:8082", Public: true, Prefix: true},
 	{Method: http.MethodPost, Path: "/rooms", Target: "http://room-service:8082", Public: false},
 	{Method: http.MethodGet, Path: "/rooms", Target: "http://room-service:8082", Public: true},
+
+	// Listar salas de um usuário
+	{Method: http.MethodGet, Path: "/users/rooms", Target: "http://room-service:8082", Public: false, Prefix: true}, // cobre /users/rooms
+	{Method: http.MethodGet, Path: "/rooms/mine", Target: "http://room-service:8082", Public: false, Prefix: true},  // cobre /users/mine
+
 }
 
 func RouteRequest(w http.ResponseWriter, r *http.Request) {

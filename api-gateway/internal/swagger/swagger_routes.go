@@ -159,3 +159,29 @@ func SwaggerUpdateMemberRole(w http.ResponseWriter, r *http.Request) {}
 // @Success 204 {string} string "Removido com sucesso"
 // @Router /rooms/{roomID}/members/{memberID} [delete]
 func SwaggerRemoveMember(w http.ResponseWriter, r *http.Request) {}
+
+// GetRoomsByUserID godoc
+// @Summary Listar salas na qual um usuário é membro
+// @Description Retorna todas as salas das quais o usuário participa
+// @Tags Room
+// @Security ApiKeyAuth
+// @Produce json
+// @Param Authorization header string true "Token de autenticação (Bearer token)"
+// @Success 200 {array} RoomResponse
+// @Failure 401 {string} string "Não autorizado"
+// @Failure 500 {string} string "Erro interno"
+// @Router /users/rooms [get]
+func SwaggerGetRoomsByUserIDPlaceholder(w http.ResponseWriter, r *http.Request) {}
+
+// GetOwnedRooms godoc
+// @Summary Listar salas criadas pelo usuário autenticado
+// @Description Retorna todas as salas onde o usuário autenticado é o proprietário (owner_id)
+// @Tags Room
+// @Security ApiKeyAuth
+// @Param Authorization header string true "Token de autenticação (Bearer token)"
+// @Produce json
+// @Success 200 {array} RoomResponse "Lista de salas"
+// @Failure 401 {string} string "Não autorizado"
+// @Failure 500 {string} string "Erro interno no servidor"
+// @Router /rooms/mine [get]
+func SwaggerGetOwnedRoomsPlaceholder(w http.ResponseWriter, r *http.Request) {}

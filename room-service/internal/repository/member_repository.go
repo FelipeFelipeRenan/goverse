@@ -18,6 +18,8 @@ type RoomMemberRepository interface {
 	GetMemberByID(ctx context.Context, roomID, userID string) (*domain.RoomMember, error)
 	GetMemberRole(ctx context.Context, roomID, userID string) (domain.Role, error)
 	UpdateMemberRole(ctx context.Context, roomID, userID string, newRole domain.Role) error
+	GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
+	GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error)
 	IsMember(ctx context.Context, roomID, userID string) (bool, error)
 }
 
@@ -141,6 +143,30 @@ func (r *roomMemberRepository) UpdateMemberRole(ctx context.Context, roomID stri
 	return nil
 }
 
+func (r *roomMemberRepository) GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT r.id, r.owner_id, r.name, r.description, r.member_count, r.max_members, r.created_at, r.updated_at
+		FROM rooms r
+		INNER JOIN room_members rm ON rm.room_id = r.id
+		WHERE rm.user_id = $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []*domain.Room
+	for rows.Next() {
+		var room domain.Room
+		if err := rows.Scan(&room.ID, &room.OwnerID, &room.Name, &room.Description, &room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, &room)
+	}
+
+	return rooms, nil
+}
+
 // IsMember implements RoomMemberRepository.
 func (r *roomMemberRepository) IsMember(ctx context.Context, roomID string, userID string) (bool, error) {
 	query := `SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2`
@@ -154,4 +180,27 @@ func (r *roomMemberRepository) IsMember(ctx context.Context, roomID string, user
 		return false, err
 	}
 	return true, nil
+}
+
+func (r *roomMemberRepository) GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, owner_id, name, description, member_count, max_members, created_at, updated_at
+		FROM rooms
+		WHERE owner_id = $1
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []*domain.Room
+	for rows.Next() {
+		var room domain.Room
+		if err := rows.Scan(&room.ID, &room.OwnerID, &room.Name, &room.Description, &room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, &room)
+	}
+
+	return rooms, nil
 }

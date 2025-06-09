@@ -13,6 +13,9 @@ type MemberService interface {
 	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
 	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
 	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+	GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
+	GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error)
+
 	JoinRoom(ctx context.Context, roomId, userID, inviteToken string) error
 
 	IsUserValid(ctx context.Context, userID string) (bool, error)
@@ -187,4 +190,13 @@ func (m *memberService) JoinRoom(ctx context.Context, roomID, userID, inviteToke
 	return m.memberRepo.AddMember(ctx, &domain.RoomMember{
 		RoomID: roomID, UserID: userID, Role: domain.Role(role),
 	})
+}
+
+// GetRoomsByUserID implements MemberService.
+func (m *memberService) GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	return m.memberRepo.GetRoomsByUserID(ctx, userID)
+}
+
+func (m *memberService) GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	return m.memberRepo.GetRoomsByOwnerID(ctx, userID)
 }

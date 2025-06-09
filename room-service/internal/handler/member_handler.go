@@ -98,3 +98,28 @@ func (h *MemberHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
 
 	sendResponse(w, http.StatusOK, map[string]string{"message": "Entrada bem-sucedida"})
 }
+
+func (h *MemberHandler) GetRoomsByUserID(w http.ResponseWriter, r *http.Request) {
+
+	userID := r.Header.Get("X-User-ID")
+
+	rooms, err := h.memberService.GetRoomsByUserID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar salas do usuário", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(rooms)
+}
+
+func (h *MemberHandler) GetRoomsOwnedByUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+
+	rooms, err := h.memberService.GetRoomsByOwnerID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar salas do usuário", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(rooms)
+}
