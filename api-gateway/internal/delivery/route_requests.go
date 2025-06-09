@@ -19,7 +19,7 @@ type Route struct {
 var routes = []Route{
 	// Users
 	{Method: http.MethodGet, Path: "/user/", Target: "http://user-service:8080", Prefix: true, Public: false},
-	{Method: http.MethodPost, Path: "/login", Target: "http://auth-service:8081", Public: true},
+	{Method: http.MethodPost, Path: "/auth/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodGet, Path: "/oauth/google/login", Target: "http://auth-service:8081", Public: true},
 	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080", Public: true},
 	{Method: http.MethodGet, Path: "/users", Target: "http://user-service:8080", Public: true},

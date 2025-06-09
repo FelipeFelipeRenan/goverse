@@ -134,7 +134,7 @@ info:
   title: Goverse API GAteway
   version: "1.0"
 paths:
-  /login:
+  /auth/login:
     post:
       consumes:
       - application/json

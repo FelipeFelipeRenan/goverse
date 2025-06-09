@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/login": {
+        "/auth/login": {
             "post": {
                 "description": "Realiza login com email e senha",
                 "consumes": [

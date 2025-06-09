@@ -56,6 +56,7 @@ func main() {
 	mainHandler = middleware.RecoverMiddleware(mainHandler)
 	mainHandler = middleware.CacheMiddleware(mainHandler)
 	mainHandler = middleware.LoggingMiddleware(mainHandler)
+	mainHandler = middleware.CorsMiddleware(mainHandler)
 	mux.Handle("/", mainHandler)
 
 	port := os.Getenv("GATEWAY_PORT")

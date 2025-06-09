@@ -42,7 +42,7 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(authService)
 
-	http.HandleFunc("POST /login", middleware.LoggingMiddleware(authHandler.Login))
+	http.HandleFunc("POST /auth/login", middleware.LoggingMiddleware(authHandler.Login))
 	http.HandleFunc("/oauth/google/login", middleware.LoggingMiddleware(authHandler.GoogleLogin))
 	http.HandleFunc("/oauth/google/callback", middleware.LoggingMiddleware(authHandler.GoogleCallback))
 

@@ -11,7 +11,7 @@ import "net/http"
 // @Param request body LoginRequest true "Credenciais de login"
 // @Success 200 {object} LoginResponse
 // @Failure 401 {string} string "Credenciais inválidas"
-// @Router /login [post]
+// @Router /auth/login [post]
 func SwaggerLoginPlaceholder(w http.ResponseWriter, r *http.Request) {}
 
 // GetUserByID godoc

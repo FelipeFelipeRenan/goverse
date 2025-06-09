@@ -17,7 +17,7 @@
     "host": "localhost:8088",
     "basePath": "/",
     "paths": {
-        "/login": {
+        "/auth/login": {
             "post": {
                 "description": "Realiza login com email e senha",
                 "consumes": [
