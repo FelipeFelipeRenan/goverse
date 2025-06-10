@@ -180,6 +180,11 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Dados da nova sala
         in: body
         name: room
@@ -205,6 +210,11 @@ paths:
   /rooms/{id}:
     delete:
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: ID da sala
         in: path
         name: id

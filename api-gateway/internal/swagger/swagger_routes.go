@@ -50,6 +50,7 @@ func SwaggerListUsers(w http.ResponseWriter, r *http.Request) {}
 // @Summary Criar nova sala
 // @Tags Room
 // @Security ApiKeyAuth
+// @Param   Authorization   header  string  true  "Token de autenticação (Bearer token)"
 // @Accept json
 // @Produce json
 // @Param room body CreateRoomRequest true "Dados da nova sala"
@@ -96,6 +97,7 @@ func SwaggerUpdateRoom(w http.ResponseWriter, r *http.Request) {}
 // @Summary Excluir sala
 // @Tags Room
 // @Security ApiKeyAuth
+// @Param   Authorization   header  string  true  "Token de autenticação (Bearer token)"
 // @Param id path int true "ID da sala"
 // @Success 204 {string} string "Sala excluída"
 // @Failure 404 {string} string "Sala não encontrada"

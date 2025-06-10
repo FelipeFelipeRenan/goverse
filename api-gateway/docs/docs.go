@@ -107,6 +107,13 @@ const docTemplate = `{
                 "summary": "Criar nova sala",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "Dados da nova sala",
                         "name": "room",
                         "in": "body",
@@ -230,6 +237,13 @@ const docTemplate = `{
                 ],
                 "summary": "Excluir sala",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "ID da sala",

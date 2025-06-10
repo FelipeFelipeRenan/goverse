@@ -32,7 +32,7 @@ func (h *RoomHandler) CreateRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ownerID := req.OwnerID
+	ownerID := r.Header.Get("X-User-ID")
 	if ownerID == "" {
 		sendError(w, http.StatusBadRequest, "ID do dono inválido")
 		return
