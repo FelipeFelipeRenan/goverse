@@ -3,6 +3,7 @@ package middleware
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"net/http"
 	"time"
@@ -11,6 +12,7 @@ import (
 )
 
 func CacheMiddleware(next http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		if r.Method != http.MethodGet {
@@ -19,7 +21,16 @@ func CacheMiddleware(next http.Handler) http.Handler {
 		}
 
 		ctx := context.Background()
-		key := "cache:" + r.URL.RequestURI()
+
+		userID := r.Context().Value(UserIDKey)
+		fmt.Printf("CacheMiddleware userID: %v\n", userID)
+
+		var key string
+		if userID != nil {
+			key = fmt.Sprintf("cache:user:%v:%s", userID, r.URL.RequestURI())
+		} else {
+			key = "cache:" + r.URL.RequestURI()
+		}
 
 		cached, err := redis.Client.Get(ctx, key).Result()
 		if err == nil {
@@ -37,9 +48,7 @@ func CacheMiddleware(next http.Handler) http.Handler {
 
 		if rw.status == http.StatusOK {
 			_ = redis.Client.Set(ctx, key, rw.body.String(), 300*time.Second).Err()
-
 		}
-
 	})
 }
 

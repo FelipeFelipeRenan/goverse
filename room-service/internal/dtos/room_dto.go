@@ -17,6 +17,7 @@ type RoomResponse struct {
 	OwnerID     string `json:"owner_id"`
 	IsPublic    bool   `json:"is_public"`
 	MemberCount int    `json:"member_count"`
+	MaxMembers  int    `json:"max_members"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
 }
@@ -32,6 +33,7 @@ func FromRoom(room *domain.Room) *RoomResponse {
 		OwnerID:     room.OwnerID,
 		IsPublic:    room.IsPublic,
 		MemberCount: room.MemberCount,
+		MaxMembers:  room.MaxMembers,
 		CreatedAt:   room.CreatedAt.Format("2006-01-02T15:04:05Z"),
 		UpdatedAt:   room.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 	}

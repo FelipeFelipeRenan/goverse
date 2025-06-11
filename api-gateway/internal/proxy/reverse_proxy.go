@@ -17,18 +17,16 @@ func NewReverseProxy(target string) http.Handler {
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
-	originalDirector := proxy.Director
-	proxy.Director = func(req *http.Request) {
-		originalDirector(req)
-
-		// 👇 Adiciona o X-User-ID se existir no contexto
-		if userID := req.Context().Value(middleware.UserIDKey); userID != nil {
-			strUserID := fmt.Sprintf("%v", userID)
-
-			req.Header.Set("X-User-ID", strUserID) // <- isso aqui deve ser string
-
-		}
+	// Desabilita keep-alives, conforme já tinha
+	proxy.Transport = &http.Transport{
+		DisableKeepAlives: true,
 	}
 
-	return proxy
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Aqui pegamos o userID do contexto original do request e setamos no header do request que será enviado ao backend
+		if userID := r.Context().Value(middleware.UserIDKey); userID != nil {
+			r.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
+		}
+		proxy.ServeHTTP(w, r)
+	})
 }

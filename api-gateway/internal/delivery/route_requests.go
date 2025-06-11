@@ -73,15 +73,21 @@ func RouteRequest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Rota não encontrada", http.StatusNotFound)
 		return
 	}
+	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		proxyHandler := proxy.NewReverseProxy(target)
+		proxyHandler.ServeHTTP(w, r)
+	})
 
-	proxyHandler := proxy.NewReverseProxy(target)
-
-	handler := http.Handler(proxyHandler)
-
-	// Apenas rotas privadas passam pelo middleware de autenticação
 	if !isPublic {
+		// AuthMiddleware primeiro
 		handler = middleware.AuthMiddleware(handler)
+		// CacheMiddleware depois, para pegar userID do contexto atualizado pelo AuthMiddleware
+		handler = middleware.CacheMiddleware(handler)
+	} else {
+		// Para rota pública, só cache mesmo
+		handler = middleware.CacheMiddleware(handler)
 	}
 
 	handler.ServeHTTP(w, r)
+
 }
