@@ -1,12 +1,9 @@
 package proxy
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 )
 
 func NewReverseProxy(target string) http.Handler {
@@ -17,16 +14,20 @@ func NewReverseProxy(target string) http.Handler {
 
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
-	// Desabilita keep-alives, conforme já tinha
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+
+		// Apenas repassa o header X-User-ID que já foi setado no middleware
+		// não tenta buscar no contexto, pois ele é perdido
+		if userID := req.Header.Get("X-User-ID"); userID != "" {
+			req.Header.Set("X-User-ID", userID)
+		}
+	}
+
 	proxy.Transport = &http.Transport{
 		DisableKeepAlives: true,
 	}
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Aqui pegamos o userID do contexto original do request e setamos no header do request que será enviado ao backend
-		if userID := r.Context().Value(middleware.UserIDKey); userID != nil {
-			r.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
-		}
-		proxy.ServeHTTP(w, r)
-	})
+	return proxy
 }

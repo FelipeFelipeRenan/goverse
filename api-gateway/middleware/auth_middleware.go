@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
+	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/routes"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/jwtutils"
 )
 
@@ -15,6 +16,12 @@ const UserIDKey authContextKey = "user_id"
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if routes.IsPublicRoute(r) {
+			// rota pública: deixa passar sem token
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		token := extractTokenFromHeader(r)
 		if token == "" {
 			http.Error(w, "Token não fornecido", http.StatusUnauthorized)
@@ -27,18 +34,20 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Use diretamente claims.UserID
 		userID := claims.UserID
-
-		fmt.Println("AuthMiddleware userID:", userID)
+		log.Println("AuthMiddleware: userID =", userID)
 
 		if userID == "" {
 			http.Error(w, "Token inválido (sem user_id)", http.StatusUnauthorized)
 			return
 		}
 
+		// Adiciona userID no contexto
 		ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		next.ServeHTTP(w, r.WithContext(ctx))
+		r2 := r.WithContext(ctx)
+		r2.Header.Set("X-User-ID", userID)
+		next.ServeHTTP(w, r2)
+
 	})
 }
 
