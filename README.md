@@ -111,6 +111,7 @@ Para criação de salas, utilize o comando:
 ```bash
 curl -X POST http://localhost:8082/rooms \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <Token>"
   -d '{
     "owner_id": "<id do dono>",
     "name": "<nome da sala>",
