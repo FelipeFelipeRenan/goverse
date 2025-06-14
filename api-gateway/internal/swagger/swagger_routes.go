@@ -119,6 +119,7 @@ func SwaggerJoinRoom(w http.ResponseWriter, r *http.Request) {}
 // @Summary Listar membros da sala
 // @Tags Member
 // @Security ApiKeyAuth
+// @Param   Authorization   header  string  true  "Token de autenticação (Bearer token)"
 // @Param roomID path int true "ID da sala"
 // @Success 200 {array} MemberResponse
 // @Router /rooms/{roomID}/members [get]

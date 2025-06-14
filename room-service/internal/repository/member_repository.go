@@ -148,7 +148,7 @@ func (r *roomMemberRepository) GetRoomsByUserID(ctx context.Context, userID stri
 		SELECT r.id, r.owner_id, r.name, r.description, r.member_count, r.max_members, r.created_at, r.updated_at
 		FROM rooms r
 		INNER JOIN room_members rm ON rm.room_id = r.id
-		WHERE rm.user_id = $1
+		WHERE rm.user_id = $1  AND r.deleted_at IS NULL
 	`, userID)
 	if err != nil {
 		return nil, err
@@ -186,7 +186,7 @@ func (r *roomMemberRepository) GetRoomsByOwnerID(ctx context.Context, userID str
 	rows, err := r.db.Query(ctx, `
 		SELECT id, owner_id, name, description, member_count, max_members, created_at, updated_at
 		FROM rooms
-		WHERE owner_id = $1
+		WHERE owner_id = $1 AND deleted_at IS NULL
 	`, userID)
 	if err != nil {
 		return nil, err

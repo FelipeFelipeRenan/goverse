@@ -60,7 +60,7 @@ func main() {
 	// 4. Logging
 	// 5. CORS
 	mainHandler = middleware.RecoverMiddleware(mainHandler)
-	mainHandler = middleware.CacheMiddleware(mainHandler)   // CACHE (primeiro na pilha)
+	//mainHandler = middleware.CacheMiddleware(mainHandler)   // CACHE (primeiro na pilha)
 	mainHandler = middleware.AuthMiddleware(mainHandler)    // AUTENTICAÇÃO (depois do Cache na pilha)
 	mainHandler = middleware.LoggingMiddleware(mainHandler) // LOG
 	mainHandler = middleware.CorsMiddleware(mainHandler)    // CORS

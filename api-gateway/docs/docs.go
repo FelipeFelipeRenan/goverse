@@ -380,6 +380,13 @@ const docTemplate = `{
                 "summary": "Listar membros da sala",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "description": "ID da sala",
                         "name": "roomID",

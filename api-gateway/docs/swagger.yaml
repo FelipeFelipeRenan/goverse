@@ -323,6 +323,11 @@ paths:
   /rooms/{roomID}/members:
     get:
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: ID da sala
         in: path
         name: roomID
