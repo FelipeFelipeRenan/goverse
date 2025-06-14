@@ -34,32 +34,40 @@ import (
 // @in header
 // @name Authorization
 func main() {
-
 	err := godotenv.Load(".env")
 	if err != nil {
 		logger.Error.Error("Erro ao carregar o .env", "err", err)
 	}
 
 	logger.Init()
-
 	redis.Init()
 
 	mux := http.NewServeMux()
 
-	// Rotas do auth service
+	// Callback do OAuth
 	mux.Handle("/oauth/google/callback", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
 
+	// Swagger
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// Middleware encadeado: Cache + Logging + RouteRequest
+	// Roteamento geral
 	var mainHandler http.Handler = http.HandlerFunc(delivery.RouteRequest)
+
+	// Ordem correta dos middlewares (globais):
+	// 1. Recover
+	// 2. Auth (libera rotas públicas)
+	// 3. Cache
+	// 4. Logging
+	// 5. CORS
 	mainHandler = middleware.RecoverMiddleware(mainHandler)
-	mainHandler = middleware.CacheMiddleware(mainHandler)
-	mainHandler = middleware.LoggingMiddleware(mainHandler)
+	//mainHandler = middleware.CacheMiddleware(mainHandler)   // CACHE (primeiro na pilha)
+	mainHandler = middleware.AuthMiddleware(mainHandler)    // AUTENTICAÇÃO (depois do Cache na pilha)
+	mainHandler = middleware.LoggingMiddleware(mainHandler) // LOG
+	mainHandler = middleware.CorsMiddleware(mainHandler)    // CORS
+
 	mux.Handle("/", mainHandler)
 
 	port := os.Getenv("GATEWAY_PORT")
-
 	if port == "" {
 		port = "8080"
 	}

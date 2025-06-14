@@ -23,7 +23,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/login": {
+        "/auth/login": {
             "post": {
                 "description": "Realiza login com email e senha",
                 "consumes": [
@@ -107,6 +107,13 @@ const docTemplate = `{
                 "summary": "Criar nova sala",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "description": "Dados da nova sala",
                         "name": "room",
                         "in": "body",
@@ -125,6 +132,55 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Dados inválidos",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/rooms/mine": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna todas as salas onde o usuário autenticado é o proprietário (owner_id)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Listar salas criadas pelo usuário autenticado",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista de salas",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/swagger.RoomResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno no servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -181,6 +237,13 @@ const docTemplate = `{
                 ],
                 "summary": "Excluir sala",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "ID da sala",
@@ -316,6 +379,13 @@ const docTemplate = `{
                 ],
                 "summary": "Listar membros da sala",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "integer",
                         "description": "ID da sala",
@@ -525,6 +595,55 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Dados inválidos",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/rooms": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retorna todas as salas das quais o usuário participa",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Room"
+                ],
+                "summary": "Listar salas na qual um usuário é membro",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/swagger.RoomResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Erro interno",
                         "schema": {
                             "type": "string"
                         }

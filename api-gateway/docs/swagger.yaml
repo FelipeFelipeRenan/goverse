@@ -134,7 +134,7 @@ info:
   title: Goverse API GAteway
   version: "1.0"
 paths:
-  /login:
+  /auth/login:
     post:
       consumes:
       - application/json
@@ -180,6 +180,11 @@ paths:
       consumes:
       - application/json
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Dados da nova sala
         in: body
         name: room
@@ -205,6 +210,11 @@ paths:
   /rooms/{id}:
     delete:
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: ID da sala
         in: path
         name: id
@@ -313,6 +323,11 @@ paths:
   /rooms/{roomID}/members:
     get:
       parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: ID da sala
         in: path
         name: roomID
@@ -430,6 +445,38 @@ paths:
       summary: Atualizar papel do membro
       tags:
       - Member
+  /rooms/mine:
+    get:
+      description: Retorna todas as salas onde o usuário autenticado é o proprietário
+        (owner_id)
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lista de salas
+          schema:
+            items:
+              $ref: '#/definitions/swagger.RoomResponse'
+            type: array
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+        "500":
+          description: Erro interno no servidor
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Listar salas criadas pelo usuário autenticado
+      tags:
+      - Room
   /user:
     post:
       consumes:
@@ -484,6 +531,37 @@ paths:
       summary: Obter usuário por ID
       tags:
       - User
+  /user/rooms:
+    get:
+      description: Retorna todas as salas das quais o usuário participa
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/swagger.RoomResponse'
+            type: array
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+        "500":
+          description: Erro interno
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Listar salas na qual um usuário é membro
+      tags:
+      - Room
   /users:
     get:
       produces:

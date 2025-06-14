@@ -23,7 +23,10 @@ func (h *MemberHandler) AddMember(w http.ResponseWriter, r *http.Request) {
 
 	roomID := r.PathValue("roomID")
 	actorID := r.Header.Get("X-User-ID")
-
+	if actorID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
 	var req dtos.AddMemberRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, http.StatusBadRequest, "Corpo de requisição inválido")
@@ -43,7 +46,10 @@ func (h *MemberHandler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	roomID := r.PathValue("roomID")
 	userID := r.PathValue("memberID")
 	actorID := r.Header.Get("X-User-ID")
-
+	if actorID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
 	if err := h.memberService.RemoveMember(r.Context(), actorID, roomID, userID); err != nil {
 		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao remover membro: %v", err))
 		return
@@ -57,6 +63,10 @@ func (h *MemberHandler) UpdateRole(w http.ResponseWriter, r *http.Request) {
 	roomID := r.PathValue("roomID")
 	userID := r.PathValue("memberID")
 	actorID := r.Header.Get("X-User-ID")
+	if actorID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
 
 	var req dtos.UpdateRoleRequest
 
@@ -89,6 +99,10 @@ func (h *MemberHandler) ListMembers(w http.ResponseWriter, r *http.Request) {
 func (h *MemberHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	roomID := r.PathValue("roomID")
 	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
 	invite := r.URL.Query().Get("invite")
 
 	if err := h.memberService.JoinRoom(r.Context(), roomID, userID, invite); err != nil {
@@ -97,4 +111,37 @@ func (h *MemberHandler) JoinRoom(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendResponse(w, http.StatusOK, map[string]string{"message": "Entrada bem-sucedida"})
+}
+
+func (h *MemberHandler) GetRoomsByUserID(w http.ResponseWriter, r *http.Request) {
+
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
+
+	rooms, err := h.memberService.GetRoomsByUserID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar salas do usuário", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(rooms)
+}
+
+func (h *MemberHandler) GetRoomsOwnedByUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
+
+	rooms, err := h.memberService.GetRoomsByOwnerID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar salas do usuário", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(rooms)
 }
