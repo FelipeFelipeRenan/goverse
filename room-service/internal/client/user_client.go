@@ -11,6 +11,7 @@ import (
 type UserServiceClient interface {
 	ExistsUserByID(ctx context.Context, userID string) (bool, error)
 	IsUserValid(ctx context.Context, userID string) (bool, error)
+	GetUserByID(ctx context.Context, userID string) (*userpb.UserResponse, error)
 }
 
 type userServiceClient struct {
@@ -32,6 +33,14 @@ func (u *userServiceClient) ExistsUserByID(ctx context.Context, userID string) (
 	return resp.GetExists(), nil
 }
 
-func (c *userServiceClient) IsUserValid(ctx context.Context, userID string) (bool, error) {
-	return c.ExistsUserByID(ctx, userID)
+func (u *userServiceClient) IsUserValid(ctx context.Context, userID string) (bool, error) {
+	return u.ExistsUserByID(ctx, userID)
+}
+
+func (u *userServiceClient) GetUserByID(ctx context.Context, userID string) (*userpb.UserResponse, error) {
+	resp, err := u.grpcClient.GetUserByID(ctx, &userpb.UserIDRequest{Id: userID})
+	if err != nil {
+		return nil, fmt.Errorf("erro ao buscar usuário por ID: %w", err)
+	}
+	return resp, nil
 }

@@ -114,3 +114,18 @@ func (h *GRPCHandler) ExistsUserByID(ctx context.Context, req *userpb.UserIDRequ
 		Exists: exists,
 	}, nil
 }
+
+func (h  *GRPCHandler) GetUserByID(ctx context.Context, req *userpb.UserIDRequest)(*userpb.UserResponse, error){
+	user, err := h.userService.FindByID(ctx, req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "usuario não encontrado")
+	}
+		return &userpb.UserResponse{
+		Id:        user.ID,
+		Name:      user.Username,
+		Email:     user.Email,
+		Picture:   user.Picture,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		IsOauth:   user.IsOAuth,
+	}, nil
+}
