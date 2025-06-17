@@ -59,4 +59,5 @@ service UserService {
     rpc GetUserByEmail(EmailRequest) returns (UserResponse);
     rpc Register(RegisterRequest) returns (RegisterResponse);
     rpc ExistsUserByID(UserIDRequest) returns (UserExistsResponse);
+    rpc GetUserByID(UserIDRequest) returns (UserResponse);
 }
