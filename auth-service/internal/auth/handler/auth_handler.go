@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
@@ -41,14 +42,14 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context() // Usando o contexto da requisição diretamente
+	ctx := r.Context()
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "code ausente", http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.authService.Authenticate(ctx, domain.Credentials{
+	tokenResp, err := h.authService.Authenticate(ctx, domain.Credentials{
 		Type:  "oauth",
 		Token: code,
 	})
@@ -57,6 +58,23 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	// Retorna HTML com postMessage
+	html := fmt.Sprintf(`
+		<!DOCTYPE html>
+		<html>
+		<head><title>Autenticado</title></head>
+		<body>
+			<script>
+				window.opener.postMessage({
+					type: 'oauth-success',
+					token: '%s'
+				}, '*');
+				window.close();
+			</script>
+		</body>
+		</html>
+	`, tokenResp.Token)
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprint(w, html)
 }
