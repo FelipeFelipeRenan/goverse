@@ -37,6 +37,30 @@ func SwaggerGetUserPlaceholder(w http.ResponseWriter, r *http.Request) {}
 // @Router /user [post]
 func SwaggerCreateUser(w http.ResponseWriter, r *http.Request) {}
 
+// @Summary Atualiza um usuário
+// @Tags Usuário
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path string true "ID do usuário"
+// @Param input body swagger.UpdateUserRequest true "Dados do usuário"
+// @Success 200 {object} swagger.UserResponse
+// @Failure 400 {string} string "Requisição inválida"
+// @Failure 401 {string} string "Não autorizado"
+// @Failure 404 {string} string "Usuário não encontrado"
+// @Router /user/{id} [put]
+func SwaggerUpdateUser(w http.ResponseWriter, r *http.Request) {}
+
+// @Summary Remove (soft delete) um usuário
+// @Tags Usuário
+// @Security BearerAuth
+// @Param id path string true "ID do usuário"
+// @Success 204 {string} string "Usuário deletado com sucesso"
+// @Failure 401 {string} string "Não autorizado"
+// @Failure 404 {string} string "Usuário não encontrado"
+// @Router /user/{id} [delete]
+func SwaggerDeleteUser(w http.ResponseWriter, r *http.Request) {}
+
 // ListUsers godoc
 // @Summary Listar todos os usuários
 // @Tags User

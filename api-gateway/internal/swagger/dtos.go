@@ -23,6 +23,11 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
+type UpdateUserRequest struct {
+	Username string `json:"username"`
+	Picture  string `json:"picture"`
+}
+
 type RoomResponse struct {
 	ID          int    `json:"id" example:"1"`
 	Name        string `json:"name" example:"Sala de Estudos"`

@@ -22,6 +22,8 @@ var Routes = []Route{
 	{Method: http.MethodPost, Path: "/user", Target: "http://user-service:8080", Public: true},
 	{Method: http.MethodGet, Path: "/user", Target: "http://user-service:8080", Public: true, Prefix: true},
 	{Method: http.MethodGet, Path: "/user/rooms", Target: "http://room-service:8082", Public: false, Prefix: true},
+	{Method: http.MethodPut, Path: "/user/", Target: "http://user-service:8080", Public: false, Prefix: true},
+	{Method: http.MethodDelete, Path: "/user/", Target: "http://user-service:8080", Public: false, Prefix: true},
 
 	// Salas
 	{Method: http.MethodGet, Path: "/rooms/mine", Target: "http://room-service:8082", Public: false},
