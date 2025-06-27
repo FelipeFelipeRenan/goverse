@@ -11,6 +11,7 @@ import (
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user domain.User) (*domain.UserResponse, error)
+	UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error)
 	GetUserByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
@@ -32,9 +33,9 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 
 	// Salvando o usuário no banco de dados
 	query := `
-		INSERT INTO users (username, email, password, picture, created_at, is_oauth)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id;
+	INSERT INTO users (username, email, password, picture, created_at, is_oauth)
+	VALUES ($1, $2, $3, $4, $5, $6)
+	RETURNING id;
 	`
 	var id string
 	err := r.conn.QueryRow(ctx, query, user.Username, user.Email, user.Password, user.Picture, user.CreatedAt, user.IsOAuth).Scan(&id)
@@ -50,6 +51,27 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 		CreatedAt: user.CreatedAt,
 		IsOAuth:   user.IsOAuth,
 	}, nil
+}
+
+// UpdateUser implements UserRepository.
+func (r *userRepository) UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error) {
+	query := `		SET username = $1, picture = $2, updated_at = now()
+		WHERE id = $3 AND deleted_at IS NULL
+		RETURNING id, username, email, picture, created_at, is_oauth;`
+
+	row := r.conn.QueryRow(ctx, query, user.Username, user.Picture, id)
+
+	var updated domain.UserResponse
+	err := row.Scan(&updated.ID, &updated.Username, &updated.Email, &updated.Picture, &updated.CreatedAt, &updated.IsOAuth)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, err
+	}
+	return &updated, nil
+
 }
 
 func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
