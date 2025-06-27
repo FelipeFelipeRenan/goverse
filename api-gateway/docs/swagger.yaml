@@ -510,31 +510,6 @@ paths:
       tags:
       - User
   /user/{id}:
-    delete:
-      parameters:
-      - description: ID do usuário
-        in: path
-        name: id
-        required: true
-        type: string
-      responses:
-        "204":
-          description: Usuário deletado com sucesso
-          schema:
-            type: string
-        "401":
-          description: Não autorizado
-          schema:
-            type: string
-        "404":
-          description: Usuário não encontrado
-          schema:
-            type: string
-      security:
-      - BearerAuth: []
-      summary: Remove (soft delete) um usuário
-      tags:
-      - Usuário
     get:
       parameters:
       - description: Token de autenticação (Bearer token)
@@ -563,13 +538,35 @@ paths:
       summary: Obter usuário por ID
       tags:
       - User
+  /user/me:
+    delete:
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Usuário deletado com sucesso
+          schema:
+            type: string
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Remove (soft delete) o usuário autenticado
+      tags:
+      - Usuário
     put:
       consumes:
       - application/json
       parameters:
-      - description: ID do usuário
-        in: path
-        name: id
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
         required: true
         type: string
       - description: Dados do usuário
@@ -593,13 +590,9 @@ paths:
           description: Não autorizado
           schema:
             type: string
-        "404":
-          description: Usuário não encontrado
-          schema:
-            type: string
       security:
       - BearerAuth: []
-      summary: Atualiza um usuário
+      summary: Atualiza os dados do usuário autenticado
       tags:
       - Usuário
   /user/rooms:
