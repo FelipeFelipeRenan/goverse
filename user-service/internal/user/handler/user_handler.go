@@ -54,9 +54,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
 
-	if id == "" {
+	if userID == "" {
 		sendError(w, http.StatusBadRequest, "falha ao solicitar usuario: id vazio")
 		return
 	}
@@ -66,7 +70,7 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updatedUser, err := h.Service.UpdateUser(r.Context(), id, input)
+	updatedUser, err := h.Service.UpdateUser(r.Context(), userID, input)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			sendError(w, http.StatusNotFound, "usuário não encontrado")
@@ -81,13 +85,13 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	if id == "" {
-		sendError(w, http.StatusBadRequest, "falha ao solicitar usuario: id vazio")
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
 		return
 	}
 
-	err := h.Service.DeleteUser(r.Context(), id)
+	err := h.Service.DeleteUser(r.Context(), userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			sendError(w, http.StatusNotFound, "usuário não encontrado")
@@ -96,7 +100,7 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao deleter usuário: %v", err))
 		return
 	}
-	sendResponse(w, http.StatusOK, id)
+	sendResponse(w, http.StatusOK, userID)
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
