@@ -80,6 +80,25 @@ func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		sendError(w, http.StatusBadRequest, "falha ao solicitar usuario: id vazio")
+		return
+	}
+
+	err := h.Service.DeleteUser(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			sendError(w, http.StatusNotFound, "usuário não encontrado")
+			return
+		}
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao deleter usuário: %v", err))
+		return
+	}
+	sendResponse(w, http.StatusOK, id)
+}
+
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if id == "" {
