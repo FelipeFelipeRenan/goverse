@@ -12,6 +12,7 @@ import (
 type UserRepository interface {
 	CreateUser(ctx context.Context, user domain.User) (*domain.UserResponse, error)
 	UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error)
+	DeleteUser(ctx context.Context, id string) error
 	GetUserByID(ctx context.Context, id string) (*domain.User, error)
 	GetAllUsers(ctx context.Context) ([]domain.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
@@ -55,7 +56,7 @@ func (r *userRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 
 // UpdateUser implements UserRepository.
 func (r *userRepository) UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error) {
-	query := `		SET username = $1, picture = $2, updated_at = now()
+	query := `SET username = $1, picture = $2, updated_at = now()
 		WHERE id = $3 AND deleted_at IS NULL
 		RETURNING id, username, email, picture, created_at, is_oauth;`
 
@@ -74,12 +75,29 @@ func (r *userRepository) UpdateUser(ctx context.Context, id string, user domain.
 
 }
 
+// DeleteUser implements UserRepository.
+func (r *userRepository) DeleteUser(ctx context.Context, id string) error {
+	query := `
+					UPDATE users
+		SET deleted_at = now()
+		WHERE id = $1 AND deleted_at IS NULL;
+		`
+
+	cmdTag, err := r.conn.Exec(ctx, query, id)
+	if err != nil {
+		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrUserNotFound
+	}
+	return nil
+}
 func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	query := `
 		SELECT id, username, email, picture, created_at, is_oauth
 		FROM users
 		WHERE id = $1
-	`
+		`
 	row := r.conn.QueryRow(ctx, query, id)
 
 	var user domain.User
