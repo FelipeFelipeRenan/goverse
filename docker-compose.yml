@@ -62,7 +62,19 @@ services:
       - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network
-  
+  auth-middleware:
+    build:
+      context: ./auth-middleware
+      dockerfile: Dockerfile
+
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      - goverse_network
+
   api-gateway:
     build:
       context: .
