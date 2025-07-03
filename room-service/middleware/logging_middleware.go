@@ -30,7 +30,7 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		start := time.Now()
 
 		requestID := r.Header.Get("X-Request-ID")
-		if requestID == "" {
+		if requestID == "{uuid}" || requestID == "" {
 			requestID = generateRequestID()
 		}
 

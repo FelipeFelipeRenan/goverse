@@ -1,0 +1,108 @@
+http:
+  middlewares:
+    auth:
+      forwardAuth:
+        address: "http://auth-middleware:3000/auth/validate"
+        trustForwardHeader: true
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    cors:
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        accessControlAllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-User-ID
+        addVaryHeader: true
+
+    logging:
+      headers:
+        customRequestHeaders:
+          X-Request-Id: "{uuid}"
+
+  routers:
+    auth-login:
+      rule: "Path(`/auth/login`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
+
+    oauth-google:
+      rule: "Path(`/oauth/google/login`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
+
+    user-register:
+      rule: "Path(`/user`) && Method(`POST`)"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
+
+    user-getall:
+      rule: "Path(`/users`) && Method(`GET`)"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
+
+    user-get:
+      rule: "Path(`/user/rooms`) && Method(`GET`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    user-me-update:
+      rule: "Path(`/user/me`) && Method(`PUT`)"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    user-me-delete:
+      rule: "Path(`/user/me`) && Method(`DELETE`)"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    rooms-list:
+      rule: "Path(`/rooms`) && Method(`GET`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
+
+    rooms-mine:
+      rule: "Path(`/rooms/mine`) && Method(`GET`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    rooms-prefix:
+      rule: "PathPrefix(`/rooms/`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:8081"
+
+    user-service:
+      loadBalancer:
+        servers:
+          - url: "http://user-service:8080"
+
+    room-service:
+      loadBalancer:
+        servers:
+          - url: "http://room-service:8082"

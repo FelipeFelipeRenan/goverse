@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   postgres:
     image: postgres:16
@@ -19,6 +21,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     networks:
       - goverse_network
+
   redis:
     image: redis:alpine
     ports:
@@ -32,6 +35,7 @@ services:
       retries: 3
     volumes:
       - redis_data:/data
+
   user-service:
     build:
       context: .
@@ -40,12 +44,11 @@ services:
       postgres:
         condition: service_healthy
     volumes: 
-    - ./user-service/.env:/app/.env
-    ports:
-      - "${USER_SERVICE_PORT}:8080"
-      - "50051:50051"
+      - ./user-service/.env:/app/.env
     networks:
       - goverse_network
+    labels:
+      - "traefik.enable=true"
 
   auth-service:
     build:
@@ -55,42 +58,11 @@ services:
       - user-service
     volumes:
       - ./auth-service/.env:/app/.env
-    ports:
-      - "${AUTH_SERVICE_PORT}:8081"
-    environment:
-      - USER_SERVICE_GRPC_ADDR=user-service:8080
-      - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network
-  auth-middleware:
-    build:
-      context: ./auth-middleware
-      dockerfile: Dockerfile
+    labels:
+      - "traefik.enable=true"
 
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - JWT_SECRET=${JWT_SECRET}
-    networks:
-      - goverse_network
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: ./api-gateway/Dockerfile
-    ports:
-      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
-    depends_on:
-      - auth-service
-      - user-service
-    volumes: 
-      - ./api-gateway/.env:/app/.env
-    environment:
-      - GATEWAY_PORT=${GATEWAY_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-    networks:
-      - goverse_network
   room-service:
     build:
       context: .
@@ -102,19 +74,35 @@ services:
         condition: service_started
     volumes:
       - ./room-service/.env:/app/.env
+    networks:
+      - goverse_network
+    labels:
+      - "traefik.enable=true"
+
+  auth-middleware:
+    build:
+      context: ./auth-middleware
+      dockerfile: Dockerfile
     ports:
-      - "${ROOM_SERVICE_PORT}:8082"
+      - "3000:3000"
     environment:
-      - ROOM_SERVICE_PORT=${ROOM_SERVICE_PORT}
-      - USER_SERVICE_GRPC_ADDR=user-service:50051
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network
 
   traefik:
     image: traefik:v2.11
     container_name: traefik
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.file.directory=/etc/traefik
+      - --providers.file.watch=true
+      - --api.dashboard=true
     ports:
-      - "80:80"
+      - "${TRAEFIK_HTTP_PORT}:80"
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
