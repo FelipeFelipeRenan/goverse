@@ -4,6 +4,8 @@ http:
       forwardAuth:
         address: "http://auth-middleware:3000/auth/validate"
         trustForwardHeader: true
+        authResponseHeaders:
+          - "X-User-ID"
 
     rate-limit:
       rateLimit:
@@ -19,6 +21,7 @@ http:
           - POST
           - PUT
           - DELETE
+          - OPTIONS
         accessControlAllowHeaders:
           - Content-Type
           - Authorization
@@ -31,6 +34,7 @@ http:
           X-Request-Id: "{uuid}"
 
   routers:
+    # Auth service
     auth-login:
       rule: "Path(`/auth/login`)"
       service: auth-service
@@ -42,45 +46,59 @@ http:
       service: auth-service
       entryPoints: [web]
       middlewares: [cors, logging]
+    oauth-google-callback:
+      rule: "Path(`/oauth/google/callback`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging]
 
+    # User service
     user-register:
-      rule: "Path(`/user`) && Method(`POST`)"
+      rule: "Path(`/user`) && (Method(`POST`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
       middlewares: [cors, logging]
 
     user-getall:
-      rule: "Path(`/users`) && Method(`GET`)"
+      rule: "Path(`/users`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
       middlewares: [cors, logging]
 
     user-get:
-      rule: "Path(`/user/rooms`) && Method(`GET`)"
+      rule: "Path(`/user/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
       middlewares: [cors, logging, auth]
 
     user-me-update:
-      rule: "Path(`/user/me`) && Method(`PUT`)"
+      rule: "Path(`/user/me`) && (Method(`PUT`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
       middlewares: [cors, logging, auth]
 
     user-me-delete:
-      rule: "Path(`/user/me`) && Method(`DELETE`)"
+      rule: "Path(`/user/me`) && (Method(`DELETE`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
       middlewares: [cors, logging, auth]
 
+    # CORS fix para /user/{id}
+    user-get-by-id:
+      rule: "(PathPrefix(`/user/`) && (Method(`GET`) || Method(`OPTIONS`)))"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    # Room service
     rooms-list:
-      rule: "Path(`/rooms`) && Method(`GET`)"
+      rule: "Path(`/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
       middlewares: [cors, logging]
 
     rooms-mine:
-      rule: "Path(`/rooms/mine`) && Method(`GET`)"
+      rule: "Path(`/rooms/mine`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
       middlewares: [cors, logging, auth]
@@ -90,6 +108,19 @@ http:
       service: room-service
       entryPoints: [web]
       middlewares: [cors, logging, auth]
+
+    room-create:
+      rule: "Path(`/rooms`) && Method(`POST`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth]
+
+    # Opcional: responde diretamente as OPTIONS de /user/*
+    user-options:
+      rule: "PathPrefix(`/user/`) && Method(`OPTIONS`)"
+      service: noop@internal
+      entryPoints: [web]
+      middlewares: [cors]
 
   services:
     auth-service:

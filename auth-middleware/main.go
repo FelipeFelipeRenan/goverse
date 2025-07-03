@@ -30,24 +30,46 @@ func main() {
 }
 
 func validateHandler(w http.ResponseWriter, r *http.Request) {
+	// Adiciona CORS SEMPRE
+	addCORSHeaders(w)
+	log.Println("HEADERS:", r.Header)
+	
+	// Tratar pré-flight OPTIONS
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	token := extractTokenFromHeader(r)
 	if token == "" {
-		http.Error(w, "token não fornecido", http.StatusUnauthorized)
+		respondUnauthorized(w, "Token não fornecido")
 		return
 	}
 
 	claims, err := validateToken(token)
 	if err != nil {
-		http.Error(w, "token inválido", http.StatusUnauthorized)
+		respondUnauthorized(w, "Token inválido: "+err.Error())
 		return
 	}
 	if claims.UserID == "" {
-		http.Error(w, "Token sem user_id", http.StatusUnauthorized)
+		respondUnauthorized(w, "Token sem user_id")
 		return
 	}
 
 	w.Header().Set("X-User-ID", claims.UserID)
 	w.WriteHeader(http.StatusOK)
+}
+
+func addCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*") // Ajuste se quiser restringir
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Vary", "Origin")
+}
+
+func respondUnauthorized(w http.ResponseWriter, msg string) {
+	addCORSHeaders(w)
+	http.Error(w, msg, http.StatusUnauthorized)
 }
 
 func extractTokenFromHeader(r *http.Request) string {
