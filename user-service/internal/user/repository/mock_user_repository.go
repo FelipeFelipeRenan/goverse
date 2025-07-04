@@ -11,6 +11,16 @@ type MockUserRepository struct {
 	mock.Mock
 }
 
+// DeleteUser implements UserRepository.
+func (m *MockUserRepository) DeleteUser(ctx context.Context, id string) error {
+	panic("unimplemented")
+}
+
+// UpdateUser implements UserRepository.
+func (m *MockUserRepository) UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error) {
+	panic("unimplemented")
+}
+
 // GetUserByEmail implements UserRepository.
 func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	args := m.Called(ctx, email)

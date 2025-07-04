@@ -1,0 +1,146 @@
+http:
+  middlewares:
+    auth:
+      forwardAuth:
+        address: "http://auth-middleware:3000/auth/validate"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-User-ID"
+
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    cors:
+      headers:
+        accessControlAllowOriginList:
+          - "*"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-User-ID
+        addVaryHeader: true
+
+    strict-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        
+    logging:
+      headers:
+        customRequestHeaders:
+          X-Request-Id: "{uuid}"
+    
+    strip-user-prefix:
+      stripPrefix:
+        prefixes:
+          - "/user"
+
+
+  routers:
+    # === Auth Service ===
+    auth-login:
+      rule: "Path(`/auth/login`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    oauth-google:
+      rule: "Path(`/oauth/google/login`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    oauth-callback:
+      rule: "Path(`/oauth/google/callback`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging] # SEM strict-headers aqui!
+
+    # === User Service ===
+    user-register:
+      rule: "Path(`/user`) && (Method(`POST`) || Method(`OPTIONS`))"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    user-getall:
+      rule: "Path(`/users`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    user-get:
+      rule: "Path(`/user/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    user-me-update:
+      rule: "Path(`/user/me`) && (Method(`PUT`) || Method(`OPTIONS`))"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    user-me-delete:
+      rule: "Path(`/user/me`) && (Method(`DELETE`) || Method(`OPTIONS`))"
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    # === Room Service ===
+    rooms-list:
+      rule: "Path(`/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    rooms-mine:
+      rule: "Path(`/rooms/mine`) && (Method(`GET`) || Method(`OPTIONS`))"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    room-create:
+      rule: "Path(`/rooms`) && (Method(`POST`) || Method(`OPTIONS`))"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    rooms-prefix:
+      rule: "PathPrefix(`/rooms/`)"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+
+      
+    user-get-by-id:
+      rule: "Path(`/user/{id:[0-9]+}`) && (Method(`GET`) || Method(`OPTIONS`))"      
+      service: user-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers] 
+
+
+
+  services:
+    auth-service:
+      loadBalancer:
+        servers:
+          - url: "http://auth-service:8081"
+
+    user-service:
+      loadBalancer:
+        servers:
+        - url: "http://user-service:8085"
+
+    room-service:
+      loadBalancer:
+        servers:
+          - url: "http://room-service:8082"

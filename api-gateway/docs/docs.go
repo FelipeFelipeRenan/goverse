@@ -602,6 +602,97 @@ const docTemplate = `{
                 }
             }
         },
+        "/user/me": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Usuário"
+                ],
+                "summary": "Atualiza os dados do usuário autenticado",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Dados do usuário",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/swagger.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/swagger.UserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Requisição inválida",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Usuário"
+                ],
+                "summary": "Remove (soft delete) o usuário autenticado",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Token de autenticação (Bearer token)",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Usuário deletado com sucesso",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/user/rooms": {
             "get": {
                 "security": [
@@ -877,6 +968,17 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Sala Atualizada"
+                }
+            }
+        },
+        "swagger.UpdateUserRequest": {
+            "type": "object",
+            "properties": {
+                "picture": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },

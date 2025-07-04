@@ -11,6 +11,16 @@ type MockUserService struct {
 	mock.Mock
 }
 
+// DeleteUser implements UserService.
+func (m *MockUserService) DeleteUser(ctx context.Context, id string) error {
+	panic("unimplemented")
+}
+
+// UpdateUser implements UserService.
+func (m *MockUserService) UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error) {
+	panic("unimplemented")
+}
+
 // ExistsByID implements UserService.
 func (m *MockUserService) ExistsByID(ctx context.Context, id string) (bool, error) {
 	panic("unimplemented")

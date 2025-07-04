@@ -18,13 +18,14 @@ type UserService interface {
 	Authenticate(ctx context.Context, email, password string) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
 	ExistsByID(ctx context.Context, id string) (bool, error)
+
+	UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error)
+	DeleteUser(ctx context.Context, id string) error
 }
 
 type userService struct {
 	repo repository.UserRepository
 }
-
-// ExistsByID implements UserService.
 
 func NewUserService(repo repository.UserRepository) UserService {
 	return &userService{
@@ -46,6 +47,19 @@ func (s *userService) Register(ctx context.Context, user domain.User) (*domain.U
 	user.CreatedAt = time.Now()
 	user.Password = string(hashedPassword)
 	return s.repo.CreateUser(ctx, user)
+}
+
+// DeleteUser implements UserService.
+func (s *userService) DeleteUser(ctx context.Context, id string) error {
+	return s.repo.DeleteUser(ctx, id)
+}
+
+// UpdateUser implements UserService.
+func (s *userService) UpdateUser(ctx context.Context, id string, user domain.User) (*domain.UserResponse, error) {
+	if user.Username == "" {
+		return nil, errors.New("username não pode ser vazio")
+	}
+	return s.repo.UpdateUser(ctx, id, user)
 }
 
 func (s *userService) FindByID(ctx context.Context, id string) (*domain.User, error) {

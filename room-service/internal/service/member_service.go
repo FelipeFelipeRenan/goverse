@@ -5,6 +5,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
+	"github.com/FelipeFelipeRenan/goverse/room-service/internal/dtos"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
 )
 
@@ -12,7 +13,7 @@ type MemberService interface {
 	AddMember(ctx context.Context, actorID, roomID, userID string, role domain.Role) error
 	RemoveMember(ctx context.Context, actorID, roomID, userID string) error
 	UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error
-	GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error)
+	GetRoomMembers(ctx context.Context, roomID string) ([]*dtos.MemberWithUser, error)
 	GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
 	GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error)
 
@@ -150,8 +151,42 @@ func (m *memberService) UpdateMemberRole(ctx context.Context, actorID string, ro
 }
 
 // GetRoomMembers implements MemberService.
-func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
-	return m.memberRepo.GetMembers(ctx, roomID)
+func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*dtos.MemberWithUser, error) {
+	//	return m.memberRepo.GetMembers(ctx, roomID)
+
+	members, err := m.memberRepo.GetMembers(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	var enriched []*dtos.MemberWithUser
+	for _, member := range members {
+		userResp, err := m.userClient.GetUserByID(ctx, member.UserID)
+		if err != nil {
+			continue
+		}
+		enriched = append(enriched, &dtos.MemberWithUser{
+			RoomID:   member.RoomID,
+			Role:     string(member.Role),
+			JoinedAt: member.JoinedAt,
+			User: struct {
+				ID        string `json:"user_id"`
+				Name      string `json:"name"`
+				Email     string `json:"email"`
+				Picture   string `json:"picture"`
+				CreatedAt string `json:"created_at"`
+				IsOAuth   bool   `json:"is_oauth"`
+			}{
+				ID:        userResp.Id,
+				Name:      userResp.Name,
+				Email:     userResp.Email,
+				Picture:   userResp.Picture,
+				CreatedAt: userResp.CreatedAt,
+				IsOAuth:   userResp.IsOauth,
+			},
+		})
+	}
+	return enriched, nil
 }
 
 // IsUserValid implements MemberService.

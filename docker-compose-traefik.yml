@@ -19,6 +19,7 @@ services:
       - "${POSTGRES_PORT}:5432"
     networks:
       - goverse_network
+
   redis:
     image: redis:alpine
     ports:
@@ -32,6 +33,7 @@ services:
       retries: 3
     volumes:
       - redis_data:/data
+
   user-service:
     build:
       context: .
@@ -40,12 +42,13 @@ services:
       postgres:
         condition: service_healthy
     volumes: 
-    - ./user-service/.env:/app/.env
-    ports:
-      - "${USER_SERVICE_PORT}:8080"
-      - "50051:50051"
+      - ./user-service/.env:/app/.env
     networks:
       - goverse_network
+    ports:
+      - "8085:8085"  # ADICIONADO: expõe porta do user-service
+    labels:
+      - "traefik.enable=true"
 
   auth-service:
     build:
@@ -55,42 +58,13 @@ services:
       - user-service
     volumes:
       - ./auth-service/.env:/app/.env
-    ports:
-      - "${AUTH_SERVICE_PORT}:8081"
-    environment:
-      - USER_SERVICE_GRPC_ADDR=user-service:8085
-      - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network
-  auth-middleware:
-    build:
-      context: ./auth-middleware
-      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"  # ADICIONADO: expõe porta do auth-service
+    labels:
+      - "traefik.enable=true"
 
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - JWT_SECRET=${JWT_SECRET}
-    networks:
-      - goverse_network
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: ./api-gateway/Dockerfile
-    ports:
-      - "${GATEWAY_PORT}:${GATEWAY_PORT}"
-    depends_on:
-      - auth-service
-      - user-service
-    volumes: 
-      - ./api-gateway/.env:/app/.env
-    environment:
-      - GATEWAY_PORT=${GATEWAY_PORT}
-      - JWT_SECRET=${JWT_SECRET}
-    networks:
-      - goverse_network
   room-service:
     build:
       context: .
@@ -102,20 +76,38 @@ services:
         condition: service_started
     volumes:
       - ./room-service/.env:/app/.env
+    networks:
+      - goverse_network
     ports:
-      - "${ROOM_SERVICE_PORT}:8082"
+      - "8082:8080"  # ADICIONADO: expõe porta do room-service
+    labels:
+      - "traefik.enable=true"
+
+  auth-middleware:
+    build:
+      context: ./auth-middleware
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
     environment:
-      - ROOM_SERVICE_PORT=${ROOM_SERVICE_PORT}
-      - USER_SERVICE_GRPC_ADDR=user-service:50051
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network
 
   traefik:
     image: traefik:v2.11
     container_name: traefik
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.file.directory=/etc/traefik
+      - --providers.file.watch=true
+      - --api.dashboard=true
     ports:
-      - "80:80"
-      - "8080:8080"
+      - "${TRAEFIK_HTTP_PORT}:80"
+      - "8080:8080"  # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro

@@ -107,6 +107,13 @@ definitions:
         example: Sala Atualizada
         type: string
     type: object
+  swagger.UpdateUserRequest:
+    properties:
+      picture:
+        type: string
+      username:
+        type: string
+    type: object
   swagger.UserResponse:
     properties:
       email:
@@ -531,6 +538,63 @@ paths:
       summary: Obter usuário por ID
       tags:
       - User
+  /user/me:
+    delete:
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      responses:
+        "204":
+          description: Usuário deletado com sucesso
+          schema:
+            type: string
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Remove (soft delete) o usuário autenticado
+      tags:
+      - Usuário
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token de autenticação (Bearer token)
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Dados do usuário
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/swagger.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/swagger.UserResponse'
+        "400":
+          description: Requisição inválida
+          schema:
+            type: string
+        "401":
+          description: Não autorizado
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Atualiza os dados do usuário autenticado
+      tags:
+      - Usuário
   /user/rooms:
     get:
       description: Retorna todas as salas das quais o usuário participa

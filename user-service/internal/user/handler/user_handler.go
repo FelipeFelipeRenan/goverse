@@ -3,6 +3,7 @@ package handler
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -50,6 +51,56 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendResponse(w, http.StatusCreated, map[string]string{"user": id.ID})
+}
+
+func (h *UserHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
+
+	if userID == "" {
+		sendError(w, http.StatusBadRequest, "falha ao solicitar usuario: id vazio")
+		return
+	}
+	var input domain.User
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		sendError(w, http.StatusBadRequest, fmt.Sprintf("erro ao ler corpo da requisição: %v", err))
+		return
+	}
+
+	updatedUser, err := h.Service.UpdateUser(r.Context(), userID, input)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			sendError(w, http.StatusNotFound, "usuário não encontrado")
+			return
+		}
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("Erro ao atualizar usuário: %v", err))
+		return
+	}
+
+	sendResponse(w, http.StatusOK, updatedUser)
+
+}
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Usuário não autenticado", http.StatusUnauthorized)
+		return
+	}
+
+	err := h.Service.DeleteUser(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			sendError(w, http.StatusNotFound, "usuário não encontrado")
+			return
+		}
+		sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao deleter usuário: %v", err))
+		return
+	}
+	sendResponse(w, http.StatusOK, userID)
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
