@@ -28,99 +28,106 @@ http:
           - X-User-ID
         addVaryHeader: true
 
+    strict-headers:
+      headers:
+        browserXssFilter: true
+        contentTypeNosniff: true
+        
     logging:
       headers:
         customRequestHeaders:
           X-Request-Id: "{uuid}"
+    
+    strip-user-prefix:
+      stripPrefix:
+        prefixes:
+          - "/user"
+
 
   routers:
-    # Auth service
+    # === Auth Service ===
     auth-login:
       rule: "Path(`/auth/login`)"
       service: auth-service
       entryPoints: [web]
-      middlewares: [cors, logging]
+      middlewares: [cors, logging, strict-headers]
 
     oauth-google:
       rule: "Path(`/oauth/google/login`)"
       service: auth-service
       entryPoints: [web]
-      middlewares: [cors, logging]
-    oauth-google-callback:
+      middlewares: [cors, logging, strict-headers]
+
+    oauth-callback:
       rule: "Path(`/oauth/google/callback`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: auth-service
       entryPoints: [web]
-      middlewares: [cors, logging]
+      middlewares: [cors, logging] # SEM strict-headers aqui!
 
-    # User service
+    # === User Service ===
     user-register:
       rule: "Path(`/user`) && (Method(`POST`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
-      middlewares: [cors, logging]
+      middlewares: [cors, logging, strict-headers]
 
     user-getall:
       rule: "Path(`/users`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
-      middlewares: [cors, logging]
+      middlewares: [cors, logging, strict-headers]
 
     user-get:
       rule: "Path(`/user/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers]
 
     user-me-update:
       rule: "Path(`/user/me`) && (Method(`PUT`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers]
 
     user-me-delete:
       rule: "Path(`/user/me`) && (Method(`DELETE`) || Method(`OPTIONS`))"
       service: user-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers]
 
-    # CORS fix para /user/{id}
-    user-get-by-id:
-      rule: "(PathPrefix(`/user/`) && (Method(`GET`) || Method(`OPTIONS`)))"
-      service: user-service
-      entryPoints: [web]
-      middlewares: [cors, logging, auth]
-
-    # Room service
+    # === Room Service ===
     rooms-list:
       rule: "Path(`/rooms`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
-      middlewares: [cors, logging]
+      middlewares: [cors, logging, strict-headers]
 
     rooms-mine:
       rule: "Path(`/rooms/mine`) && (Method(`GET`) || Method(`OPTIONS`))"
       service: room-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers]
+
+    room-create:
+      rule: "Path(`/rooms`) && (Method(`POST`) || Method(`OPTIONS`))"
+      service: room-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
 
     rooms-prefix:
       rule: "PathPrefix(`/rooms/`)"
       service: room-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers]
 
-    room-create:
-      rule: "Path(`/rooms`) && Method(`POST`)"
-      service: room-service
+      
+    user-get-by-id:
+      rule: "Path(`/user/{id:[0-9]+}`) && (Method(`GET`) || Method(`OPTIONS`))"      
+      service: user-service
       entryPoints: [web]
-      middlewares: [cors, logging, auth]
+      middlewares: [cors, logging, auth, strict-headers] 
 
-    # Opcional: responde diretamente as OPTIONS de /user/*
-    user-options:
-      rule: "PathPrefix(`/user/`) && Method(`OPTIONS`)"
-      service: noop@internal
-      entryPoints: [web]
-      middlewares: [cors]
+
 
   services:
     auth-service:
@@ -131,7 +138,7 @@ http:
     user-service:
       loadBalancer:
         servers:
-          - url: "http://user-service:8080"
+        - url: "http://user-service:8085"
 
     room-service:
       loadBalancer:

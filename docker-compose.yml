@@ -58,7 +58,7 @@ services:
     ports:
       - "${AUTH_SERVICE_PORT}:8081"
     environment:
-      - USER_SERVICE_GRPC_ADDR=user-service:8080
+      - USER_SERVICE_GRPC_ADDR=user-service:8085
       - JWT_SECRET=${JWT_SECRET}
     networks:
       - goverse_network

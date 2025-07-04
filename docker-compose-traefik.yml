@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16
@@ -47,6 +45,8 @@ services:
       - ./user-service/.env:/app/.env
     networks:
       - goverse_network
+    ports:
+      - "8085:8085"  # ADICIONADO: expõe porta do user-service
     labels:
       - "traefik.enable=true"
 
@@ -60,6 +60,8 @@ services:
       - ./auth-service/.env:/app/.env
     networks:
       - goverse_network
+    ports:
+      - "8081:8080"  # ADICIONADO: expõe porta do auth-service
     labels:
       - "traefik.enable=true"
 
@@ -76,6 +78,8 @@ services:
       - ./room-service/.env:/app/.env
     networks:
       - goverse_network
+    ports:
+      - "8082:8080"  # ADICIONADO: expõe porta do room-service
     labels:
       - "traefik.enable=true"
 
@@ -103,7 +107,7 @@ services:
       - --api.dashboard=true
     ports:
       - "${TRAEFIK_HTTP_PORT}:80"
-      - "8080:8080"
+      - "8080:8080"  # Traefik dashboard
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro

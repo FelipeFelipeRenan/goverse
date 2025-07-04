@@ -32,8 +32,6 @@ func main() {
 func validateHandler(w http.ResponseWriter, r *http.Request) {
 	// Adiciona CORS SEMPRE
 	addCORSHeaders(w)
-	log.Println("HEADERS:", r.Header)
-	
 	// Tratar pré-flight OPTIONS
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusOK)

@@ -59,22 +59,32 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Retorna HTML com postMessage
-	html := fmt.Sprintf(`
-		<!DOCTYPE html>
-		<html>
-		<head><title>Autenticado</title></head>
-		<body>
-			<script>
-				window.opener.postMessage({
-					type: 'oauth-success',
-					token: '%s'
-				}, '*');
-				window.close();
-			</script>
-		</body>
-		</html>
-	`, tokenResp.Token)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Pragma", "no-cache")
 
-	w.Header().Set("Content-Type", "text/html")
+	html := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+	<head><title>Autenticado</title></head>
+	<body>
+		<script>
+			window.opener.postMessage({
+				type: 'oauth-success',
+				token: '%s'
+			}, '*');
+
+			// Tenta fechar a janela
+			const closed = window.close();
+
+			// Se não fechar, mostra mensagem para o usuário fechar manualmente
+			if (!closed) {
+				document.body.innerHTML = '<h2>Login concluído!</h2><p>Você pode fechar esta janela.</p>';
+			}
+		</script>
+	</body>
+	</html>
+`, tokenResp.Token)
 	fmt.Fprint(w, html)
+
 }
