@@ -115,12 +115,12 @@ func (h *GRPCHandler) ExistsUserByID(ctx context.Context, req *userpb.UserIDRequ
 	}, nil
 }
 
-func (h  *GRPCHandler) GetUserByID(ctx context.Context, req *userpb.UserIDRequest)(*userpb.UserResponse, error){
+func (h *GRPCHandler) GetUserByID(ctx context.Context, req *userpb.UserIDRequest) (*userpb.UserResponse, error) {
 	user, err := h.userService.FindByID(ctx, req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "usuario não encontrado")
 	}
-		return &userpb.UserResponse{
+	return &userpb.UserResponse{
 		Id:        user.ID,
 		Name:      user.Username,
 		Email:     user.Email,
