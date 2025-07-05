@@ -14,10 +14,10 @@ import (
 )
 
 func main() {
-	logger.Init()
+	logger.Init("info", "user-service")
 	conn, err := database.Connect()
 	if err != nil {
-		logger.Error.Error("Erro ao conectar com banco de dados", "err", err)
+		logger.Error("Erro ao conectar com banco de dados", "err", err)
 	}
 	defer conn.Close(nil)
 
@@ -32,9 +32,9 @@ func main() {
 		routes.SetupUserRoutes(userHandler)
 		// Iniciando o servidor na porta 8080
 		port := os.Getenv("APP_PORT")
-		logger.Info.Info("Serviço de usuários rodando", "port", port)
+		logger.Info("Serviço de usuários rodando", "port", port)
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			logger.Error.Error("Erro ao iniciar o serviço de usuários", "err", err)
+			logger.Error("Erro ao iniciar o serviço de usuários", "err", err)
 		}
 	}()
 
