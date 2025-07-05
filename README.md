@@ -25,6 +25,7 @@
 - Docker
 - Kubernetes (opcional)
 - PostgreSQL / Redis
+- Traefik for API Gateway
 
 ## 🚀 Estrutura de Microsserviços
 
