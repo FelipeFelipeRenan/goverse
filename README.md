@@ -36,8 +36,12 @@ goverse/
 ├── room-service/
 ├── chat-service/
 ├── notification-service/
+├── traefik/
 └── api-gateway/
 ```
+
+Retirei o uso do api gateway por enquanto, substituindo pelo Traefik,
+pois estava se tornando dificil de realizar manutenção nas rotas dos microsseviços
 
 ## 📦 Como rodar localmente
 
