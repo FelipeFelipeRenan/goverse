@@ -70,6 +70,6 @@ func RunMigration(pool *pgxpool.Pool) error {
 		return fmt.Errorf("erro ao executar migração: %w", err)
 	}
 
-	logger.Info.Info("Migração executada com sucesso.")
+	logger.Info("Migração executada com sucesso.")
 	return nil
 }

@@ -44,12 +44,11 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		duration := time.Since(start)
 
-		logger.Info.Info("Requisição HTTP",
+		logger.WithContext(r.Context()).Info("Requisição HTTP",
 			"method", r.Method,
 			"path", r.URL.Path,
 			"status", rec.status,
 			"duration", duration.String(),
-			"request_id", requestID,
 		)
 
 	})
