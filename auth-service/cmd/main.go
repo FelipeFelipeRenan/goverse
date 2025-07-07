@@ -17,13 +17,13 @@ import (
 
 func main() {
 
-	logger.Init()
+	logger.Init("info", "auth-service")
 	godotenv.Load(".env")
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")
 	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		logger.Error.Error("falha ao conectar ao user-service: ", "err", err)
+		logger.Error("falha ao conectar ao user-service: ", "err", err)
 	}
 	defer conn.Close()
 
@@ -47,8 +47,8 @@ func main() {
 	http.HandleFunc("/oauth/google/callback", middleware.LoggingMiddleware(authHandler.GoogleCallback))
 
 	port := os.Getenv("APP_PORT")
-	logger.Info.Info("Service de autenticação rodando", "port", port)
+	logger.Info("Service de autenticação rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		logger.Error.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
+		logger.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
 	}
 }
