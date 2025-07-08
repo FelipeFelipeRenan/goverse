@@ -8,7 +8,7 @@ import (
 var (
 
 	// Quantidade de requisições HTTP por rota + request + status
-	HTTPRequesCount = promauto.NewCounterVec(
+	HTTPRequestCount = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
 			Help: "Número total de requisições HTTP",
