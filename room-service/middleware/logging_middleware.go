@@ -49,6 +49,8 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			"path", r.URL.Path,
 			"status", rec.status,
 			"duration", duration.String(),
+						"request_id", requestID,
+
 		)
 
 	})
