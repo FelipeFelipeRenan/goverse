@@ -21,7 +21,7 @@ func MetricsMiddleware(service string) func(http.HandlerFunc) http.HandlerFunc {
 			metrics.HTTPRequestCount.WithLabelValues(
 				service, r.Method, r.URL.Path, strconv.Itoa(rec.status),
 			).Inc()
-
+			
 			metrics.HTTPRequestDuration.WithLabelValues(
 				service, r.Method, r.URL.Path,
 			).Observe(duration)
