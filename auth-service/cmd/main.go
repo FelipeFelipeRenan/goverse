@@ -7,7 +7,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/middleware"
+	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/delivery/rest/routes"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/joho/godotenv"
@@ -48,9 +48,7 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(authService)
 
-	http.HandleFunc("POST /auth/login", middleware.LoggingMiddleware(authHandler.Login))
-	http.HandleFunc("/oauth/google/login", middleware.LoggingMiddleware(authHandler.GoogleLogin))
-	http.HandleFunc("/oauth/google/callback", middleware.LoggingMiddleware(authHandler.GoogleCallback))
+	routes.RegisterRoutes(authHandler)
 
 	port := os.Getenv("APP_PORT")
 	logger.Info("Service de autenticação rodando", "port", port)
