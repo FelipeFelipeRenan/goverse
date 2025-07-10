@@ -1,6 +1,9 @@
 entryPoints:
   web:
     address: ":80"
+  
+  metrics:
+    address: ":8082"
 
 providers:
   docker:
@@ -15,3 +18,6 @@ api:
   insecure: true # apenas para ambiente dev
 log:
   level: INFO
+metrics:
+  prometheus:
+    entryPoint: metrics

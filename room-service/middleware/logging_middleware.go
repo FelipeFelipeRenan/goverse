@@ -10,16 +10,12 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
 )
 
-type contextKey string
-
-const requestIDKey contextKey = "requestID"
-
 func generateRequestID() string {
 	return strconv.FormatInt(rand.Int63(), 16)
 }
 
 func GetRequestID(ctx context.Context) string {
-	if id, ok := ctx.Value(requestIDKey).(string); ok {
+	if id, ok := ctx.Value(logger.RequestIDKey).(string); ok {
 		return id
 	}
 	return ""
@@ -34,12 +30,10 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			requestID = generateRequestID()
 		}
 
-		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
-
+		ctx := context.WithValue(r.Context(), logger.RequestIDKey, requestID)
 		r = r.WithContext(ctx)
 
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
-
 		next.ServeHTTP(rec, r)
 
 		duration := time.Since(start)
@@ -49,10 +43,7 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			"path", r.URL.Path,
 			"status", rec.status,
 			"duration", duration.String(),
-						"request_id", requestID,
-
 		)
-
 	})
 }
 

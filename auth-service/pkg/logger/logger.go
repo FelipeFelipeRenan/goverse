@@ -11,6 +11,10 @@ var (
 	Log *slog.Logger
 )
 
+type contextKey string
+
+var RequestIDKey = contextKey("requestID")
+
 func Init(level, serviceName string) {
 	var logLevel slog.Level
 
@@ -52,6 +56,6 @@ func Warn(msg string, args ...any) {
 }
 
 func WithContext(ctx context.Context) *slog.Logger {
-	requestID, _ := ctx.Value("requestID").(string)
+	requestID, _ := ctx.Value(RequestIDKey).(string)
 	return Log.With("request_id", requestID)
 }
