@@ -132,8 +132,14 @@ services:
       - "3001:3000"
     networks:
       - goverse_network
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards  # opcional
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources
+      
 
 
 volumes:
