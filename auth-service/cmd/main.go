@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/delivery/rest/routes"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/delivery/rest/routes"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/joho/godotenv"
@@ -21,7 +21,7 @@ func main() {
 
 	logger.Init("info", "auth-service")
 
-	if erro != nil{
+	if erro != nil {
 		logger.Error("Erro ao carregar .env", "err", erro)
 	}
 

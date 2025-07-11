@@ -19,15 +19,15 @@ func main() {
 
 	logger.Init("info", "room-service")
 
-	if erro != nil{
+	if erro != nil {
 		logger.Error("Erro ao carregar .env", "err", erro)
 	}
-	
+
 	conn, err := database.Connect()
 	if err != nil {
 		logger.Error("Erro ao conectar com banco de dados", "err", err)
 	}
-	
+
 	defer conn.Close(nil)
 
 	database.RunMigration(conn)
