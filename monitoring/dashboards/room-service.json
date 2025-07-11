@@ -1,0 +1,60 @@
+{
+  "uid": "room-service-dashboard",
+  "title": "Room Service Dashboard",
+  "tags": ["goverse", "room-service"],
+  "timezone": "browser",
+  "schemaVersion": 35,
+  "version": 1,
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "refresh": "5s",
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "title": "Requisições por Rota",
+      "type": "timeseries",
+      "id": 1,
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (path, method) (http_requests_total{room_service=\"room-service\"})",
+          "legendFormat": "{{ method }} {{ path }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Duração Média das Requisições (s)",
+      "type": "timeseries",
+      "id": 2,
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(http_request_duration_seconds_sum{room_service=\"room-service\"}[1m]) / rate(http_request_duration_seconds_count{room_service=\"room-service\"}[1m])",
+          "legendFormat": "{{ method }} {{ path }}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Erros HTTP (4xx e 5xx)",
+      "type": "timeseries",
+      "id": 3,
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum by (status, path) (http_requests_total{room_service=\"room-service\",status=~\"4..|5..\"})",
+          "legendFormat": "Erro {{ status }} - {{ path }}",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}
