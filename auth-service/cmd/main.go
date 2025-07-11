@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/delivery/rest/routes"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/middleware"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/joho/godotenv"
@@ -17,13 +17,19 @@ import (
 
 func main() {
 
-	logger.Init()
-	godotenv.Load(".env")
+	erro := godotenv.Load(".env")
+
+	logger.Init("info", "auth-service")
+
+	if erro != nil {
+		logger.Error("Erro ao carregar .env", "err", erro)
+	}
+
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")
 	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		logger.Error.Error("falha ao conectar ao user-service: ", "err", err)
+		logger.Error("falha ao conectar ao user-service: ", "err", err)
 	}
 	defer conn.Close()
 
@@ -42,13 +48,11 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(authService)
 
-	http.HandleFunc("POST /auth/login", middleware.LoggingMiddleware(authHandler.Login))
-	http.HandleFunc("/oauth/google/login", middleware.LoggingMiddleware(authHandler.GoogleLogin))
-	http.HandleFunc("/oauth/google/callback", middleware.LoggingMiddleware(authHandler.GoogleCallback))
+	routes.RegisterRoutes(authHandler)
 
 	port := os.Getenv("APP_PORT")
-	logger.Info.Info("Service de autenticação rodando", "port", port)
+	logger.Info("Service de autenticação rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		logger.Error.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
+		logger.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
 	}
 }

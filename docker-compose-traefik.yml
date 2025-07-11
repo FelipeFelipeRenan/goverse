@@ -15,15 +15,13 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "${POSTGRES_PORT}:5432"
     networks:
       - goverse_network
 
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
+    volumes:
+      - redis_data:/data
     networks:
       - goverse_network
     healthcheck:
@@ -31,8 +29,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
-    volumes:
-      - redis_data:/data
 
   user-service:
     build:
@@ -41,12 +37,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes: 
+    volumes:
       - ./user-service/.env:/app/.env
     networks:
       - goverse_network
-    ports:
-      - "8085:8085"  # ADICIONADO: expõe porta do user-service
+    expose:
+      - "8085"  # apenas para comunicação interna
     labels:
       - "traefik.enable=true"
 
@@ -60,8 +56,8 @@ services:
       - ./auth-service/.env:/app/.env
     networks:
       - goverse_network
-    ports:
-      - "8081:8080"  # ADICIONADO: expõe porta do auth-service
+    expose:
+      - "8080"  # apenas para comunicação interna
     labels:
       - "traefik.enable=true"
 
@@ -78,8 +74,8 @@ services:
       - ./room-service/.env:/app/.env
     networks:
       - goverse_network
-    ports:
-      - "8082:8080"  # ADICIONADO: expõe porta do room-service
+    expose:
+      - "8080"  # apenas para comunicação interna
     labels:
       - "traefik.enable=true"
 
@@ -87,11 +83,11 @@ services:
     build:
       context: ./auth-middleware
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
     environment:
       - PORT=3000
       - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "3000:3000"  # necessário externamente (caso use como API Gateway auth)
     networks:
       - goverse_network
 
@@ -100,14 +96,17 @@ services:
     container_name: traefik
     command:
       - --entrypoints.web.address=:80
+      - --entrypoints.metrics.address=:8082
       - --providers.docker=true
       - --providers.docker.exposedByDefault=false
       - --providers.file.directory=/etc/traefik
       - --providers.file.watch=true
       - --api.dashboard=true
+      - --metrics.prometheus=true
     ports:
-      - "${TRAEFIK_HTTP_PORT}:80"
-      - "8080:8080"  # Traefik dashboard
+      - "${TRAEFIK_HTTP_PORT}:80"     # para o app
+      - "8080:8080"                   # Traefik dashboard
+      - "8082:8082"                   # Prometheus metrics
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
@@ -115,9 +114,35 @@ services:
     networks:
       - goverse_network
 
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"  # acesso externo permitido
+    networks:
+      - goverse_network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3001:3000"  # acesso externo permitido
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - goverse_network
+
 volumes:
   pgdata:
   redis_data:
+  grafana_data:
 
 networks:
   goverse_network:

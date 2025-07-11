@@ -11,14 +11,23 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	logger.Init()
+	erro := godotenv.Load(".env")
+
+	logger.Init("info", "room-service")
+
+	if erro != nil {
+		logger.Error("Erro ao carregar .env", "err", erro)
+	}
+
 	conn, err := database.Connect()
 	if err != nil {
-		logger.Error.Error("Erro ao conectar com banco de dados", "err", err)
+		logger.Error("Erro ao conectar com banco de dados", "err", err)
 	}
+
 	defer conn.Close(nil)
 
 	database.RunMigration(conn)
@@ -32,9 +41,9 @@ func main() {
 		routes.SetupUserRoutes(userHandler)
 		// Iniciando o servidor na porta 8080
 		port := os.Getenv("APP_PORT")
-		logger.Info.Info("Serviço de usuários rodando", "port", port)
+		logger.Info("Serviço de usuários rodando", "port", port)
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			logger.Error.Error("Erro ao iniciar o serviço de usuários", "err", err)
+			logger.Error("Erro ao iniciar o serviço de usuários", "err", err)
 		}
 	}()
 

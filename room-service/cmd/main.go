@@ -22,22 +22,25 @@ import (
 )
 
 func main() {
-	logger.Init()
 
-	if err := godotenv.Load(".env"); err != nil {
-		logger.Error.Error("Erro ao carregar .env", "err", err)
+	erro := godotenv.Load(".env")
+
+	logger.Init("info", "room-service")
+
+	if erro != nil {
+		logger.Error("Erro ao carregar .env", "err", erro)
 	}
 
 	// Conexão com banco de dados
 	dbPool, err := database.Connect()
 	if err != nil {
-		logger.Error.Error("Erro ao conectar ao banco de dados", "err", err)
+		logger.Error("Erro ao conectar ao banco de dados", "err", err)
 		return
 	}
 	defer dbPool.Close()
 
 	if err := database.RunMigration(dbPool); err != nil {
-		logger.Error.Error("Erro ao rodar migrações", "err", err)
+		logger.Error("Erro ao rodar migrações", "err", err)
 		return
 	}
 
@@ -46,7 +49,7 @@ func main() {
 	// Conexão com user-service via gRPC
 	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		logger.Error.Error("falha ao conectar ao user-service: ", "err", err)
+		logger.Error("falha ao conectar ao user-service: ", "err", err)
 	}
 	defer conn.Close()
 	userClient := client.NewUserServiceClient(conn)
@@ -75,9 +78,9 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		logger.Info.Info("Room service rodando na porta " + port)
+		logger.Info("Serviço de salas rodando", "port", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error.Error("Erro ao iniciar servidor HTTP", "err", err)
+			logger.Error("Erro ao iniciar servidor HTTP", "err", err)
 		}
 	}()
 
@@ -86,10 +89,10 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
-	logger.Info.Info("Encerrando room service...")
+	logger.Info("Encerrando room service...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
-		logger.Error.Error("Erro ao encerrar servidor HTTP", "err", err)
+		logger.Error("Erro ao encerrar servidor HTTP", "err", err)
 	}
 }
