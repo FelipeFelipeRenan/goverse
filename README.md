@@ -37,6 +37,7 @@ goverse/
 ├── chat-service/
 ├── notification-service/
 ├── traefik/
+├── monitoring/
 └── api-gateway/
 ```
 
@@ -76,7 +77,7 @@ go test ./...
 Para criar um usuário, utilize o comando:
 
 ```bash
-curl -X POST http://localhost:8088/user \
+curl -X POST http://localhost/user \
   -H "Content-Type: application/json" \
   -d '{
   "username": "usuario",
@@ -89,19 +90,19 @@ curl -X POST http://localhost:8088/user \
 Para retornar todos os usuários, utilize o comando:
 
 ```bash
-curl http://localhost:8088/users
+curl http://localhost/users
 ```
 
 Para retornar um usuário pelo seu ID, utilize o comando:
 
 ```bash
-curl http://localhost:8088/users/<id do usuario>
+curl http://localhost/users/<id do usuario>
 ```
 
 Para realizar testes de login com senha, utilize o comando:
 
 ```bash
- curl -X POST http://localhost:8088/login \
+ curl -X POST http://localhost/login \
   -H "Content-Type: application/json" \
   -d '{
   "email": "usuario@usuario.com",
@@ -112,7 +113,7 @@ Para realizar testes de login com senha, utilize o comando:
 Para realizar o acesso à rotas protegidas, utilize o comando:
 
 ```bash
-  curl -X GET http://localhost:8080/user/<id do usuario> \
+  curl -X GET http://localhost/user/<id do usuario> \
   -H "Authorization: Bearer <TOKEN>"    
 ```
 
@@ -121,7 +122,7 @@ Para testar acessando o serviço diretamente, basta mudar a porta na requisiçã
 Para criação de salas, utilize o comando:
 
 ```bash
-curl -X POST http://localhost:8082/rooms \
+curl -X POST http://localhost/rooms \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <TOKEN>" \
 
@@ -136,13 +137,13 @@ curl -X POST http://localhost:8082/rooms \
 Para verificar retornar uma sala por ID, utilize o comando:
 
 ```bash
-curl -X GET http://localhost:8082/rooms/<id da sala>
+curl -X GET http://localhost/rooms/<id da sala>
 ```
 
 Para listar todas as salas, junto com ulitização de filtros, utilize o comando:
 
 ```bash
- curl "http://localhost:8082/rooms?limit=<numero de salas>&offset=<numero de salas puladas >&public_only=<true ou false>&keyword=<palavra chave da sala>"
+ curl "http://localhost/rooms?limit=<numero de salas>&offset=<numero de salas puladas >&public_only=<true ou false>&keyword=<palavra chave da sala>"
 ```
 
 Caso deseje, basta omitir o filtro
@@ -150,7 +151,7 @@ Caso deseje, basta omitir o filtro
 Para atualizar informações de uma sala, utilize o comando:
 
 ```bash
-curl -X PATCH http://localhost:8082/rooms/3 
+curl -X PATCH http://localhost/rooms/3 
   -H "Content-Type: application/json" 
   -H "X-User-ID: 1"
     -d '{
@@ -164,7 +165,7 @@ Podem ser adicionados outros campos para ser modificado, como o is_public, ou om
 Para deletar uma sala, utilize o comando
 
 ```bash
-  curl -X DELETE http://localhost:8082/rooms/<id da sala> \
+  curl -X DELETE http://localhost/rooms/<id da sala> \
   -H "X-User-ID: <id do dono da sala>"
 
 ```
@@ -172,13 +173,13 @@ Para deletar uma sala, utilize o comando
 Para mostrar todos os membros de uma sala, utilize o comando:
 
 ```bash
-curl -X GET http://localhost:8082/rooms/<id da sala>/members \
+curl -X GET http://localhost/rooms/<id da sala>/members \
 ```
 
 Para adicionar um membro a sala, utilize o comando:
 
 ```bash
-  curl -X POST http://localhost:8082/rooms/<id da sala>/members \
+  curl -X POST http://localhost/rooms/<id da sala>/members \
     -H "X-User-ID: <id do dono da sala>" \
     -H "Content-Type: application/json" \
     -d '{
@@ -190,14 +191,14 @@ Para adicionar um membro a sala, utilize o comando:
 Para deletar um membro da sala, utilize o comando:
 
 ```bash
-curl -X DELETE http://localhost:8082/rooms/<id da sala>/members/<id do membro> \
+curl -X DELETE http://localhost/rooms/<id da sala>/members/<id do membro> \
   -H "X-User-ID: <id do dono da sala>"
 ```
 
 Para mudar a role de um membro, utilize o comando:
 
 ```bash
- curl -X PUT http://localhost:8082/rooms/<id da sala>/members/<id do membro>/role \
+ curl -X PUT http://localhost/rooms/<id da sala>/members/<id do membro>/role \
   -H "X-User-ID: <id do dono da sala>" \
   -H "Content-Type: application/json" \
   -d '{ "new_role": "<role>" }'
