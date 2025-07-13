@@ -4,5 +4,6 @@ providers:
     folder: 'Goverse'
     type: file
     updateIntervalSeconds: 5
+    editable: true
     options:
       path: /etc/grafana/provisioning/dashboards
