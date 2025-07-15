@@ -1,8 +1,9 @@
-# k8s/deployments/traefik.yaml
+# traefik-deployment.yml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: traefik
+  namespace: goverse
 spec:
   replicas: 1
   selector:
@@ -14,33 +15,28 @@ spec:
         app: traefik
     spec:
       containers:
-      - name: traefik
-        image: traefik:v2.11
-        args:
-          - --entrypoints.web.address=:80
-          - --entrypoints.metrics.address=:8082
-          - --providers.kubernetescrd
-          - --api.dashboard=true
-          - --metrics.prometheus=true
-        ports:
-        - containerPort: 80
-        - containerPort: 8082
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: traefik
-spec:
-  selector:
-    app: traefik
-  ports:
-  - name: web
-    protocol: TCP
-    port: 80
-    targetPort: 80
-  - name: metrics
-    protocol: TCP
-    port: 8082
-    targetPort: 8082
-  type: LoadBalancer
+        - name: traefik
+          image: traefik:v2.11
+          args:
+            - --configFile=/etc/traefik/traefik.yml
+          ports:
+            - name: web
+              containerPort: 80
+            - name: dashboard
+              containerPort: 8081
+            - name: metrics
+              containerPort: 8082
+          volumeMounts:
+            - name: traefik-config
+              mountPath: /etc/traefik/traefik.yml
+              subPath: traefik.yml
+            - name: traefik-dynamic-config
+              mountPath: /etc/traefik/traefik_dynamic.yml
+              subPath: traefik_dynamic.yml
+      volumes:
+        - name: traefik-config
+          configMap:
+            name: traefik-config
+        - name: traefik-dynamic-config
+          configMap:
+            name: traefik-dynamic-config

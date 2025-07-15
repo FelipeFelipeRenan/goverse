@@ -9,5 +9,5 @@ data:
   DB_USER: "user"
   DB_NAME: "rooms"
   GRPC_SERVER_HOST: "user-service"
-  GRPC_SERVER_PORT: "50051"
-  ENV: "dev"
+  GRPC_SERVER_PORT: ":50051"
+  ENV: "prod"

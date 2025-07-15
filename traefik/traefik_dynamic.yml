@@ -127,7 +127,11 @@ http:
       entryPoints: [web]
       middlewares: [cors, logging, auth, strict-headers] 
 
-
+    traefik-dashboard:
+      rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
+      service: api@internal
+      entryPoints:
+        - web
 
   services:
     auth-service:

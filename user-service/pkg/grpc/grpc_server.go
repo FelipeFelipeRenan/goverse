@@ -14,7 +14,13 @@ import (
 
 func StartGRPCServer(userService service.UserService) {
 
-	godotenv.Load(".env")
+	if os.Getenv("ENV") != "prod" {
+		erro := godotenv.Load()
+		if erro != nil {
+			logger.Error("Erro ao carregar .env", "err", erro)
+		}
+	}
+
 	grpc_port := os.Getenv("GRPC_PORT")
 	listener, err := net.Listen("tcp", grpc_port)
 	if err != nil {
