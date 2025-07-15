@@ -151,32 +151,6 @@ services:
         limits:
           cpus: '0.2'
           memory: 100M
-    
-  otel-collector:
-    image: otel/opentelemetry-collector:0.95.0
-    container_name: otel-collector
-    command: ["--config=/etc/otel-collector-config.yaml"]
-    volumes:
-      - ./monitoring/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "14317:4317"   # OTLP gRPC receiver no HOST
-      - "4318:4318"    # OTLP HTTP receiver no HOST
-    networks:
-      - goverse_network
-    depends_on:
-      - jaeger
-
-  jaeger:
-    image: jaegertracing/all-in-one:1.53
-    container_name: jaeger
-    environment:
-      - COLLECTOR_OTLP_ENABLED=true
-    ports:
-      - "16686:16686"  # UI
-      - "14268:14268"  # Jaeger collector endpoint
-    networks:
-      - goverse_network
-
 
 
 volumes:

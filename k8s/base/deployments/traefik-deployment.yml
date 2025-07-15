@@ -1,0 +1,46 @@
+# k8s/deployments/traefik.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      containers:
+      - name: traefik
+        image: traefik:v2.11
+        args:
+          - --entrypoints.web.address=:80
+          - --entrypoints.metrics.address=:8082
+          - --providers.kubernetescrd
+          - --api.dashboard=true
+          - --metrics.prometheus=true
+        ports:
+        - containerPort: 80
+        - containerPort: 8082
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traefik
+spec:
+  selector:
+    app: traefik
+  ports:
+  - name: web
+    protocol: TCP
+    port: 80
+    targetPort: 80
+  - name: metrics
+    protocol: TCP
+    port: 8082
+    targetPort: 8082
+  type: LoadBalancer
