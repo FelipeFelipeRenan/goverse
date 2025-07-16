@@ -9,6 +9,8 @@ data:
     entryPoints:
       web:
         address: ":80"
+      dashboard:
+        address: ":8081"
       metrics:
         address: ":8082"
 
