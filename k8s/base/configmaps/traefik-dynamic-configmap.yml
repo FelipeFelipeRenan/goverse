@@ -139,7 +139,7 @@ data:
           rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
           service: api@internal
           entryPoints:
-            - web
+            - dashboard
 
       services:
         auth-service:
