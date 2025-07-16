@@ -20,9 +20,11 @@ func LoadEnv() error {
 
 func Connect() (*pgx.Conn, error) {
 
-	err := LoadEnv()
-	if err != nil {
-		return nil, err
+	if os.Getenv("ENV") != "prod" {
+		erro := godotenv.Load()
+		if erro != nil {
+			logger.Error("Erro ao carregar .env", "err", erro)
+		}
 	}
 
 	dbHost := os.Getenv("DB_HOST")

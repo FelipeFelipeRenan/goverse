@@ -1,0 +1,10 @@
+# k8s/configmaps/init-sql-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-sql-configmap
+data:
+  init.sql: |-
+    CREATE DATABASE users;
+    CREATE DATABASE rooms;
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

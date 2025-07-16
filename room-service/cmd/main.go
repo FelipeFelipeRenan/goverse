@@ -23,13 +23,14 @@ import (
 
 func main() {
 
-	erro := godotenv.Load(".env")
+	if os.Getenv("ENV") != "prod" {
+		erro := godotenv.Load()
+		if erro != nil {
+			logger.Error("Erro ao carregar .env", "err", erro)
+		}
+	}
 
 	logger.Init("info", "room-service")
-
-	if erro != nil {
-		logger.Error("Erro ao carregar .env", "err", erro)
-	}
 
 	// Conexão com banco de dados
 	dbPool, err := database.Connect()

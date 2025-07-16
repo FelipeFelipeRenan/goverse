@@ -1,0 +1,42 @@
+# traefik-deployment.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traefik
+  namespace: goverse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traefik
+  template:
+    metadata:
+      labels:
+        app: traefik
+    spec:
+      containers:
+        - name: traefik
+          image: traefik:v2.11
+          args:
+            - --configFile=/etc/traefik/traefik.yml
+          ports:
+            - name: web
+              containerPort: 80
+            - name: dashboard
+              containerPort: 8081
+            - name: metrics
+              containerPort: 8082
+          volumeMounts:
+            - name: traefik-config
+              mountPath: /etc/traefik/traefik.yml
+              subPath: traefik.yml
+            - name: traefik-dynamic-config
+              mountPath: /etc/traefik/traefik_dynamic.yml
+              subPath: traefik_dynamic.yml
+      volumes:
+        - name: traefik-config
+          configMap:
+            name: traefik-config
+        - name: traefik-dynamic-config
+          configMap:
+            name: traefik-dynamic-config

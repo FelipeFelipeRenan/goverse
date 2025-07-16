@@ -17,13 +17,14 @@ import (
 
 func main() {
 
-	erro := godotenv.Load(".env")
+	if os.Getenv("ENV") != "prod" {
+		erro := godotenv.Load()
+		if erro != nil {
+			logger.Error("Erro ao carregar .env", "err", erro)
+		}
+	}
 
 	logger.Init("info", "auth-service")
-
-	if erro != nil {
-		logger.Error("Erro ao carregar .env", "err", erro)
-	}
 
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")

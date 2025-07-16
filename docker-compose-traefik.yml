@@ -138,6 +138,20 @@ services:
       - ./monitoring/datasources:/etc/grafana/provisioning/datasources
     networks:
       - goverse_network
+  
+  node-exporter:
+    image: prom/node-exporter
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - goverse_network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 100M
+
 
 volumes:
   pgdata:
