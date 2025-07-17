@@ -2,6 +2,14 @@ NAMESPACE=goverse
 
 # ========== TRAEFIK ==========
 
+# Lista todos os deployments no namespace e faz rollout restart em cada um
+restart-all:
+	@echo "Reiniciando todos os deployments no namespace $(NAMESPACE)..."
+	@for deploy in $$(kubectl get deployments -n $(NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
+		echo "▶ Reiniciando $$deploy..."; \
+		kubectl rollout restart deployment $$deploy -n $(NAMESPACE); \
+	done
+
 traefik-apply:
 	kubectl apply -f k8s/base/configmaps/traefik-configmap.yml -n $(NAMESPACE)
 	kubectl apply -f k8s/base/configmaps/traefik-dynamic-configmap.yml -n $(NAMESPACE)
@@ -54,13 +62,14 @@ describe-traefik:
 
 help:
 	@echo "🧪 Goverse Kubernetes Makefile:"
-	@echo "  make k8s-apply           # Aplica tudo: traefik + serviços"
-	@echo "  make traefik-apply       # Aplica apenas configs/deploy de traefik"
-	@echo "  make traefik-restart     # Reinicia o traefik"
-	@echo "  make traefik-port        # Faz port-forward para dashboard e métricas"
-	@echo "  make services-apply      # Aplica todos os serviços (auth, user, room)"
-	@echo "  make auth-apply          # Aplica auth-service"
-	@echo "  make user-apply          # Aplica user-service"
-	@echo "  make room-apply          # Aplica room-service"
+	@echo "  make k8s-apply           	# Aplica tudo: traefik + serviços"
+	@echo "  make traefik-apply       	# Aplica apenas configs/deploy de traefik"
+	@echo "  make traefik-restart     	# Reinicia o traefik"
+	@echo "  make traefik-port        	# Faz port-forward para dashboard e métricas"
+	@echo "  make services-apply      	# Aplica todos os serviços (auth, user, room)"
+	@echo "  make auth-apply          	# Aplica auth-service"
+	@echo "  make user-apply          	# Aplica user-service"
+	@echo "  make room-apply          	# Aplica room-service"
 	@echo "  make auth-middleware-apply # Aplica auth-middleware"
-	@echo "  make traefik-logs        # Mostra logs do traefik"
+	@echo "  make traefik-logs        	# Mostra logs do traefik"
+	@echo "  make restart-all        	# reinicia todos os pods"

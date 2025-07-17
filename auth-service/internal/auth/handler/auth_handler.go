@@ -38,6 +38,8 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	state := "state-token" // idealmente aleatório e salvo em cookie/session
 	authURL := h.authService.GetOAuthURL(state)
+	fmt.Println("Redirecting to Google OAuth URL:", authURL)
+
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
