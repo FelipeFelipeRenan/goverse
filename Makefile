@@ -22,7 +22,8 @@ traefik-restart:
 traefik-port:
 	@echo "👉 Acessar dashboard: http://localhost:8081/dashboard"
 	@echo "👉 Acessar métricas:  http://localhost:8082/metrics"
-	kubectl port-forward deployment/traefik -n $(NAMESPACE) 8081:8081 8082:8082
+	@echo "👉 Acessar API:       http://localhost:8080/"
+	kubectl port-forward deployment/traefik -n $(NAMESPACE) 8081:8081 8082:8082 8080:80
 
 # ========== SERVIÇOS ==========
 auth-apply:
