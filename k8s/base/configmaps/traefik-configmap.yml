@@ -15,8 +15,7 @@ data:
         address: ":8082"
 
     providers:
-      docker:
-        exposedByDefault: false
+      kubernetesCRD: {}
       file:
         filename: /etc/traefik/traefik_dynamic.yml
         watch: true

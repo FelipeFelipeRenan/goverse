@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: goverse
+  labels:
+    app: grafana
+  annotations:
+    traefik.http.routers.grafana.rule: "PathPrefix(`/grafana`)"
+    traefik.http.routers.grafana.entrypoints: "web"
+    traefik.http.services.grafana.loadbalancer.server.port: "3000"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+  selector:
+    app: grafana
