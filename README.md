@@ -23,7 +23,7 @@
 - WebSocket
 - WebRTC
 - Docker
-- Kubernetes (opcional)
+- Kubernetes
 - PostgreSQL / Redis
 - Traefik for API Gateway
 
@@ -38,6 +38,7 @@ goverse/
 ├── notification-service/
 ├── traefik/
 ├── monitoring/
+├── k8s/
 └── api-gateway/
 ```
 
