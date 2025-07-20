@@ -103,7 +103,7 @@ curl http://localhost/users/<id do usuario>
 Para realizar testes de login com senha, utilize o comando:
 
 ```bash
- curl -X POST http://localhost/login \
+ curl -X POST http://localhost/auth/login \
   -H "Content-Type: application/json" \
   -d '{
   "email": "usuario@usuario.com",
@@ -204,6 +204,26 @@ Para mudar a role de um membro, utilize o comando:
   -H "Content-Type: application/json" \
   -d '{ "new_role": "<role>" }'
 
+```
+### Utilizando Kubernetes (k8s)
+
+Para utilizar a aplicação com o Kubernetes, utilizando no minikube como cluster, basta utilizar os comandos:
+
+Para iniciar o cluster:
+
+```bash
+minikube start
+```
+
+Para aplicar os manifests:
+ ```bash
+make k8s-apply
+```
+
+Para expor as portas:
+
+```bash
+make traefik-ports
 ```
 
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
