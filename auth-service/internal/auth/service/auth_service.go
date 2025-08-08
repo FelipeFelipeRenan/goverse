@@ -39,13 +39,18 @@ func (s *authService) Authenticate(ctx context.Context, credentials domain.Crede
 		return nil, fmt.Errorf("falha na autenticação> %w", err)
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(s.jwtKey)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao fazer parse de chave privada: %w", err)
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
 		"user_id":   user.ID,
 		"user_name": user.Username,
 		"exp":       time.Now().Add(24 * time.Hour).Unix(),
 	})
 
-	tokenString, err := token.SignedString(s.jwtKey)
+	tokenString, err := token.SignedString(privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao assinar token: %w", err)
 	}

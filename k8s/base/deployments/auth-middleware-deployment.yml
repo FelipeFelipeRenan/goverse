@@ -21,11 +21,16 @@ spec:
         env:
         - name: PORT
           value: "3000"
-        - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: JWT_SECRET
+        - name: JWT_PUBLIC_KEY_PATH
+          value: /keys/public.pem
+        volumeMounts:
+        - name: jwt-key-volume
+          mountPath: "/keys"
+          readOnly: true
+      volumes:
+      - name: jwt-key-volume
+        secret:
+          secretName: jwt-keys-secret
 
 ---
 apiVersion: v1

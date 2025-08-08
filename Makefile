@@ -71,6 +71,6 @@ help:
 	@echo "  make auth-apply          	# Aplica auth-service"
 	@echo "  make user-apply          	# Aplica user-service"
 	@echo "  make room-apply          	# Aplica room-service"
-	@echo "  make auth-middleware-apply # Aplica auth-middleware"
+	@echo "  make auth-middleware-apply    # Aplica auth-middleware"
 	@echo "  make traefik-logs        	# Mostra logs do traefik"
 	@echo "  make restart-all        	# reinicia todos os pods"

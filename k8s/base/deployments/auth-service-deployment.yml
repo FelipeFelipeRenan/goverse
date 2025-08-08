@@ -22,4 +22,14 @@ spec:
                 name: auth-service-config
             - secretRef:
                 name: auth-service-secret
-
+          env:
+            - name: JWT_PRIVATE_KEY_PATH
+              value: /keys/private.pem
+          volumeMounts:
+            - name: jwt-key-volume
+              mountPath: /keys
+              readOnly: true
+      volumes:
+        - name: jwt-key-volume
+          secret:
+            secretName: jwt-keys-secret
