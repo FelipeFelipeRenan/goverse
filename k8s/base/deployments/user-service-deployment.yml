@@ -17,23 +17,10 @@ spec:
           image: felipedev21/user-service:latest
           ports:
             - containerPort: 8085
+            - containerPort: 50051
+
           envFrom:
             - configMapRef:
                 name: user-service-config
             - secretRef:
                 name: user-service-secret
-
-
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: user-service
-spec:
-  selector:
-    app: user-service
-  ports:
-  - protocol: TCP
-    port: 8085
-    targetPort: 8085
-  type: ClusterIP

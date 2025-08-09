@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -84,14 +85,25 @@ func extractTokenFromHeader(r *http.Request) string {
 }
 
 func validateToken(tokenString string) (*CustomClaims, error) {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		return nil, errors.New("JWT_SECRET não configurado no ambiente")
+
+	publicKeyBytes, err := os.ReadFile(os.Getenv("JWT_PUBLIC_KEY_PATH"))
+	if err != nil {
+		return nil, errors.New("não foi possivel ler a chave pública")
+	}
+
+	publicKey, err := jwt.ParseRSAPublicKeyFromPEM(publicKeyBytes)
+	if err != nil {
+		return nil, errors.New("não foi possivel fazer o parse da chave pública")
 	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
-		return []byte(secret), nil
+
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", t.Header["alg"])
+		}
+		return publicKey, nil
 	})
+
 	if err != nil {
 		return nil, err
 	}

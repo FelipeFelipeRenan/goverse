@@ -18,24 +18,30 @@ type RoomService interface {
 }
 
 type roomService struct {
+	db         DBPool
 	roomRepo   repository.RoomRepository
 	memberRepo repository.RoomMemberRepository
 }
 
-func NewRoomService(r repository.RoomRepository, m repository.RoomMemberRepository) RoomService {
+func NewRoomService(db DBPool, r repository.RoomRepository, m repository.RoomMemberRepository) RoomService {
 	return &roomService{
+		db:         db,
 		roomRepo:   r,
 		memberRepo: m,
 	}
 }
 
-// CreateRoom implements RoomService.
-func (r *roomService) CreateRoom(ctx context.Context, ownerID string, room *domain.Room) (*domain.Room, error) {
-	room.OwnerID = ownerID
-	room.CreatedAt = time.Now()
-
-	err := r.roomRepo.Create(ctx, room)
+func (s *roomService) CreateRoom(ctx context.Context, ownerID string, room *domain.Room) (*domain.Room, error) {
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
+		return nil, fmt.Errorf("erro ao iniciar transação: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	room.OwnerID = ownerID
+	room.MemberCount = 0
+
+	if err := s.roomRepo.Create(ctx, tx, room); err != nil {
 		return nil, err
 	}
 
@@ -45,73 +51,65 @@ func (r *roomService) CreateRoom(ctx context.Context, ownerID string, room *doma
 		Role:     domain.RoleOwner,
 		JoinedAt: room.CreatedAt,
 	}
-
-	err = r.memberRepo.AddMember(ctx, member)
-	if err != nil {
-		_ = r.roomRepo.Delete(ctx, room.ID)
+	if err := s.memberRepo.AddMember(ctx, tx, member); err != nil {
 		return nil, err
 	}
-	return room, nil
 
+	if err := s.roomRepo.IncrementMemberCount(ctx, tx, room.ID, 1); err != nil {
+		return nil, err
+	}
+	room.MemberCount = 1
+
+	if err = tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("erro ao commitar transação: %w", err)
+	}
+
+	return room, nil
 }
 
-// DeleteRoom implements RoomService.
-func (r *roomService) DeleteRoom(ctx context.Context, actorID string, roomID string) error {
-	// verifica se actor é o dono da sala (possui role de owner)
-	room, err := r.roomRepo.GetByID(ctx, roomID)
+func (s *roomService) DeleteRoom(ctx context.Context, actorID string, roomID string) error {
+	room, err := s.roomRepo.GetByID(ctx, s.db, roomID)
 	if err != nil {
-		return fmt.Errorf("Sala nao encontrada: %w", err)
+		return fmt.Errorf("sala não encontrada: %w", err)
 	}
 	if room.OwnerID != actorID {
-		return fmt.Errorf("somente o dono da sala pode deletá-la")
+		return domain.ErrUnauthorized
 	}
 
-	return r.roomRepo.Delete(ctx, roomID)
+	return s.roomRepo.Delete(ctx, s.db, roomID)
 }
 
-// GetRoom implements RoomService.
-func (r *roomService) GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error) {
-	room, err := r.roomRepo.GetByID(ctx, roomID)
-	if err != nil {
-		return nil, err
-	}
-	return room, nil
+func (s *roomService) GetRoomByID(ctx context.Context, roomID string) (*domain.Room, error) {
+	return s.roomRepo.GetByID(ctx, s.db, roomID)
 }
 
-// GetRoomMembers implements RoomService.
-func (r *roomService) GetRoomMembers(ctx context.Context, roomID string) ([]*domain.RoomMember, error) {
-	return r.memberRepo.GetMembers(ctx, roomID)
-}
-
-// ListRooms implements RoomService.
-func (r *roomService) ListRooms(ctx context.Context, limit int, offset int, publicOnly bool, keyword string) ([]*domain.Room, error) {
+func (s *roomService) ListRooms(ctx context.Context, limit int, offset int, publicOnly bool, keyword string) ([]*domain.Room, error) {
 	if keyword != "" {
-		return r.roomRepo.SearchByName(ctx, keyword)
+		return s.roomRepo.SearchByName(ctx, s.db, keyword)
 	}
 	if publicOnly {
-		return r.roomRepo.ListPublic(ctx, limit, offset)
+		return s.roomRepo.ListPublic(ctx, s.db, limit, offset)
 	}
-	return r.roomRepo.ListAll(ctx, limit, offset)
+	return s.roomRepo.ListAll(ctx, s.db, limit, offset)
 }
 
-// UpdateRoom implements RoomService.
-func (r *roomService) UpdateRoom(ctx context.Context, actorID string, room *domain.Room) error {
-	existingRoom, err := r.roomRepo.GetByID(ctx, room.ID)
+func (s *roomService) UpdateRoom(ctx context.Context, actorID string, room *domain.Room) error {
+	existingRoom, err := s.roomRepo.GetByID(ctx, s.db, room.ID)
 	if err != nil {
 		return fmt.Errorf("sala não encontrada: %w", err)
 	}
 
-	member, err := r.memberRepo.GetMemberByID(ctx, room.ID, actorID)
+	member, err := s.memberRepo.GetMemberByID(ctx, s.db, room.ID, actorID)
 	if err != nil {
 		return fmt.Errorf("usuario %s não é membro da sala", actorID)
 	}
 	if member.Role != domain.RoleOwner && member.Role != domain.RoleAdmin {
-		return fmt.Errorf("usuario %s não tem permissão para atualizar a sala", actorID)
+		return domain.ErrUnauthorized
 	}
 
 	existingRoom.Name = room.Name
 	existingRoom.Description = room.Description
 	existingRoom.UpdatedAt = time.Now()
 
-	return r.roomRepo.Update(ctx, existingRoom)
+	return s.roomRepo.Update(ctx, s.db, existingRoom)
 }

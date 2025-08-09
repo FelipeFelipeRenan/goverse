@@ -26,6 +26,10 @@ func main() {
 
 	logger.Init("info", "auth-service")
 
+	privateKeyBytes, err := os.ReadFile(os.Getenv("JWT_PRIVATE_KEY_PATH"))
+	if err != nil {
+		logger.Error("falha ao ler a chave privada", "err", err)
+	}
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")
 	conn, err := grpc.NewClient(grpc_host+grpc_port, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -44,8 +48,8 @@ func main() {
 		"password": passwordAuth,
 		"oauth":    service.NewOAuthAuth(authRepo),
 	}
-	jwt_secret := os.Getenv("JWT_SECRET")
-	authService := service.NewAuthService(authMethods, []byte(jwt_secret))
+	// jwt_secret := os.Getenv("JWT_SECRET")
+	authService := service.NewAuthService(authMethods, privateKeyBytes)
 
 	authHandler := handler.NewAuthHandler(authService)
 

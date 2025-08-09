@@ -2,11 +2,13 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/dtos"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type MemberService interface {
@@ -16,167 +18,121 @@ type MemberService interface {
 	GetRoomMembers(ctx context.Context, roomID string) ([]*dtos.MemberWithUser, error)
 	GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
 	GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error)
-
-	JoinRoom(ctx context.Context, roomId, userID, inviteToken string) error
-
-	IsUserValid(ctx context.Context, userID string) (bool, error)
+	JoinRoom(ctx context.Context, roomID, userID, inviteToken string) error
 }
 
 type memberService struct {
+	db         *pgxpool.Pool
 	memberRepo repository.RoomMemberRepository
 	roomRepo   repository.RoomRepository
 	userClient client.UserServiceClient
 }
 
-func NewMemberService(m repository.RoomMemberRepository, r repository.RoomRepository, u client.UserServiceClient) MemberService {
+func NewMemberService(db *pgxpool.Pool, m repository.RoomMemberRepository, r repository.RoomRepository, u client.UserServiceClient) MemberService {
 	return &memberService{
+		db:         db,
 		memberRepo: m,
 		roomRepo:   r,
 		userClient: u,
 	}
 }
 
-// AddMember implements MemberService.
-func (m *memberService) AddMember(ctx context.Context, actorID string, roomID string, userID string, role domain.Role) error {
-
-	// verifica se a sala existe
-	room, err := m.roomRepo.GetByID(ctx, roomID)
+func (s *memberService) AddMember(ctx context.Context, actorID string, roomID string, userID string, role domain.Role) error {
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("erro ao iniciar transação: %w", err)
 	}
+	defer tx.Rollback(ctx)
 
-	// verifica se quem está tentando adicionar é o owner
+	room, err := s.roomRepo.GetByID(ctx, tx, roomID)
+	if err != nil {
+		return domain.ErrRoomNotFound
+	}
 	if room.OwnerID != actorID {
 		return domain.ErrUnauthorized
 	}
-
-	// verifica se o usuario existe, via conexao grpc ao user-service
-	exists, err := m.userClient.ExistsUserByID(ctx, userID)
+	exists, err := s.userClient.ExistsUserByID(ctx, userID)
+	if err != nil || !exists {
+		return domain.ErrUserNotFound
+	}
+	isAlreadyMember, err := s.memberRepo.IsMember(ctx, tx, roomID, userID)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return domain.ErrUserNotFound
-	}
-
-	// verifica se o usuario ja está na sala
-	_, err = m.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err == nil {
+	if isAlreadyMember {
 		return domain.ErrMemberAlreadyExists
 	}
 
-	// cria o membro
-	member := domain.RoomMember{
-		RoomID: roomID,
-		UserID: userID,
-		Role:   role,
+	member := &domain.RoomMember{RoomID: roomID, UserID: userID, Role: role}
+	if err := s.memberRepo.AddMember(ctx, tx, member); err != nil {
+		return err
 	}
-
-	if err := m.memberRepo.AddMember(ctx, &member); err != nil {
+	if err := s.roomRepo.IncrementMemberCount(ctx, tx, roomID, 1); err != nil {
 		return err
 	}
 
-	if err := m.roomRepo.IncrementMemberCount(ctx, roomID, 1); err != nil {
-		return err
-	}
-	return nil
-
+	return tx.Commit(ctx)
 }
 
-// RemoveMember implements MemberService.
-func (m *memberService) RemoveMember(ctx context.Context, actorID string, roomID string, userID string) error {
-	// verifica a sala
-	room, err := m.roomRepo.GetByID(ctx, roomID)
+func (s *memberService) RemoveMember(ctx context.Context, actorID string, roomID string, userID string) error {
+	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("erro ao iniciar transação: %w", err)
 	}
+	defer tx.Rollback(ctx)
 
-	// somente o dono da sala pode remover
+	room, err := s.roomRepo.GetByID(ctx, tx, roomID)
+	if err != nil {
+		return domain.ErrRoomNotFound
+	}
 	if actorID != userID && actorID != room.OwnerID {
 		return domain.ErrUnauthorized
 	}
-
-	// nao pode remover o dono
 	if userID == room.OwnerID {
 		return domain.ErrCannotRemoveOwner
 	}
-
-	// verifica se o membro existe
-	_, err = m.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err != nil {
-		return domain.ErrMemberNotFound
+	if err := s.memberRepo.RemoveMember(ctx, tx, roomID, userID); err != nil {
+		return err
 	}
-
-	// remove o membro
-	if err := m.memberRepo.RemoveMember(ctx, roomID, userID); err != nil {
+	if err := s.roomRepo.IncrementMemberCount(ctx, tx, roomID, -1); err != nil {
 		return err
 	}
 
-	// atualiza o member_count
-	if err := m.roomRepo.IncrementMemberCount(ctx, roomID, -1); err != nil {
-		return err
-	}
-
-	return nil
-
+	return tx.Commit(ctx)
 }
 
-// UpdateMemberRole implements MemberService.
-func (m *memberService) UpdateMemberRole(ctx context.Context, actorID string, roomID string, userID string, newRole domain.Role) error {
-
-	// verifica a sala
-	room, err := m.roomRepo.GetByID(ctx, roomID)
+func (s *memberService) UpdateMemberRole(ctx context.Context, actorID, roomID, userID string, newRole domain.Role) error {
+	room, err := s.roomRepo.GetByID(ctx, s.db, roomID)
 	if err != nil {
-		return err
+		return domain.ErrRoomNotFound
 	}
-
-	// somente o dono da sala pode remover
-	if actorID != userID && actorID != room.OwnerID {
+	if actorID != room.OwnerID {
 		return domain.ErrUnauthorized
 	}
-
-	// nao pode remover o dono
 	if userID == room.OwnerID {
-		return domain.ErrCannotRemoveOwner
+		return domain.ErrCannotUpdateOwnerRole
 	}
 
-	// verifica se o membro existe
-	member, err := m.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if err != nil {
-		return domain.ErrMemberNotFound
-	}
-
-	member.Role = newRole
-	return m.memberRepo.UpdateMemberRole(ctx, roomID, member.UserID, newRole)
+	return s.memberRepo.UpdateMemberRole(ctx, s.db, roomID, userID, newRole)
 }
 
-// GetRoomMembers implements MemberService.
-func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*dtos.MemberWithUser, error) {
-	//	return m.memberRepo.GetMembers(ctx, roomID)
-
-	members, err := m.memberRepo.GetMembers(ctx, roomID)
+func (s *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*dtos.MemberWithUser, error) {
+	members, err := s.memberRepo.GetMembers(ctx, s.db, roomID)
 	if err != nil {
 		return nil, err
 	}
 
-	var enriched []*dtos.MemberWithUser
+	var enrichedMembers []*dtos.MemberWithUser
 	for _, member := range members {
-		userResp, err := m.userClient.GetUserByID(ctx, member.UserID)
+		userResp, err := s.userClient.GetUserByID(ctx, member.UserID)
 		if err != nil {
 			continue
 		}
-		enriched = append(enriched, &dtos.MemberWithUser{
+		enrichedMembers = append(enrichedMembers, &dtos.MemberWithUser{
 			RoomID:   member.RoomID,
 			Role:     string(member.Role),
 			JoinedAt: member.JoinedAt,
-			User: struct {
-				ID        string `json:"user_id"`
-				Name      string `json:"name"`
-				Email     string `json:"email"`
-				Picture   string `json:"picture"`
-				CreatedAt string `json:"created_at"`
-				IsOAuth   bool   `json:"is_oauth"`
-			}{
+			User: dtos.UserDTO{
 				ID:        userResp.Id,
 				Name:      userResp.Name,
 				Email:     userResp.Email,
@@ -186,52 +142,36 @@ func (m *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*d
 			},
 		})
 	}
-	return enriched, nil
+	return enrichedMembers, nil
 }
 
-// IsUserValid implements MemberService.
-func (m *memberService) IsUserValid(ctx context.Context, userID string) (bool, error) {
-	return m.userClient.ExistsUserByID(ctx, userID)
+func (s *memberService) GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	return s.memberRepo.GetRoomsByUserID(ctx, s.db, userID)
 }
 
-func (m *memberService) JoinRoom(ctx context.Context, roomID, userID, inviteToken string) error {
+func (s *memberService) GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error) {
+	return s.memberRepo.GetRoomsByOwnerID(ctx, s.db, userID)
+}
 
-	member, _ := m.memberRepo.GetMemberByID(ctx, roomID, userID)
-	if member != nil {
-		return nil
-	}
-
-	exists, err := m.userClient.ExistsUserByID(ctx, userID)
+func (s *memberService) JoinRoom(ctx context.Context, roomID, userID, inviteToken string) error {
+	// A lógica para entrar em uma sala também deveria ser transacional para ser mais robusta
+	// Mas por enquanto, vamos mantê-la simples para não complicar
+	isAlreadyMember, err := s.memberRepo.IsMember(ctx, s.db, roomID, userID)
 	if err != nil {
 		return err
 	}
-	if !exists {
-		return domain.ErrUserNotFound
+	if isAlreadyMember {
+		return nil // Já é membro, sucesso silencioso
 	}
 
-	room, err := m.roomRepo.GetByID(ctx, roomID)
+	room, err := s.roomRepo.GetByID(ctx, s.db, roomID)
 	if err != nil {
-		return err
+		return domain.ErrRoomNotFound
 	}
-	if !room.IsPublic && inviteToken == "" {
+	if !room.IsPublic {
 		return domain.ErrForbidden
 	}
 
-	role := "guest"
-	if inviteToken != "" {
-		role = "moderator"
-	}
-
-	return m.memberRepo.AddMember(ctx, &domain.RoomMember{
-		RoomID: roomID, UserID: userID, Role: domain.Role(role),
-	})
-}
-
-// GetRoomsByUserID implements MemberService.
-func (m *memberService) GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error) {
-	return m.memberRepo.GetRoomsByUserID(ctx, userID)
-}
-
-func (m *memberService) GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error) {
-	return m.memberRepo.GetRoomsByOwnerID(ctx, userID)
+	// Reutiliza a lógica transacional do AddMember, agindo como o dono da sala para adicionar um novo membro
+	return s.AddMember(ctx, room.OwnerID, roomID, userID, domain.RoleMember)
 }
