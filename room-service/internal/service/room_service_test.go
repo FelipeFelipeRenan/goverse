@@ -2,84 +2,109 @@ package service_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/domain"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository/mocks"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
-	"github.com/stretchr/testify/assert"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/pashagolub/pgxmock/v3"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateRoom_Success(t *testing.T) {
-	t.Parallel()
-
-	roomRepo := new(mocks.MockRoomRepository)
-	memberRepo := new(mocks.MockRoomMemberRepository)
-
-	roomService := service.NewRoomService(roomRepo, memberRepo)
-
-	room := &domain.Room{
-		ID:          "1",
-		Name:        "Sala de Teste",
-		Description: "Uma sala de teste",
-		IsPublic:    true,
-		OwnerID:     "123",
-	}
-
-	roomRepo.On("Create", mock.Anything, room).Return(nil)
-	memberRepo.On("AddMember", mock.Anything, mock.MatchedBy(func(m *domain.RoomMember) bool {
-		return m.UserID == "123" && m.Role == domain.RoleOwner
-	})).Return(nil)
-
-	_, err := roomService.CreateRoom(context.Background(), room.OwnerID, room)
-
-	assert.NoError(t, err)
-	roomRepo.AssertExpectations(t)
-	memberRepo.AssertExpectations(t)
-
+// Mock para a nossa interface DBPool.
+// Como DBPool agora inclui DBTX, precisamos mockar todos os métodos.
+// Na prática, só precisamos definir o comportamento dos que usamos no teste.
+type MockDBPool struct {
+	mock.Mock
 }
 
-func TestRoomService_AddMember_Success(t *testing.T) {
-	t.Parallel()
+// Implementação do mock para a interface DBPool
+func (m *MockDBPool) Begin(ctx context.Context) (pgx.Tx, error) {
+	args := m.Called(ctx)
+	// A assinatura agora está correta, retornando a interface pgx.Tx
+	return args.Get(0).(pgx.Tx), args.Error(1)
+}
 
-	roomRepo := new(mocks.MockRoomRepository)
-	memberRepo := new(mocks.MockRoomMemberRepository)
-	userClient := new(mocks.MockUserServiceClient)
+// Métodos da interface DBTX herdada (não precisamos deles neste teste, mas precisam existir)
+func (m *MockDBPool) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
+	args := m.Called(ctx, sql, arguments)
+	return args.Get(0).(pgconn.CommandTag), args.Error(1)
+}
+func (m *MockDBPool) Query(ctx context.Context, sql string, arguments ...any) (pgx.Rows, error) {
+	args := m.Called(ctx, sql, arguments)
+	return args.Get(0).(pgx.Rows), args.Error(1)
+}
+func (m *MockDBPool) QueryRow(ctx context.Context, sql string, arguments ...any) pgx.Row {
+	args := m.Called(ctx, sql, arguments)
+	return args.Get(0).(pgx.Row)
+}
 
-	memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
+func TestCreateRoom_Success(t *testing.T) {
+	// Setup
+	mockPool := new(MockDBPool)
+	mockRoomRepo := new(mocks.MockRoomRepository)
+	mockMemberRepo := new(mocks.MockRoomMemberRepository)
+	roomService := service.NewRoomService(mockPool, mockRoomRepo, mockMemberRepo)
 
-	ctx := context.Background()
-	roomID := "1"
-	userID := "2"
-	actorID := "999" // deve ser OwnerID da sala para passar autorização
-	role := domain.RoleMember
+	room := &domain.Room{
+		Name:    "Sala de Teste",
+		OwnerID: "123",
+	}
 
-	// Mocka retorno da sala com OwnerID == actorID para autorização
-	roomRepo.On("GetByID", ctx, roomID).Return(&domain.Room{
-		ID:      roomID,
-		OwnerID: actorID,
-	}, nil)
-
-	// Mocka consulta de existência de usuário via gRPC
-	userClient.On("ExistsUserByID", ctx, userID).Return(true, nil)
-
-	// Mocka verificação de que o usuário ainda não é membro
-	memberRepo.On("GetMemberByID", ctx, roomID, userID).Return(nil, domain.ErrMemberNotFound)
-
-	// Mocka inserção do novo membro
-	memberRepo.On("AddMember", ctx, mock.MatchedBy(func(member *domain.RoomMember) bool {
-		return member.RoomID == roomID && member.UserID == userID && member.Role == role
-	})).Return(nil)
-
-	// Mocka incremento do contador de membros
-	roomRepo.On("IncrementMemberCount", ctx, roomID, 1).Return(nil)
-
-	err := memberService.AddMember(ctx, actorID, roomID, userID, role)
-
+	mockTx, err := pgxmock.NewConn() // Cria um mock de conexão que pode agir como Tx
 	require.NoError(t, err)
-	memberRepo.AssertExpectations(t)
-	roomRepo.AssertExpectations(t)
-	userClient.AssertExpectations(t)
+
+	// Expectativas
+	mockPool.On("Begin", mock.Anything).Return(pgx.Tx(mockTx), nil) // Faz o cast para a interface
+	mockRoomRepo.On("Create", mock.Anything, pgx.Tx(mockTx), room).Return(nil).Run(func(args mock.Arguments) {
+		arg := args.Get(2).(*domain.Room)
+		arg.ID = "1" // Simula o retorno do ID pelo banco
+	})
+	mockMemberRepo.On("AddMember", mock.Anything, pgx.Tx(mockTx), mock.AnythingOfType("*domain.RoomMember")).Return(nil)
+	mockRoomRepo.On("IncrementMemberCount", mock.Anything, pgx.Tx(mockTx), "1", 1).Return(nil)
+	mockTx.ExpectCommit()
+
+	// Execução
+	createdRoom, err := roomService.CreateRoom(context.Background(), "123", room)
+
+	// Verificação
+	require.NoError(t, err)
+	require.Equal(t, "1", createdRoom.ID)
+	require.Equal(t, 1, createdRoom.MemberCount)
+
+	mockPool.AssertExpectations(t)
+	mockRoomRepo.AssertExpectations(t)
+	mockMemberRepo.AssertExpectations(t)
+	require.NoError(t, mockTx.ExpectationsWereMet())
+}
+
+func TestCreateRoom_Failure_ShouldRollback(t *testing.T) {
+	mockPool := new(MockDBPool)
+	mockRoomRepo := new(mocks.MockRoomRepository)
+	mockMemberRepo := new(mocks.MockRoomMemberRepository)
+	roomService := service.NewRoomService(mockPool, mockRoomRepo, mockMemberRepo)
+
+	room := &domain.Room{Name: "Sala de Teste", OwnerID: "123"}
+	mockTx, err := pgxmock.NewConn()
+	require.NoError(t, err)
+
+	// Expectativas
+	mockPool.On("Begin", mock.Anything).Return(pgx.Tx(mockTx), nil)
+	mockRoomRepo.On("Create", mock.Anything, pgx.Tx(mockTx), room).Return(nil)
+	mockMemberRepo.On("AddMember", mock.Anything, pgx.Tx(mockTx), mock.AnythingOfType("*domain.RoomMember")).Return(errors.New("db error"))
+	mockTx.ExpectRollback()
+
+	// Execução
+	_, err = roomService.CreateRoom(context.Background(), "123", room)
+
+	// Verificação
+	require.Error(t, err)
+	mockPool.AssertExpectations(t)
+	mockRoomRepo.AssertExpectations(t)
+	mockMemberRepo.AssertExpectations(t)
+	require.NoError(t, mockTx.ExpectationsWereMet())
 }

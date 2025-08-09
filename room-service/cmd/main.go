@@ -56,10 +56,10 @@ func main() {
 	userClient := client.NewUserServiceClient(conn)
 
 	// Inicializa repositórios e serviços
-	roomRepo := repository.NewRoomRepository(dbPool)
-	memberRepo := repository.NewRoomMemberRepository(dbPool)
-	roomService := service.NewRoomService(roomRepo, memberRepo)
-	memberService := service.NewMemberService(memberRepo, roomRepo, userClient)
+	roomRepo := repository.NewRoomRepository()
+	memberRepo := repository.NewRoomMemberRepository()
+	roomService := service.NewRoomService(dbPool, roomRepo, memberRepo)
+	memberService := service.NewMemberService(dbPool, memberRepo, roomRepo, userClient)
 
 	// Inicializa handlers e rotas
 	roomHandler := handler.NewRoomHandler(roomService, userClient)
