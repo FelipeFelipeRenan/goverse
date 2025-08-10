@@ -9,12 +9,13 @@
 
 ## 🧩 Funcionalidades
 
-- Autenticação (senha, OAuth)
+- Autenticação (senha, OAuth com JWTs RS256)
 - Criação e gerenciamento de salas
-- Chat em tempo real via WebSocket
+- Chat em tempo real via WebSocket (em desenvolvimento)
 - Vídeo via WebRTC (em desenvolvimento)
 - Notificações em tempo real
 - Arquitetura desacoplada com gRPC
+- Observabilidade com Prometheus e Grafana
 
 ## 🛠️ Tecnologias
 
@@ -22,10 +23,10 @@
 - gRPC
 - WebSocket
 - WebRTC
-- Docker
+- Docker & Docker Compose
 - Kubernetes
-- PostgreSQL / Redis
-- Traefik for API Gateway
+- PostgreSQL & Redis
+- Traefik como API Gateway
 
 ## 🚀 Estrutura de Microsserviços
 
@@ -34,193 +35,217 @@ goverse/
 ├── auth-service/
 ├── user-service/
 ├── room-service/
-├── chat-service/
-├── notification-service/
+├── auth-middleware/
+├── chat-service/     # Em breve
 ├── traefik/
 ├── monitoring/
-├── k8s/
-└── api-gateway/
+└── k8s/
 ```
 
-Retirei o uso do api gateway por enquanto, substituindo pelo Traefik,
-pois estava se tornando dificil de realizar manutenção nas rotas dos microsseviços
+Nota: O api-gateway manual foi substituído pelo Traefik + auth-middleware, uma abordagem mais robusta e de fácil manutenção para roteamento e autenticação na borda.
 
 ## 📦 Como rodar localmente
 
+Clone o repositório:
+
 ```bash
-Clone o repositório
-
+git clone https://github.com/FelipeFelipeRenan/goverse.git
 cd goverse
+```
 
-preencha os arquivos .env baseados nos .env.example
+Preencha os arquivos .env em cada pasta de serviço, usando os arquivos .env.example como base.
 
-# Execute os serviços (exemplo com docker-compose)
+Execute os serviços com Docker Compose:
+O projeto contém dois ambientes:
+
+Ambiente de Produção-Like (Recomendado): Usa o Traefik como gateway, forçando toda a comunicação pela borda.
+
+```bash
+docker-compose -f docker-compose-traefik.yml up --build
+Ambiente de Desenvolvimento Rápido: Expõe as portas de todos os serviços diretamente, útil para debug.
+```
+
+```bash
 docker-compose up --build
 ```
 
-crie as chaves privada utilizando o comando: 
+Crie as Chaves de Autenticação (Obrigatório):
+Crie uma pasta .keys na raiz do projeto e adicione-a ao seu .gitignore. Em seguida, gere as chaves:
 
 ```bash
-openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
+# Gerar a chave privada
+openssl genpkey -algorithm RSA -out .keys/private.pem -pkeyopt rsa_keygen_bits:2048
 ```
 
-e logo após, a chave pública com o comando:
 ```bash
-openssl rsa -pubout -in private.pem -out public.pem
-```
-caso for usar o k8s, adicione as chaves ao secret, com o comando:
-```bash
-kubectl create secret generic jwt-keys-secret \
-  --from-file=private.pem=./.keys/private.pem \
-  --from-file=public.pem=./.keys/public.pem
+# Extrair a chave pública
+openssl rsa -pubout -in .keys/private.pem -out .keys/public.pem
 ```
 
 ## 🧪 Acesso à documentação do Swagger
 
-Os endpoints para os serviços estão disponíveis na interface do Swagger, ao acessar o link abaixo:
+A documentação das APIs está disponível via Swagger. Após iniciar os serviços, acesse:
 
 <http://localhost:8088/swagger/index.html>
 
 ## 🧪 Testes
 
-Cada serviço contém seus próprios testes. Para rodar os testes:
+Cada serviço contém seus próprios testes de unidade. Para rodar os testes de um serviço específico:
 
 ```bash
-cd auth-service
-go test ./...
+cd room-service
+go test ./... -v
 ```
 
-### 🧪 Testes com curl, acessando o API Gateway
-
-Para criar um usuário, utilize o comando:
+Testes com curl (Acessando o Gateway na porta 80)
+Rotas Públicas
+Criar um usuário:
 
 ```bash
 curl -X POST http://localhost/user \
   -H "Content-Type: application/json" \
   -d '{
-  "username": "usuario",
-  "email": "usuario@email.com",
-  "password": "senha123"
-}'
-
+    "username": "usuario",
+    "email": "usuario@email.com",
+    "password": "senha123"
+  }'
 ```
 
-Para retornar todos os usuários, utilize o comando:
+Retornar todos os usuários:
 
 ```bash
 curl http://localhost/users
 ```
 
-Para retornar um usuário pelo seu ID, utilize o comando:
+Fazer Login (para obter um token):
 
 ```bash
-curl http://localhost/users/<id do usuario>
-```
-
-Para realizar testes de login com senha, utilize o comando:
-
-```bash
- curl -X POST http://localhost/auth/login \
+curl -X POST http://localhost/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-  "email": "usuario@usuario.com",
-  "password": "senha123", "type":"password"
-}'
+    "type": "password",
+    "email": "usuario@email.com",
+    "password": "senha123"
+  }'
 ```
 
-Para realizar o acesso à rotas protegidas, utilize o comando:
+Rotas Protegidas
+Após obter um token JWT com a rota de login, você pode usá-lo para acessar as rotas protegidas no cabeçalho Authorization.
+
+Retornar um usuário pelo seu ID:
 
 ```bash
-  curl -X GET http://localhost/user/<id do usuario> \
-  -H "Authorization: Bearer <TOKEN>"    
+curl http://localhost/user/<id_do_usuario> \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>"
 ```
 
-Para testar acessando o serviço diretamente, basta mudar a porta na requisição do curl para a que os serviços foram definidos
-
-Para criação de salas, utilize o comando:
+Criar uma sala:
 
 ```bash
 curl -X POST http://localhost/rooms \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
-
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{
-    "owner_id": "<id do dono>",
-    "name": "<nome da sala>",
-    "description": "<descrição da sala>",
-    "is_public": <boleano indicando se a sala é publica ou não>
+    "name": "Minha Sala de Estudos",
+    "description": "Sala para focar em Go e arquitetura.",
+    "is_public": true,
+    "max_members": 20
   }'
 ```
 
-Para verificar retornar uma sala por ID, utilize o comando:
+Listar todas as salas (com filtros):
 
 ```bash
-curl -X GET http://localhost/rooms/<id da sala>
+curl "http://localhost/rooms?limit=10&offset=0&public_only=true&keyword=Estudos" \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>"
 ```
 
-Para listar todas as salas, junto com ulitização de filtros, utilize o comando:
+Atualizar informações de uma sala (requer ser dono ou admin):
 
 ```bash
- curl "http://localhost/rooms?limit=<numero de salas>&offset=<numero de salas puladas >&public_only=<true ou false>&keyword=<palavra chave da sala>"
-```
+curl -X PATCH http://localhost/rooms/<id_da_sala> \
 
-Caso deseje, basta omitir o filtro
-
-Para atualizar informações de uma sala, utilize o comando:
-
-```bash
-curl -X PATCH http://localhost/rooms/3 
-  -H "Content-Type: application/json" 
-  -H "X-User-ID: 1"
-    -d '{
-      "name": "<novo nome>",
-      "description": "<nova descrição>"
-       }'
-```
-
-Podem ser adicionados outros campos para ser modificado, como o is_public, ou omitido os que desejar não atualizar
-
-Para deletar uma sala, utilize o comando
-
-```bash
-  curl -X DELETE http://localhost/rooms/<id da sala> \
-  -H "X-User-ID: <id do dono da sala>"
-
-```
-
-Para mostrar todos os membros de uma sala, utilize o comando:
-
-```bash
-curl -X GET http://localhost/rooms/<id da sala>/members \
-```
-
-Para adicionar um membro a sala, utilize o comando:
-
-```bash
-  curl -X POST http://localhost/rooms/<id da sala>/members \
-    -H "X-User-ID: <id do dono da sala>" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "user_id": "<id do usuario>",
-        "role": "<role>"
-      }'
-```
-
-Para deletar um membro da sala, utilize o comando:
-
-```bash
-curl -X DELETE http://localhost/rooms/<id da sala>/members/<id do membro> \
-  -H "X-User-ID: <id do dono da sala>"
-```
-
-Para mudar a role de um membro, utilize o comando:
-
-```bash
- curl -X PUT http://localhost/rooms/<id da sala>/members/<id do membro>/role \
-  -H "X-User-ID: <id do dono da sala>" \
   -H "Content-Type: application/json" \
-  -d '{ "new_role": "<role>" }'
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
+  -d '{
+    "name": "Novo Nome da Sala",
+    "description": "Nova descrição"
+  }'
+```
 
+Deletar uma sala (requer ser o dono):
+
+```bash
+curl -X DELETE http://localhost/rooms/<id_da_sala> \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>"
+```
+
+Mostrar todos os membros de uma sala:
+
+```bash
+curl http://localhost/rooms/<id_da_sala>/members \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>"
+```
+
+Adicionar um membro a uma sala (requer ser dono ou admin):
+
+```bash
+curl -X POST http://localhost/rooms/<id_da_sala>/members \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
+  -d '{
+    "user_id": "<id_do_usuario_a_ser_adicionado>",
+    "role": "member"
+  }'
+```
+
+Deletar um membro da sala (requer ser dono ou admin):
+
+```bash
+curl -X DELETE http://localhost/rooms/<id_da_sala>/members/<id_do_membro> \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>"
+```
+
+Mudar a role de um membro (requer ser dono ou admin):
+
+```bash
+curl -X PUT http://localhost/rooms/<id_da_sala>/members/<id_do_membro>/role \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
+  -d '{ "new_role": "admin" }'
+```
+
+## ☸️ Utilizando Kubernetes (k8s)
+
+Para utilizar a aplicação com o Kubernetes no Minikube:
+
+Inicie o cluster:
+
+```bash
+minikube start
+```
+
+Crie os segredos necessários (execute a partir da raiz do projeto):
+
+```bash
+# Lembre-se de criar todos os secrets para senhas de banco, etc.
+# Exemplo para as chaves JWT:
+kubectl create secret generic jwt-keys-secret -n goverse \
+  --from-file=private.pem=./.keys/private.pem \
+  --from-file=public.pem=./.keys/public.pem
+```
+
+Aplique os manifestos:
+
+```bash
+make k8s-apply
+```
+
+Exponha as portas do Traefik:
+
+
+```bash
+make traefik-ports
 ```
 ### Utilizando Kubernetes (k8s)
 
@@ -245,6 +270,5 @@ make traefik-ports
 
 ### Em breve serão implementadas as features relacionadas a operações nas salas e bate papo por texto
 
-## 📄 Licença
-
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
+📄 Licença
+Distribuído sob a licença MIT.
