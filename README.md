@@ -164,6 +164,7 @@ Atualizar informações de uma sala (requer ser dono ou admin):
 
 ```bash
 curl -X PATCH http://localhost/rooms/<id_da_sala> \
+
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{
@@ -241,6 +242,27 @@ make k8s-apply
 ```
 
 Exponha as portas do Traefik:
+
+
+```bash
+make traefik-ports
+```
+### Utilizando Kubernetes (k8s)
+
+Para utilizar a aplicação com o Kubernetes, utilizando no minikube como cluster, basta utilizar os comandos:
+
+Para iniciar o cluster:
+
+```bash
+minikube start
+```
+
+Para aplicar os manifests:
+ ```bash
+make k8s-apply
+```
+
+Para expor as portas:
 
 ```bash
 make traefik-ports
