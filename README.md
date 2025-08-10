@@ -58,6 +58,23 @@ preencha os arquivos .env baseados nos .env.example
 docker-compose up --build
 ```
 
+crie as chaves privada utilizando o comando: 
+
+```bash
+openssl genpkey -algorithm RSA -out private.pem -pkeyopt rsa_keygen_bits:2048
+```
+
+e logo após, a chave pública com o comando:
+```bash
+openssl rsa -pubout -in private.pem -out public.pem
+```
+caso for usar o k8s, adicione as chaves ao secret, com o comando:
+```bash
+kubectl create secret generic jwt-keys-secret \
+  --from-file=private.pem=./.keys/private.pem \
+  --from-file=public.pem=./.keys/public.pem
+```
+
 ## 🧪 Acesso à documentação do Swagger
 
 Os endpoints para os serviços estão disponíveis na interface do Swagger, ao acessar o link abaixo:
