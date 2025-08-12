@@ -11,6 +11,8 @@ require (
 	google.golang.org/grpc v1.73.0
 )
 
+require github.com/jackc/puddle/v2 v2.2.2 // indirect
+
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

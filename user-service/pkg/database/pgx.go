@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
 
@@ -18,12 +19,10 @@ func LoadEnv() error {
 	return nil
 }
 
-func Connect() (*pgx.Conn, error) {
-
+func Connect() (*pgxpool.Pool, error) {
 	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
+		if err := godotenv.Load(); err != nil {
+			logger.Error("Erro ao carregar .env", "err", err)
 		}
 	}
 
@@ -33,16 +32,36 @@ func Connect() (*pgx.Conn, error) {
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", dbUser, dbPassword, dbHost, dbPort, dbName)
-	conn, err := pgx.Connect(context.Background(), connStr)
-	if err != nil {
-		return nil, fmt.Errorf("Não foi possível conectar ao banco de dados: %v", err)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", dbUser, dbPassword, dbHost, dbPort, dbName)
+
+	var pool *pgxpool.Pool
+	var err error
+
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		pool, err = pgxpool.New(context.Background(), connStr)
+		if err == nil {
+			// Tenta fazer um ping para garantir que a conexão está realmente viva
+			if pingErr := pool.Ping(context.Background()); pingErr == nil {
+				logger.Info("Conexão com o banco de dados estabelecida com sucesso")
+				return pool, nil
+			} else {
+				err = pingErr // Guarda o erro do ping para o log
+			}
+		}
+
+		logger.Warn("Não foi possível conectar ao banco de dados. Tentando novamente...",
+			"tentativa", i+1,
+			"max_tentativas", maxRetries,
+			"erro", err.Error(),
+		)
+		time.Sleep(5 * time.Second) // Espera 5 segundos antes de tentar de novo
 	}
 
-	return conn, nil
+	return nil, fmt.Errorf("não foi possível conectar ao banco de dados após %d tentativas: %w", maxRetries, err)
 }
 
-func RunMigration(conn *pgx.Conn) error {
+func RunMigration(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
 	query := `
@@ -57,7 +76,7 @@ func RunMigration(conn *pgx.Conn) error {
 	);	
 	`
 
-	_, err := conn.Exec(ctx, query)
+	_, err := pool.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("erro ao executar migração: %w", err)
 	}

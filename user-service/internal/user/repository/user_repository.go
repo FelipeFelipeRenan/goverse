@@ -7,6 +7,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserRepository interface {
@@ -19,10 +20,10 @@ type UserRepository interface {
 }
 
 type userRepository struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewUserRepository(conn *pgx.Conn) UserRepository {
+func NewUserRepository(conn *pgxpool.Pool) UserRepository {
 	return &userRepository{conn: conn}
 }
 
