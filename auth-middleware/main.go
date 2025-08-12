@@ -39,13 +39,19 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := extractTokenFromHeader(r)
-	if token == "" {
-		respondUnauthorized(w, "Token não fornecido")
+	cookie, err := r.Cookie("access_token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			respondUnauthorized(w, "Cookie de atuenticação não encontrado")
+			return
+		}
+		respondUnauthorized(w, "Requisição inválida")
 		return
 	}
 
-	claims, err := validateToken(token)
+	tokenString := cookie.Value
+
+	claims, err := validateToken(tokenString)
 	if err != nil {
 		respondUnauthorized(w, "Token inválido: "+err.Error())
 		return

@@ -33,7 +33,7 @@ func (s *authService) Authenticate(ctx context.Context, credentials domain.Crede
 	if !ok {
 		return "", nil, fmt.Errorf("metodo de autenticação não suportado: %s", credentials.Type)
 	}
-
+	
 	user, err := method.Authenticate(ctx, credentials)
 	if err != nil {
 		return "", nil, fmt.Errorf("falha na autenticação> %w", err)
