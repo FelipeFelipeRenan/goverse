@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
@@ -25,31 +28,70 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenResp, err := h.authService.Authenticate(r.Context(), creds)
+	tokenString, user, err := h.authService.Authenticate(r.Context(), creds)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
+	expirationTime := time.Now().Add(24 * time.Hour)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    tokenString,
+		Expires:  expirationTime,
+		HttpOnly: true,
+		Secure:   false, // Mude para true em produção
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	})
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokenResp)
+	json.NewEncoder(w).Encode(user)
 }
 
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
-	state := "state-token" // idealmente aleatório e salvo em cookie/session
+	b := make([]byte, 32)
+	rand.Read(b)
+	state := base64.URLEncoding.EncodeToString(b)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "oauth_state",
+		Value:    state,
+		Expires:  time.Now().Add(10 * time.Minute), // Validade curta
+		HttpOnly: true,
+		Secure:   false, // Mude para true em produção
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	})
+
 	authURL := h.authService.GetOAuthURL(state)
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	returnedState := r.URL.Query().Get("state")
+
+	stateCookie, err := r.Cookie("oauth_state")
+	if err != nil {
+		http.Error(w, "state cookie não encontrado ou expirado", http.StatusBadRequest)
+		return
+	}
+
+	if returnedState != stateCookie.Value {
+		http.Error(w, "state inválido", http.StatusBadRequest)
+		return
+	}
+
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		http.Error(w, "code ausente", http.StatusBadRequest)
 		return
 	}
 
-	tokenResp, err := h.authService.Authenticate(ctx, domain.Credentials{
+	tokenString, _, err := h.authService.Authenticate(ctx, domain.Credentials{
 		Type:  "oauth",
 		Token: code,
 	})
@@ -57,34 +99,32 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "erro na autenticação: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
+	expirationTime := time.Now().Add(24 * time.Hour)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    tokenString,
+		Expires:  expirationTime,
+		HttpOnly: true,
+		Secure:   false, // Mude para true em produção
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+	})
 
-	// Retorna HTML com postMessage
+	html := `
+    <!DOCTYPE html>
+    <html>
+    <head><title>Autenticado</title></head>
+    <body>
+        <script>
+            window.opener.postMessage({ type: 'oauth-success' }, '*');
+            window.close();
+        </script>
+        <p>Login concluído! Você pode fechar esta janela.</p>
+    </body>
+    </html>`
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Pragma", "no-cache")
 
-	html := fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-	<head><title>Autenticado</title></head>
-	<body>
-		<script>
-			window.opener.postMessage({
-				type: 'oauth-success',
-				token: '%s'
-			}, '*');
-
-			// Tenta fechar a janela
-			const closed = window.close();
-
-			// Se não fechar, mostra mensagem para o usuário fechar manualmente
-			if (!closed) {
-				document.body.innerHTML = '<h2>Login concluído!</h2><p>Você pode fechar esta janela.</p>';
-			}
-		</script>
-	</body>
-	</html>
-`, tokenResp.Token)
 	fmt.Fprint(w, html)
 
 }
