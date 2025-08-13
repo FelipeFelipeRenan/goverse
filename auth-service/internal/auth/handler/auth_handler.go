@@ -22,7 +22,6 @@ func NewAuthHandler(authService service.AuthService) *AuthHandler {
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var creds domain.Credentials
-
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
@@ -48,6 +47,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
+}
+
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    "",              // O valor não importa
+		Expires:  time.Unix(0, 0), // Uma data no passado distante
+		MaxAge:   -1,              // Deleta o cookie agora
+		HttpOnly: true,
+		Secure:   false, // Lembre-se de usar 'true' em produção
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/"})
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "logout successful"})
 }
 
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {

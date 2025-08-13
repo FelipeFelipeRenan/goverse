@@ -17,6 +17,8 @@ func RegisterRoutes(authHandler *handler.AuthHandler) {
 	http.HandleFunc("/oauth/google/login", withCommonMiddleware("auth-service", authHandler.GoogleLogin))
 	http.HandleFunc("/oauth/google/callback", withCommonMiddleware("auth-service", authHandler.GoogleCallback))
 
+	http.HandleFunc("POST /auth/logout", withCommonMiddleware("auth-service", authHandler.Logout))
+
 	// Metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())
 

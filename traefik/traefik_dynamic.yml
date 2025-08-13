@@ -14,8 +14,10 @@ http:
 
     cors:
       headers:
+        accessControlAllowCredentials: true
         accessControlAllowOriginList:
-          - "*"
+          - "https://goverse-frontend.vercel.app/"
+          - "http://localhost:4200" # <-- Especifique a origem do seu frontend
         accessControlAllowMethods:
           - GET
           - POST
@@ -26,6 +28,7 @@ http:
           - Content-Type
           - Authorization
           - X-User-ID
+          - X-CSRF-TOKEN
         addVaryHeader: true
 
     strict-headers:
