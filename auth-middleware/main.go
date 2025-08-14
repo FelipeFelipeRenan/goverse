@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -61,6 +60,25 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" || r.Method == "DELETE" {
+		csrfCookie, err := r.Cookie("csrf_token")
+		if err != nil {
+			respondUnauthorized(w, "Cookie CSRF não encontrado")
+			return
+		}
+
+		csrfHeader := r.Header.Get("X-CSRF-TOKEN")
+		if csrfHeader == "" {
+			respondUnauthorized(w, "Cabeçalho CSRF não encontrado")
+			return
+		}
+
+		// A validação crucial: o valor do cookie deve ser igual ao do cabeçalho
+		if csrfCookie.Value != csrfHeader {
+			respondUnauthorized(w, "Token CSRF inválido")
+			return
+		}
+	}
 	w.Header().Set("X-User-ID", claims.UserID)
 	w.WriteHeader(http.StatusOK)
 }
@@ -75,19 +93,6 @@ func addCORSHeaders(w http.ResponseWriter) {
 func respondUnauthorized(w http.ResponseWriter, msg string) {
 	addCORSHeaders(w)
 	http.Error(w, msg, http.StatusUnauthorized)
-}
-
-func extractTokenFromHeader(r *http.Request) string {
-	auth := r.Header.Get("Authorization")
-	if auth == "" {
-		return ""
-	}
-
-	parts := strings.SplitN(auth, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		return ""
-	}
-	return parts[1]
 }
 
 func validateToken(tokenString string) (*CustomClaims, error) {

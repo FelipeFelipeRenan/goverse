@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
+	"github.com/google/uuid"
 )
 
 type AuthHandler struct {
@@ -33,32 +35,59 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Now().Add(24 * time.Hour)
+	isProd := isProd()
+	sameSitePolicy := http.SameSiteLaxMode // Padrão seguro
+
+	if isProd {
+		sameSitePolicy = http.SameSiteNoneMode
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    tokenString,
-		Expires:  expirationTime,
+		MaxAge:   86400, // 24 horas em segundos
 		HttpOnly: true,
-		Secure:   false, // Mude para true em produção
-		SameSite: http.SameSiteLaxMode,
+		Secure:   isProd, // true em produção, false em dev
+		SameSite: sameSitePolicy,
 		Path:     "/",
 	})
 
+	csrfToken := uuid.NewString()
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    csrfToken,
+		MaxAge:   86400, // Mesma duração do token de acesso
+		Secure:   isProd,
+		SameSite: sameSitePolicy,
+		Path:     "/",
+		// HttpOnly: false, // <-- IMPORTANTE: Este cookie NÃO é HttpOnly
+	})
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(user)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"user":       user,
+		"csrf_token": csrfToken,
+	})
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	isProd := isProd()
+	sameSitePolicy := http.SameSiteLaxMode
+
+	if isProd {
+		sameSitePolicy = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
-		Value:    "",              // O valor não importa
-		Expires:  time.Unix(0, 0), // Uma data no passado distante
-		MaxAge:   -1,              // Deleta o cookie agora
+		Value:    "",
+		MaxAge:   -1, // Deleta o cookie agora
 		HttpOnly: true,
-		Secure:   false, // Lembre-se de usar 'true' em produção
-		SameSite: http.SameSiteLaxMode,
-		Path:     "/"})
+		Secure:   isProd,
+		SameSite: sameSitePolicy,
+		Path:     "/",
+	})
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "logout successful"})
@@ -69,13 +98,20 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	rand.Read(b)
 	state := base64.URLEncoding.EncodeToString(b)
 
+	isProd := isProd()
+	sameSitePolicy := http.SameSiteLaxMode
+
+	if isProd {
+		sameSitePolicy = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
-		Expires:  time.Now().Add(10 * time.Minute), // Validade curta
+		Expires:  time.Now().Add(10 * time.Minute),
 		HttpOnly: true,
-		Secure:   false, // Mude para true em produção
-		SameSite: http.SameSiteLaxMode,
+		Secure:   isProd,
+		SameSite: sameSitePolicy,
 		Path:     "/",
 	})
 
@@ -86,18 +122,18 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	returnedState := r.URL.Query().Get("state")
-
 	stateCookie, err := r.Cookie("oauth_state")
 	if err != nil {
 		http.Error(w, "state cookie não encontrado ou expirado", http.StatusBadRequest)
 		return
 	}
-
-	if returnedState != stateCookie.Value {
+	if r.URL.Query().Get("state") != stateCookie.Value {
 		http.Error(w, "state inválido", http.StatusBadRequest)
 		return
 	}
+
+	// Limpa o cookie de state, ele só pode ser usado uma vez
+	http.SetCookie(w, &http.Cookie{Name: "oauth_state", MaxAge: -1})
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -113,14 +149,21 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "erro na autenticação: "+err.Error(), http.StatusUnauthorized)
 		return
 	}
-	expirationTime := time.Now().Add(24 * time.Hour)
+
+	isProd := isProd()
+	sameSitePolicy := http.SameSiteLaxMode
+
+	if isProd {
+		sameSitePolicy = http.SameSiteNoneMode
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "access_token",
 		Value:    tokenString,
-		Expires:  expirationTime,
+		MaxAge:   86400,
 		HttpOnly: true,
-		Secure:   false, // Mude para true em produção
-		SameSite: http.SameSiteLaxMode,
+		Secure:   isProd,
+		SameSite: sameSitePolicy,
 		Path:     "/",
 	})
 
@@ -138,7 +181,10 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
     </html>`
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
 	fmt.Fprint(w, html)
+}
 
+// isProd é uma função helper para verificar a variável de ambiente
+func isProd() bool {
+	return os.Getenv("ENV") == "prod"
 }

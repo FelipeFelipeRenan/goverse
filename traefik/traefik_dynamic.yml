@@ -16,7 +16,8 @@ http:
       headers:
         accessControlAllowCredentials: true
         accessControlAllowOriginList:
-          - "https://goverse-frontend.vercel.app/"
+          - "http://127.0.0.1:4200"
+          - "https://goverse-frontend.vercel.app"
           - "http://localhost:4200" # <-- Especifique a origem do seu frontend
         accessControlAllowMethods:
           - GET
@@ -48,6 +49,15 @@ http:
 
 
   routers:
+    # === CORS ===
+
+    cors-preflight:
+      rule: "Method(`OPTIONS`)"
+      service: noop@internal
+      entryPoints: [web]
+      priority: 1000
+      middlewares: [cors]
+
     # === Auth Service ===
     auth-login:
       rule: "Path(`/auth/login`)"
