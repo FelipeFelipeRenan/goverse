@@ -49,7 +49,7 @@ func main() {
 		"oauth":    service.NewOAuthAuth(authRepo),
 	}
 	// jwt_secret := os.Getenv("JWT_SECRET")
-	authService := service.NewAuthService(authMethods, privateKeyBytes)
+	authService := service.NewAuthService(authMethods, authRepo, privateKeyBytes)
 
 	authHandler := handler.NewAuthHandler(authService)
 
@@ -58,6 +58,6 @@ func main() {
 	port := os.Getenv("APP_PORT")
 	logger.Info("Service de autenticação rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		logger.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
+		logger.Info("Erro ao iniciar o serviço de authHandler.Meautenticação: ", "err", err)
 	}
 }

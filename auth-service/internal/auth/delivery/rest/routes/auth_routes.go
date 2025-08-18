@@ -19,6 +19,8 @@ func RegisterRoutes(authHandler *handler.AuthHandler) {
 
 	http.HandleFunc("POST /auth/logout", withCommonMiddleware("auth-service", authHandler.Logout))
 
+	http.HandleFunc("GET /auth/me", withCommonMiddleware("auth-service", authHandler.Me))
+
 	// Metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())
 

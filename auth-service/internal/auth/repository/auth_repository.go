@@ -15,6 +15,8 @@ type AuthRepository interface {
 	ValidateCredentials(ctx context.Context, email, password string) (*userpb.UserResponse, error)
 	FindByEmail(ctx context.Context, email string) (*domain.UserResponse, error)
 	CreateUser(ctx context.Context, user domain.User) (*domain.UserResponse, error)
+	FindByID(ctx context.Context, userID string) (*domain.UserResponse, error) // <-- NOVO MÉTODO
+
 }
 
 type authRepository struct {
@@ -80,5 +82,23 @@ func (r *authRepository) CreateUser(ctx context.Context, user domain.User) (*dom
 		Username: resp.Name,    // Nome do usuário
 		Email:    resp.Email,   // E-mail do usuário
 		Picture:  resp.Picture, // Foto do usuário
+	}, nil
+}
+
+func (r *authRepository) FindByID(ctx context.Context, userID string) (*domain.UserResponse, error) {
+	req := &userpb.UserIDRequest{Id: userID}
+	resp, err := r.userClient.GetUserByID(ctx, req)
+	if err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() == codes.NotFound {
+			return nil, domain.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("erro ao buscar usuário por ID via gRPC: %w", err)
+	}
+
+	return &domain.UserResponse{
+		ID:       resp.Id,
+		Username: resp.Name,
+		Email:    resp.Email,
+		Picture:  resp.Picture,
 	}, nil
 }

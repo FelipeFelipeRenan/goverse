@@ -59,11 +59,23 @@ http:
       middlewares: [cors]
 
     # === Auth Service ===
+    auth-me:
+      rule: "Path(`/auth/me`) && Method(`GET`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers] 
+    
     auth-login:
       rule: "Path(`/auth/login`)"
       service: auth-service
       entryPoints: [web]
       middlewares: [cors, logging, strict-headers]
+
+    auth-logout:
+      rule: "Path(`/auth/logout`) && Method(`POST`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers] # Middlewares consistentes com o login
 
     oauth-google:
       rule: "Path(`/oauth/google/login`)"

@@ -35,7 +35,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isProd := isProd()
+	isProd := os.Getenv("ENV") == "prod"
 	sameSitePolicy := http.SameSiteLaxMode // Padrão seguro
 
 	if isProd {
@@ -72,7 +72,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	isProd := isProd()
+	isProd := os.Getenv("ENV") == "prod"
 	sameSitePolicy := http.SameSiteLaxMode
 
 	if isProd {
@@ -89,6 +89,16 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 	})
 
+	// limpa o cookie de CSRF
+	http.SetCookie(w, &http.Cookie{
+		Name:     "csrf_token",
+		Value:    "",
+		MaxAge:   -1,
+		Secure:   isProd,
+		SameSite: sameSitePolicy,
+		Path:     "/",
+	})
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "logout successful"})
 }
@@ -98,7 +108,7 @@ func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	rand.Read(b)
 	state := base64.URLEncoding.EncodeToString(b)
 
-	isProd := isProd()
+	isProd := os.Getenv("ENV") == "prod"
 	sameSitePolicy := http.SameSiteLaxMode
 
 	if isProd {
@@ -182,6 +192,25 @@ func (h *AuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, html)
+}
+
+func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
+	// O user_id já foi validado e injetado pelo auth-middleware
+	userID := r.Header.Get("X-User-ID")
+	if userID == "" {
+		http.Error(w, "Cabeçalho X-User-ID não encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	// Agora a chamada funciona
+	user, err := h.authService.GetUserByID(r.Context(), userID)
+	if err != nil {
+		http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 
 // isProd é uma função helper para verificar a variável de ambiente

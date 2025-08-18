@@ -6,22 +6,26 @@ import (
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
+	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 type AuthService interface {
 	Authenticate(ctx context.Context, credentials domain.Credentials) (string, *domain.UserResponse, error)
 	GetOAuthURL(state string) string
+	GetUserByID(ctx context.Context, userID string) (*domain.UserResponse, error)
 }
 
 type authService struct {
 	authMethods map[string]AuthMethod
+	repository  repository.AuthRepository
 	jwtKey      []byte
 }
 
-func NewAuthService(authMethods map[string]AuthMethod, jwtKey []byte) AuthService {
+func NewAuthService(authMethods map[string]AuthMethod, repo repository.AuthRepository, jwtKey []byte) AuthService {
 	return &authService{
 		authMethods: authMethods,
+		repository:  repo,
 		jwtKey:      jwtKey,
 	}
 }
@@ -33,7 +37,7 @@ func (s *authService) Authenticate(ctx context.Context, credentials domain.Crede
 	if !ok {
 		return "", nil, fmt.Errorf("metodo de autenticação não suportado: %s", credentials.Type)
 	}
-	
+
 	user, err := method.Authenticate(ctx, credentials)
 	if err != nil {
 		return "", nil, fmt.Errorf("falha na autenticação> %w", err)
@@ -73,4 +77,8 @@ func (s *authService) GetOAuthURL(state string) string {
 	}
 
 	return oauthMethod.GetOAuthURL(state)
+}
+
+func (s *authService) GetUserByID(ctx context.Context, userID string) (*domain.UserResponse, error) {
+	return s.repository.FindByID(ctx, userID)
 }

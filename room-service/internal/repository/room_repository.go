@@ -80,7 +80,7 @@ func (r *roomRepository) GetByID(ctx context.Context, dbtx DBTX, id string) (*do
 	var room domain.Room
 	err := row.Scan(
 		&room.ID, &room.Name, &room.Description, &room.IsPublic, &room.OwnerID,
-		&room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt,&room.DeletedAt,
+		&room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt, &room.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

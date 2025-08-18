@@ -76,12 +76,12 @@ func (r *roomMemberRepository) AddMember(ctx context.Context, dbtx DBTX, member 
 func (r *roomMemberRepository) RemoveMember(ctx context.Context, dbtx DBTX, roomID string, userID string) error {
 	query := `DELETE FROM room_members WHERE room_id = $1 AND user_id = $2`
 	cmdTag, err := dbtx.Exec(ctx, query, roomID, userID)
-    if err != nil {
-        return err
-    }
-    if cmdTag.RowsAffected() == 0 {
-        return domain.ErrMemberNotFound
-    }
+	if err != nil {
+		return err
+	}
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrMemberNotFound
+	}
 	return nil
 }
 
