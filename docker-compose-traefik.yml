@@ -84,6 +84,12 @@ services:
     build:
       context: ./auth-middleware
       dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
     environment:
       - PORT=3000
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem 
@@ -97,6 +103,9 @@ services:
   traefik:
     image: traefik:v2.11
     container_name: traefik
+    depends_on:
+      auth-middleware:
+        condition: service_healthy
     command:
       - --entrypoints.web.address=:80
       - --entrypoints.metrics.address=:8082

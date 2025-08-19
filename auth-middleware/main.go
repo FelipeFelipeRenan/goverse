@@ -20,6 +20,8 @@ type CustomClaims struct {
 func main() {
 	http.HandleFunc("/auth/validate", validateHandler)
 
+	http.HandleFunc("/health", healthCheck)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
@@ -52,6 +54,8 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 
 	claims, err := validateToken(tokenString)
 	if err != nil {
+		log.Printf("ERRO DE VALIDAÇÃO DO TOKEN: %v", err)
+
 		respondUnauthorized(w, "Token inválido: "+err.Error())
 		return
 	}
@@ -125,4 +129,9 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 		return claims, nil
 	}
 	return nil, errors.New("token inválido")
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }
