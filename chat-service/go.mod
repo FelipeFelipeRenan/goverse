@@ -1,5 +1,7 @@
-module github.com/FelipeFelipeRenan/chat-service
+module github.com/FelipeFelipeRenan/goverse/chat-service
 
-go 1.22.1
+go 1.23.0
 
-require github.com/gorilla/websocket v1.5.3 // indirect
+toolchain go1.24.6
+
+require github.com/gorilla/websocket v1.5.3
