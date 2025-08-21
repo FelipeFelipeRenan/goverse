@@ -152,6 +152,13 @@ http:
       entryPoints: [web]
       middlewares: [cors, logging, auth, strict-headers] 
 
+    # === Chat Service ===
+    chat-ws-router:
+      rule: "PathPrefix(`/ws`)"
+      service: chat-service
+      entryPoints: [web]
+      middlewares: [auth]
+    # === Dashboards ===
     traefik-dashboard:
       rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
       service: api@internal
@@ -173,3 +180,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://room-service:8080"
+    
+    chat-service:
+      loadBalancer:
+        servers:
+          - url: "http://chat-service:8084"

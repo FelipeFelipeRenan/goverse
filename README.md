@@ -121,12 +121,9 @@ Fazer Login (para obter um token):
 
 ```bash
 curl -X POST http://localhost/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "type": "password",
-    "email": "usuario@email.com",
-    "password": "senha123"
-  }'
+-H "Content-Type: application/json" \
+-d '{"email": "teste@email.com", "password": "senha123", "type": "password"}' \
+--cookie-jar cookies.txt
 ```
 
 Rotas Protegidas
@@ -213,6 +210,14 @@ curl -X PUT http://localhost/rooms/<id_da_sala>/members/<id_do_membro>/role \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{ "new_role": "admin" }'
+```
+
+### Chat Service
+
+Para se conectar a sala, basta rodar o comando:
+```bash
+wscat -c "ws://localhost/ws?roomId=sala-final" \
+-H "Cookie: access_token=$(grep 'access_token' cookies.txt | cut -f7)"
 ```
 
 ## ☸️ Utilizando Kubernetes (k8s)
