@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
-	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
+
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/auth"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
@@ -16,8 +18,22 @@ var upgrader = websocket.Upgrader{
 }
 
 func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
-	// TODO: Implementar a validação do token JWT aqui.
-	userID := "usuario_simulado_123"
+
+	cookie, err := r.Cookie("access_token")
+	if err != nil {
+		log.Printf("Erro ao obter cookie de acesso: %v", err)
+		http.Error(w, "Cookie de autenticação não encontrado", http.StatusUnauthorized)
+		return
+	}
+
+	tokenString := cookie.Value
+	claims, err := auth.ValidateToken(tokenString)
+	if err != nil {
+		log.Printf("Erro na validação do token: %v", err)
+		http.Error(w, "token inválido", http.StatusUnauthorized)
+		return
+	}
+
 	roomID := r.URL.Query().Get("roomId")
 	if roomID == "" {
 		http.Error(w, "O parâmetro 'roomId' é obrigatório", http.StatusBadRequest)
@@ -34,12 +50,12 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 		Conn:   conn,
 		Hub:    h,
 		RoomID: roomID,
-		UserID: userID,
+		UserID: claims.UserID,
 		Send:   make(chan []byte, 256),
 	}
 	client.Hub.Register <- client
 
-	log.Printf("Cliente '%s' conectado à sala '%s'", client.UserID, client.RoomID)
+	log.Printf("Cliente '%s' (ID: %s) conectado à sala '%s'", claims.UserName, client.UserID, client.RoomID)
 
 	// Inicia os processos de leitura e escrita em goroutines separadas.
 	go client.WritePump()
