@@ -11,6 +11,7 @@ type Client struct {
 	Hub    *Hub
 	RoomID string
 	UserID string
+	Username string
 	Send   chan []byte
 }
 
@@ -22,15 +23,25 @@ func (c *Client) ReadPump() {
 	}()
 
 	for {
-		_, message, err := c.Conn.ReadMessage()
+		_, payload, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("erro inesperado de websocket: %v", err)
 			}
 			break
 		}
+
+		var msg Message
+		if err := FromJSON(payload, &msg); err != nil{
+			log.Printf("erro ao decodificar mensagem JSON: %v", err)
+			continue
+		}
+
+		msg.UserID = c.UserID
+		msg.Username = c.Username
+		msg.RoomID = c.RoomID
 		// Por enquanto, apenas enviamos a mensagem bruta para o hub processar.
-		c.Hub.Broadcast <- message
+		c.Hub.Broadcast <- &msg
 	}
 }
 

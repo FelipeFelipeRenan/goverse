@@ -51,11 +51,12 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 		Hub:    h,
 		RoomID: roomID,
 		UserID: claims.UserID,
+		Username: claims.Username,
 		Send:   make(chan []byte, 256),
 	}
 	client.Hub.Register <- client
 
-	log.Printf("Cliente '%s' (ID: %s) conectado à sala '%s'", claims.Username, client.UserID, client.RoomID)
+	log.Printf("Cliente '%s' (ID: %s) conectado à sala '%s'", client.Username, client.UserID, client.RoomID)
 
 	// Inicia os processos de leitura e escrita em goroutines separadas.
 	go client.WritePump()

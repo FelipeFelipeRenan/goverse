@@ -1,12 +1,14 @@
 package hub
 
+import "log"
+
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
 type Hub struct {
 	// Mapeia um ID de sala para um map de clientes naquela sala
 	Rooms map[string]map[*Client]bool
 
 	// Mensagens de entrada dos clientes
-	Broadcast chan []byte
+	Broadcast chan *Message
 
 	// Solicitação de registros de clientes
 	Register chan *Client
@@ -17,7 +19,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		Broadcast:  make(chan []byte),
+		Broadcast:  make(chan *Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Rooms:      make(map[string]map[*Client]bool),
@@ -52,13 +54,19 @@ func (h *Hub) Run() {
 			// Este é um broadcast simplificado. A lógica real seria encontrar
 			// a sala do cliente que enviou a mensagem e enviar para todos
 			// os outros clientes APENAS naquela sala.
-			for roomID := range h.Rooms {
-				for client := range h.Rooms[roomID] {
-					select {
-					case client.Send <- message:
+			if room, ok := h.Rooms[message.RoomID]; ok{
+				payload, err := message.ToJSON()
+				if err != nil {
+					log.Printf("erro ao parsear mesagem: %v", err)
+					continue
+				}
+
+				for client := range room{
+					select{
+					case client.Send <- payload:
 					default:
 						close(client.Send)
-						delete(h.Rooms[roomID], client)
+						delete(h.Rooms[message.RoomID], client)
 					}
 				}
 			}
