@@ -84,10 +84,10 @@ services:
     build:
       context: .
       dockerfile: ./chat-service/Dockerfile
-    # depends_on:
+    depends_on:
       # Adicione dependências se ele precisar de outros serviços para iniciar
-      # postgres:
-      #   condition: service_healthy
+      postgres:
+        condition: service_healthy
     volumes:
       - ./.keys/public.pem:/keys/public.pem:ro # Monta a chave pública em modo somente leitura
       # - ./chat-service/.env:/app/.env # Descomente se você adicionar um .env

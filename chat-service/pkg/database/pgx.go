@@ -57,9 +57,8 @@ func Connect() (*pgxpool.Pool, error) {
 func RunMigration(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
-	// Esta query cria a tabela 'messages' se ela não existir.
-	// Ela é 'idempotente', ou seja, pode ser executada várias vezes sem causar erro.
-	query := `
+	// --- Comando 1: Criar a Tabela ---
+	createTableQuery := `
         CREATE TABLE IF NOT EXISTS messages (
             id SERIAL PRIMARY KEY,
             room_id INT NOT NULL,
@@ -70,13 +69,21 @@ func RunMigration(pool *pgxpool.Pool) error {
             FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         );
-        CREATE INDEX IF NOT EXISTS idx_messages_room_id_created_at ON messages (room_id, created_at DESC);
     `
-
-	_, err := pool.Exec(ctx, query)
+	_, err := pool.Exec(ctx, createTableQuery)
 	if err != nil {
 		return fmt.Errorf("erro ao executar migração da tabela messages: %w", err)
 	}
+
+	// --- Comando 2: Criar o Índice ---
+	createIndexQuery := `
+        CREATE INDEX IF NOT EXISTS idx_messages_room_id_created_at ON messages (room_id, created_at DESC);
+    `
+	_, err = pool.Exec(ctx, createIndexQuery)
+	if err != nil {
+		return fmt.Errorf("erro ao criar índice para a tabela messages: %w", err)
+	}
+
 
 	logger.Info("Migração da tabela 'messages' executada com sucesso.")
 	return nil

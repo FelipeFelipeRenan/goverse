@@ -1,9 +1,11 @@
 package hub
 
 import (
-	"log"
+	"context"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
 )
 
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
@@ -19,14 +21,17 @@ type Hub struct {
 
 	// Solicitação de cancelamento de registro de clientes
 	Unregister chan *Client
+
+	Svc service.MessageService
 }
 
-func NewHub() *Hub {
+func NewHub(svc service.MessageService) *Hub {
 	return &Hub{
 		Broadcast:  make(chan *domain.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Rooms:      make(map[string]map[*Client]bool),
+		Svc: svc,
 	}
 }
 
@@ -55,13 +60,19 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
+			// usando o serviço para processar e salvar a mensagem
+			if err := h.Svc.ProcessAndSaveMessage(context.Background(), message); err != nil{
+				logger.Error("erro ao processar mensagem", "err", err)
+				continue
+			}
+			
 			// Este é um broadcast simplificado. A lógica real seria encontrar
 			// a sala do cliente que enviou a mensagem e enviar para todos
 			// os outros clientes APENAS naquela sala.
 			if room, ok := h.Rooms[message.RoomID]; ok{
 				payload, err := message.ToJSON()
 				if err != nil {
-					log.Printf("erro ao parsear mesagem: %v", err)
+					logger.Error("erro ao parsear mesagem","err", err)
 					continue
 				}
 
