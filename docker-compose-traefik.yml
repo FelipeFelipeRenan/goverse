@@ -92,6 +92,12 @@ services:
       - ./.keys/public.pem:/keys/public.pem:ro # Monta a chave pública em modo somente leitura
       # - ./chat-service/.env:/app/.env # Descomente se você adicionar um .env
     environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem
     networks:
       - goverse_network

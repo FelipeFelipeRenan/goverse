@@ -1,6 +1,10 @@
 package hub
 
-import "log"
+import (
+	"log"
+
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/domain"
+)
 
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
 type Hub struct {
@@ -8,7 +12,7 @@ type Hub struct {
 	Rooms map[string]map[*Client]bool
 
 	// Mensagens de entrada dos clientes
-	Broadcast chan *Message
+	Broadcast chan *domain.Message
 
 	// Solicitação de registros de clientes
 	Register chan *Client
@@ -19,7 +23,7 @@ type Hub struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		Broadcast:  make(chan *Message),
+		Broadcast:  make(chan *domain.Message),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Rooms:      make(map[string]map[*Client]bool),

@@ -1,11 +1,17 @@
 package main
 
 import (
-	"log"
+	"context"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/auth"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
 	"github.com/gorilla/websocket"
 )
 
@@ -21,7 +27,7 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 
 	cookie, err := r.Cookie("access_token")
 	if err != nil {
-		log.Printf("Erro ao obter cookie de acesso: %v", err)
+		logger.Error("Erro ao obter cookie de acesso","err", err)
 		http.Error(w, "Cookie de autenticação não encontrado", http.StatusUnauthorized)
 		return
 	}
@@ -29,7 +35,7 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 	tokenString := cookie.Value
 	claims, err := auth.ValidateToken(tokenString)
 	if err != nil {
-		log.Printf("Erro na validação do token: %v", err)
+		logger.Error("Erro na validação do token","err", err)
 		http.Error(w, "token inválido", http.StatusUnauthorized)
 		return
 	}
@@ -42,21 +48,21 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Erro no upgrade da conexão para websocket: %v", err)
+		logger.Error("Erro no upgrade da conexão para websocket","err", err)
 		return
 	}
 
 	client := &hub.Client{
-		Conn:   conn,
-		Hub:    h,
-		RoomID: roomID,
-		UserID: claims.UserID,
+		Conn:     conn,
+		Hub:      h,
+		RoomID:   roomID,
+		UserID:   claims.UserID,
 		Username: claims.UserName,
-		Send:   make(chan []byte, 256),
+		Send:     make(chan []byte, 256),
 	}
 	client.Hub.Register <- client
 
-	log.Printf("Cliente '%s' (ID: %s) conectado à sala '%s'", client.Username, client.UserID, client.RoomID)
+	logger.Info("Cliente '%s' (ID: %s) conectado à sala '%s'", client.Username, client.UserID, client.RoomID)
 
 	// Inicia os processos de leitura e escrita em goroutines separadas.
 	go client.WritePump()
@@ -64,6 +70,18 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	logger.Init("INFO", "chat-service")
+	dbPool, err := database.Connect()
+	if err != nil {
+		logger.Error("Erro ao conectar ao banco de dados", "err", err)
+	}
+	defer dbPool.Close()
+
+	if err := database.RunMigration(dbPool); err != nil {
+		logger.Error("Erro ao executar migração", "err", err)
+
+	}
 	hub := hub.NewHub()
 	go hub.Run()
 
@@ -71,8 +89,32 @@ func main() {
 		serveWs(hub, w, r)
 	})
 
-	log.Println("Servidor de Chat iniciado na porta :8084")
-	if err := http.ListenAndServe(":8084", nil); err != nil {
-		log.Fatalf("Erro ao iniciar o servidor: %v", err)
+	port := os.Getenv("CHAT_SERVICE_PORT")
+	if port == "" {
+		port = "8084"
+	}
+
+	server := &http.Server{
+		Addr:         ":" + port,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+	go func() {
+		logger.Info("Serviço de Chat rodando", "port", port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("Erro ao iniciar servidor HTTP", "err", err)
+		}
+	}()
+
+	// Espera sinal de encerramento (CTRL+C ou kill)
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	logger.Info("Encerrando Chat Service...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error("Erro ao encerrar servidor HTTP", "err", err)
 	}
 }

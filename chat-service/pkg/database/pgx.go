@@ -62,7 +62,7 @@ func RunMigration(pool *pgxpool.Pool) error {
 	query := `
         CREATE TABLE IF NOT EXISTS messages (
             id SERIAL PRIMARY KEY,
-            room_id UUID NOT NULL,
+            room_id INT NOT NULL,
             user_id INT NOT NULL,
             username VARCHAR(255) NOT NULL,
             content TEXT NOT NULL,

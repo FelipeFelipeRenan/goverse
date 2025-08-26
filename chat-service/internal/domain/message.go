@@ -1,4 +1,4 @@
-package hub
+package domain
 
 import "encoding/json"
 

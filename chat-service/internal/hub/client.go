@@ -1,8 +1,10 @@
 package hub
 
 import (
-	"github.com/gorilla/websocket"
 	"log"
+
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/domain"
+	"github.com/gorilla/websocket"
 )
 
 // Client é a representação de um usuário conectado via WebSocket.
@@ -31,8 +33,8 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		var msg Message
-		if err := FromJSON(payload, &msg); err != nil{
+		var msg domain.Message
+		if err := domain.FromJSON(payload, &msg); err != nil{
 			log.Printf("erro ao decodificar mensagem JSON: %v", err)
 			continue
 		}
