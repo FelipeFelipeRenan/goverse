@@ -51,7 +51,7 @@ func serveWs(h *hub.Hub, w http.ResponseWriter, r *http.Request) {
 		Hub:    h,
 		RoomID: roomID,
 		UserID: claims.UserID,
-		Username: claims.Username,
+		Username: claims.UserName,
 		Send:   make(chan []byte, 256),
 	}
 	client.Hub.Register <- client

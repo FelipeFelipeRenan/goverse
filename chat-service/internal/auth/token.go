@@ -10,7 +10,7 @@ import (
 
 type Claims struct {
 	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	UserName string `json:"username"`
 	jwt.RegisteredClaims
 }
 
@@ -30,14 +30,31 @@ func ValidateToken(tokenString string) (*Claims, error) {
 		return nil, fmt.Errorf("não foi possível fazer o parse da chave pública: %w", err)
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
+	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
-			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", t.Header["alg"])
+			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", err)
 		}
 		return publicKey, nil
 	})
+
 	if err != nil {
 		return nil, err
+	}
+
+	if rawClaims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		claims := &Claims{}
+
+		if id, ok := rawClaims["user_id"].(string); ok {
+			claims.UserID = id
+		} else {
+			return nil, errors.New("claims 'user_id' ausente ou com tipo inválido")
+		}
+
+		if name, ok := rawClaims["user_name"].(string); ok {
+			claims.UserName = name
+		}
+
+		return claims, nil
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
