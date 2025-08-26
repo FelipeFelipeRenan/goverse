@@ -3,7 +3,7 @@ package hub
 import (
 	"log"
 
-	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/domain"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 	"github.com/gorilla/websocket"
 )
 

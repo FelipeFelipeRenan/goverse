@@ -3,7 +3,7 @@ package hub
 import (
 	"log"
 
-	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/domain"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 )
 
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
