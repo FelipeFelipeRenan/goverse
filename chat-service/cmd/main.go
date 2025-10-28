@@ -15,6 +15,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/redis"
 )
 
 func main() {
@@ -40,10 +41,12 @@ func main() {
 		log.Fatalf("Não foi possível executar a migração do banco de dados após %d tentativas: %v", maxRetries, err)
 	}
 
+	redisClient := redis.Init()
+
 	messageRepo := repository.NewMessageRepository(dbPool)
 	messageSvc := service.NewMessageService(messageRepo)
 
-	hub := hub.NewHub(messageSvc)
+	hub := hub.NewHub(messageSvc, redisClient)
 	go hub.Run()
 
 	wsHandler := websocket.NewWebSocketHandler(hub)

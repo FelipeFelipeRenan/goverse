@@ -88,6 +88,8 @@ services:
       # Adicione dependências se ele precisar de outros serviços para iniciar
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./.keys/public.pem:/keys/public.pem:ro # Monta a chave pública em modo somente leitura
       # - ./chat-service/.env:/app/.env # Descomente se você adicionar um .env
@@ -97,8 +99,8 @@ services:
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=${POSTGRES_DB}
-
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem
+      - REDIS_ADDR=${REDIS_ADDR}
     networks:
       - goverse_network
     expose:

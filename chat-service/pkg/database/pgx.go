@@ -65,9 +65,7 @@ func RunMigration(pool *pgxpool.Pool) error {
             user_id INT NOT NULL,
             username VARCHAR(255) NOT NULL,
             content TEXT NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-            FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `
 	_, err := pool.Exec(ctx, createTableQuery)
@@ -83,7 +81,6 @@ func RunMigration(pool *pgxpool.Pool) error {
 	if err != nil {
 		return fmt.Errorf("erro ao criar índice para a tabela messages: %w", err)
 	}
-
 
 	logger.Info("Migração da tabela 'messages' executada com sucesso.")
 	return nil

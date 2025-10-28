@@ -2,10 +2,12 @@ package hub
 
 import (
 	"context"
+	"strings"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/redis/go-redis/v9"
 )
 
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
@@ -23,19 +25,56 @@ type Hub struct {
 	Unregister chan *Client
 
 	Svc service.MessageService
+
+	redisClient *redis.Client
 }
 
-func NewHub(svc service.MessageService) *Hub {
+func NewHub(svc service.MessageService, redisClient *redis.Client) *Hub {
 	return &Hub{
-		Broadcast:  make(chan *domain.Message),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Rooms:      make(map[string]map[*Client]bool),
-		Svc: svc,
+		Broadcast:   make(chan *domain.Message),
+		Register:    make(chan *Client),
+		Unregister:  make(chan *Client),
+		Rooms:       make(map[string]map[*Client]bool),
+		Svc:         svc,
+		redisClient: redisClient,
+	}
+}
+
+func (h *Hub) runRedisSubscriber() {
+	ctx := context.Background()
+
+	pubsub := h.redisClient.PSubscribe(ctx, "chat:room:*")
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+
+	logger.Info("Hub está ouvindo os canais do Redis")
+
+	for msg := range ch {
+
+		// msg.Channel é "chat:room:sala-1", por exemplo
+		roomID := strings.TrimPrefix(msg.Channel, "chat:room:")
+
+		// Encontra a sala e envia a mensagem para todos os clientes locais nela
+		if room, ok := h.Rooms[roomID]; ok {
+			for client := range room {
+				select {
+				case client.Send <- []byte(msg.Payload):
+				default:
+					// se o canal do cliente estiver cheio, assume que ele está morto
+					close(client.Send)
+					delete(h.Rooms[roomID], client)
+				}
+			}
+		}
 	}
 }
 
 func (h *Hub) Run() {
+
+	// inicia o ouvinte redis em uma goroutine separada
+	go h.runRedisSubscriber()
+
 	for {
 		select {
 		case client := <-h.Register:
@@ -60,30 +99,25 @@ func (h *Hub) Run() {
 			}
 
 		case message := <-h.Broadcast:
+
+			ctx := context.Background()
+
 			// usando o serviço para processar e salvar a mensagem
-			if err := h.Svc.ProcessAndSaveMessage(context.Background(), message); err != nil{
+			if err := h.Svc.ProcessAndSaveMessage(ctx, message); err != nil {
 				logger.Error("erro ao processar mensagem", "err", err)
 				continue
 			}
-			
-			// Este é um broadcast simplificado. A lógica real seria encontrar
-			// a sala do cliente que enviou a mensagem e enviar para todos
-			// os outros clientes APENAS naquela sala.
-			if room, ok := h.Rooms[message.RoomID]; ok{
-				payload, err := message.ToJSON()
-				if err != nil {
-					logger.Error("erro ao parsear mesagem","err", err)
-					continue
-				}
 
-				for client := range room{
-					select{
-					case client.Send <- payload:
-					default:
-						close(client.Send)
-						delete(h.Rooms[message.RoomID], client)
-					}
-				}
+			payload, err := message.ToJSON()
+			if err != nil {
+				logger.Error("erro ao parsear mensagem", "err", err)
+				continue
+			}
+
+			// Publica a mensagem no Redis para que TODAS as instâncias recebam
+			channelName := "chat:room:" + message.RoomID
+			if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
+				logger.Error("erro ao publicar mensagem ao Redis", "err", err)
 			}
 		}
 	}
