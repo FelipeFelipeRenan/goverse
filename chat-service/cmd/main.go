@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/websocket"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/repository"
@@ -41,6 +42,8 @@ func main() {
 		log.Fatalf("Não foi possível executar a migração do banco de dados após %d tentativas: %v", maxRetries, err)
 	}
 
+	roomClient := client.NewRoomClient()
+
 	redisClient := redis.Init()
 
 	messageRepo := repository.NewMessageRepository(dbPool)
@@ -49,7 +52,7 @@ func main() {
 	hub := hub.NewHub(messageSvc, redisClient)
 	go hub.Run()
 
-	wsHandler := websocket.NewWebSocketHandler(hub)
+	wsHandler := websocket.NewWebSocketHandler(hub, roomClient)
 
 	http.HandleFunc("/ws", wsHandler.ServeWs)
 

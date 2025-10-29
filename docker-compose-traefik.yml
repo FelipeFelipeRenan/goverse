@@ -101,6 +101,7 @@ services:
       - DB_NAME=${POSTGRES_DB}
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem
       - REDIS_ADDR=${REDIS_ADDR}
+      - ROOM_SERVICE_URL=${ROOM_SERVICE_URL}
     networks:
       - goverse_network
     expose:
