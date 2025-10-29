@@ -145,3 +145,26 @@ func (h *MemberHandler) GetRoomsOwnedByUser(w http.ResponseWriter, r *http.Reque
 
 	json.NewEncoder(w).Encode(rooms)
 }
+
+func (h *MemberHandler) CheckIsMember(w http.ResponseWriter, r *http.Request) {
+	roomID := r.PathValue("roomID")
+	userID := r.PathValue("userID")
+
+	if roomID == "" || userID == "" {
+		sendError(w, http.StatusBadRequest, "RoomID e UserID são obrigatorios")
+		return
+	}
+
+	isMember, err := h.memberService.IsMember(r.Context(), roomID, userID)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, "Erro ao verificar membro")
+		return
+	}
+
+	if !isMember {
+		sendError(w, http.StatusForbidden, "Usuário não é membro")
+		return
+	}
+
+	sendResponse(w, http.StatusOK, map[string]bool{"is_member": true})
+}

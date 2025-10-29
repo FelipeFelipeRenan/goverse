@@ -19,6 +19,7 @@ type MemberService interface {
 	GetRoomsByUserID(ctx context.Context, userID string) ([]*domain.Room, error)
 	GetRoomsByOwnerID(ctx context.Context, userID string) ([]*domain.Room, error)
 	JoinRoom(ctx context.Context, roomID, userID, inviteToken string) error
+	IsMember(ctx context.Context, roomID, userID string) (bool, error)
 }
 
 type memberService struct {
@@ -174,4 +175,9 @@ func (s *memberService) JoinRoom(ctx context.Context, roomID, userID, inviteToke
 
 	// Reutiliza a lógica transacional do AddMember, agindo como o dono da sala para adicionar um novo membro
 	return s.AddMember(ctx, room.OwnerID, roomID, userID, domain.RoleMember)
+}
+
+// IsMember implements MemberService.
+func (s *memberService) IsMember(ctx context.Context, roomID string, userID string) (bool, error) {
+	return s.memberRepo.IsMember(ctx, s.db, roomID, userID)
 }
