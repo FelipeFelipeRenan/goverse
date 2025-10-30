@@ -64,14 +64,19 @@ func Connect() (*pgxpool.Pool, error) {
 func RunMigration(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
+	_, err := pool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+	if err != nil {
+		return fmt.Errorf("erro ao ativar extensão uuid-ossp: %w", err)
+	}
+
 	query := `
 	CREATE TABLE IF NOT EXISTS rooms (
-		id SERIAL PRIMARY KEY,
+		id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 		name TEXT NOT NULL,
 		description TEXT,
 		is_public BOOLEAN NOT NULL DEFAULT true,
 		max_members INT NOT NULL CHECK (max_members > 0),
-		owner_id TEXT NOT NULL,
+		owner_id UUID NOT NULL,
 		member_count INT NOT NULL DEFAULT 0,
 		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -79,15 +84,15 @@ func RunMigration(pool *pgxpool.Pool) error {
 	);
 
 	CREATE TABLE IF NOT EXISTS room_members (
-		room_id INT NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
-		user_id TEXT NOT NULL,
+		room_id UUID NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+		user_id UUID NOT NULL,
 		role TEXT NOT NULL,
 		joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (room_id, user_id)
 	);
 	`
 
-	_, err := pool.Exec(ctx, query)
+	_, err = pool.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("erro ao executar migração: %w", err)
 	}

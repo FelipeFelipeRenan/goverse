@@ -64,19 +64,26 @@ func Connect() (*pgxpool.Pool, error) {
 func RunMigration(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
+	_, err := pool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+	if err != nil {
+		return fmt.Errorf("erro ao ativar extensão uuid-ossp: %w", err)
+	}
+
 	query := `
 		CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		username TEXT NOT NULL,
-		email TEXT UNIQUE NOT NULL,
-		password TEXT NOT NULL,
-		picture TEXT,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		is_oauth BOOLEAN
+			id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+			username TEXT NOT NULL,
+			email TEXT UNIQUE NOT NULL,
+			password TEXT NOT NULL,
+			picture TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			is_oauth BOOLEAN,
+			updated_at TIMESTAMP,
+			deleted_at TIMESTAMP NULL
 	);	
 	`
 
-	_, err := pool.Exec(ctx, query)
+	_, err = pool.Exec(ctx, query)
 	if err != nil {
 		return fmt.Errorf("erro ao executar migração: %w", err)
 	}

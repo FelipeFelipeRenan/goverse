@@ -57,23 +57,26 @@ func Connect() (*pgxpool.Pool, error) {
 func RunMigration(pool *pgxpool.Pool) error {
 	ctx := context.Background()
 
-	// --- Comando 1: Criar a Tabela ---
+	_, err := pool.Exec(ctx, `CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
+	if err != nil {
+		return fmt.Errorf("erro ao ativar extensão uuid-ossp: %w", err)
+	}
+
 	createTableQuery := `
         CREATE TABLE IF NOT EXISTS messages (
-            id SERIAL PRIMARY KEY,
-            room_id INT NOT NULL,
-            user_id INT NOT NULL,
+            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+            room_id UUID NOT NULL,
+            user_id UUID NOT NULL,
             username VARCHAR(255) NOT NULL,
             content TEXT NOT NULL,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
     `
-	_, err := pool.Exec(ctx, createTableQuery)
+	_, err = pool.Exec(ctx, createTableQuery)
 	if err != nil {
 		return fmt.Errorf("erro ao executar migração da tabela messages: %w", err)
 	}
 
-	// --- Comando 2: Criar o Índice ---
 	createIndexQuery := `
         CREATE INDEX IF NOT EXISTS idx_messages_room_id_created_at ON messages (room_id, created_at DESC);
     `
