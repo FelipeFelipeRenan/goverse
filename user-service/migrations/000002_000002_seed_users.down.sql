@@ -1,0 +1,1 @@
+DELETE FROM users WHERE email IN ('admin@goverse.com', 'usuario@goverse.com');

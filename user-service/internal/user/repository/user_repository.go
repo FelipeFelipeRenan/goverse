@@ -95,14 +95,14 @@ func (r *userRepository) DeleteUser(ctx context.Context, id string) error {
 }
 func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.User, error) {
 	query := `
-		SELECT id, username, email, picture, created_at, is_oauth
-		FROM users
-		WHERE id = $1
+			SELECT id, username, email, password, picture, created_at, is_oauth
+			FROM users
+			WHERE id = $1 AND deleted_at IS NULL
 		`
 	row := r.conn.QueryRow(ctx, query, id)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Picture, &user.CreatedAt, &user.IsOAuth)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Picture, &user.CreatedAt, &user.IsOAuth)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("Usuario nao encontrado: %w", err)
 	}
@@ -110,7 +110,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, id string) (*domain.Us
 }
 
 func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.User, error) {
-	rows, err := r.conn.Query(ctx, `SELECT id, username, email, picture, created_at, is_oauth FROM users`)
+	rows, err := r.conn.Query(ctx, `SELECT id, username, email, password, picture, created_at, is_oauth FROM users WHERE deleted_at IS NULL`)
 	if err != nil {
 		return nil, fmt.Errorf("erro na busca de usuarios: %w", err)
 	}
@@ -120,7 +120,7 @@ func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.User, error)
 	var users []domain.User
 	for rows.Next() {
 		var u domain.User
-		err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Picture, &u.CreatedAt, &u.IsOAuth)
+		err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Password, &u.Picture, &u.CreatedAt, &u.IsOAuth)
 		if err != nil {
 			return nil, fmt.Errorf("erro na busca de usuarios: %w", err)
 		}
@@ -134,11 +134,11 @@ func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.User, error)
 }
 
 func (r *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
-	query := "SELECT id, username, email, password, created_at, is_oauth FROM users WHERE email = $1"
+	query := "SELECT id, username, email, password, picture, created_at, is_oauth FROM users WHERE email = $1 AND deleted_at IS NULL"
 	row := r.conn.QueryRow(ctx, query, email)
 
 	var user domain.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.CreatedAt, &user.IsOAuth)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password, &user.Picture, &user.CreatedAt, &user.IsOAuth)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrUserNotFound
 	}

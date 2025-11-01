@@ -11,6 +11,12 @@ COPY proto /proto
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY user-service/go.mod user-service/go.sum ./
 
+# Baixa a CLI do migrate
+RUN apk add --no-cache curl && \
+    curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.1/migrate.linux-amd64.tar.gz | tar xvz && \
+    mv migrate /usr/local/bin/migrate && \
+    chmod +x /usr/local/bin/migrate
+
 # Rodar o download agora funciona porque o /proto existe
 RUN go mod download
 
@@ -27,12 +33,15 @@ LABEL Name=goverse-user-service Version=0.0.1
 
 RUN apk --no-cache add ca-certificates
 
+COPY --from=builder /usr/local/bin/migrate /usr/local/bin/migrate
 COPY --from=builder /app/app /app/app
+COPY --from=builder /app/migrations /app/migrations
+
 WORKDIR /app
 
 RUN adduser -D appuser
 USER appuser
 
-ENTRYPOINT ["/app/app"]
+# ENTRYPOINT ["/app/app"]
 EXPOSE 8080
 EXPOSE 50051

@@ -16,19 +16,11 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
 
 	logger.Init("info", "room-service")
 
@@ -39,11 +31,6 @@ func main() {
 		return
 	}
 	defer dbPool.Close()
-
-	if err := database.RunMigration(dbPool); err != nil {
-		logger.Error("Erro ao rodar migrações", "err", err)
-		return
-	}
 
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")

@@ -10,19 +10,11 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
 
 	logger.Init("info", "auth-service")
 

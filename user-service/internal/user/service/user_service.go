@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"time"
@@ -37,6 +38,15 @@ func (s *userService) Register(ctx context.Context, user domain.User) (*domain.U
 
 	if user.Username == "" || user.Email == "" || user.Password == "" {
 		return nil, fmt.Errorf("dados incompletos para registro")
+	}
+
+	// Se a senha estiver vazia, gera uma senha aleatória para evitar erro no serviço
+	if user.Password == "" {
+		var err error
+		user.Password, err = generateRandomPassword(16)
+		if err != nil {
+			return nil, fmt.Errorf("erro ao gerar senha automática: %w", err)
+		}
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
@@ -106,4 +116,18 @@ func (s *userService) ExistsByID(ctx context.Context, id string) (bool, error) {
 		return false, err
 	}
 	return user != nil, nil
+}
+
+// Essa função é uma gambiarra
+func generateRandomPassword(length int) (string, error) {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		return "", err
+	}
+	for i := range bytes {
+		bytes[i] = letters[bytes[i]%byte(len(letters))]
+	}
+	return string(bytes), nil
 }

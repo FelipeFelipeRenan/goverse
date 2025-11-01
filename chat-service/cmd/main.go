@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,18 +28,6 @@ func main() {
 	defer dbPool.Close()
 
 	// 2. Execução da Migração com Lógica de Retry
-	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
-		err = database.RunMigration(dbPool)
-		if err == nil {
-			break // Sucesso, sai do loop
-		}
-		logger.Warn("Falha ao executar migração, tentando novamente...", "tentativa", i+1, "erro", err)
-		time.Sleep(5 * time.Second) // Espera 5 segundos antes da próxima tentativa
-	}
-	if err != nil {
-		log.Fatalf("Não foi possível executar a migração do banco de dados após %d tentativas: %v", maxRetries, err)
-	}
 
 	roomClient := client.NewRoomClient()
 

@@ -8,7 +8,6 @@ import (
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/domain"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
-	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -26,12 +25,6 @@ func (h *GRPCHandler) ValidateCredentials(ctx context.Context, req *userpb.Crede
 	user, err := h.userService.Authenticate(ctx, req.Email, req.Password)
 	if err != nil {
 		return nil, err
-	}
-
-	// Validando se a senha fornecida corresponde ao hash armazenado
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
-	if err != nil {
-		return nil, status.Error(codes.Unknown, "senha invalida!")
 	}
 
 	return &userpb.UserResponse{
@@ -63,12 +56,12 @@ func (h *GRPCHandler) Register(ctx context.Context, req *userpb.RegisterRequest)
 		CreatedAt: createdAt,    // Data de criação
 		IsOAuth:   req.IsOauth,
 	}
-	if user.Password == "" {
-		user.Password, _ = generateRandomPassword(16)
-		//	if err != nil {
-		//		return nil, status.Errorf(codes.Internal, "erro ao gerar senha: %v", err)
-		//	}
-	}
+	// if user.Password == "" {
+	// 	user.Password, _ = generateRandomPassword(16)
+	// 	//	if err != nil {
+	// 	//		return nil, status.Errorf(codes.Internal, "erro ao gerar senha: %v", err)
+	// 	//	}
+	// }
 
 	// Registrando no banco de dados
 	id, err := h.userService.Register(ctx, user)

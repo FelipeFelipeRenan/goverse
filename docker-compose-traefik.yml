@@ -43,6 +43,18 @@ services:
       - goverse_network
     expose:
       - "8085"
+    environment:
+      - DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/users?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=users
+      - ENV=dev # Mantenha esta linha
+      # Adicione as variáveis do gRPC que estavam no seu .env
+      - GRPC_PORT=:50051
+      - APP_PORT=8085
+    command: /bin/sh -c "migrate -path /app/migrations -database $${DB_URL} up && /app/app"
     labels:
       - "traefik.enable=true"
 
@@ -53,12 +65,17 @@ services:
     depends_on:
       - user-service
     volumes:
-      - ./auth-service/.env:/app/.env
-      - ./.keys/private.pem:/keys/private.pem:ro
+      - ./.keys/private.pem:/keys/private.pem:ro 
     networks:
       - goverse_network
     expose:
       - "8080"
+    environment:
+      - APP_PORT=8080
+      - JWT_PRIVATE_KEY_PATH=/keys/private.pem
+      - GRPC_SERVER_HOST=user-service
+      - GRPC_SERVER_PORT=:50051
+      - ENV=devc
     labels:
       - "traefik.enable=true"
 
@@ -77,6 +94,19 @@ services:
       - goverse_network
     expose:
       - "8080"
+    environment:
+      - DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/rooms?sslmode=disable
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=rooms
+      - ENV=dev # Mantenha esta linha
+      # Adicione as variáveis que estavam no seu .env
+      - ROOM_SERVICE_PORT=8080
+      - GRPC_SERVER_HOST=user-service
+      - GRPC_SERVER_PORT=:50051
+    command: /bin/sh -c "migrate -path /app/migrations -database $${DB_URL} up && /app/app"
     labels:
       - "traefik.enable=true"
 
@@ -98,10 +128,14 @@ services:
       - DB_PORT=5432
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
+      - DB_NAME=messages
       - JWT_PUBLIC_KEY_PATH=/keys/public.pem
       - REDIS_ADDR=${REDIS_ADDR}
       - ROOM_SERVICE_URL=${ROOM_SERVICE_URL}
+      - DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/messages?sslmode=disable
+      - ENV=dev
+      
+    command: /bin/sh -c "migrate -path /app/migrations -database $${DB_URL} up && ./app"
     networks:
       - goverse_network
     expose:

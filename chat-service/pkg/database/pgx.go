@@ -8,17 +8,17 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger" // Usa o novo logger
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
+	//"github.com/joho/godotenv"
 )
 
 // Connect estabelece a conexão com o banco de dados com lógica de retry.
 func Connect() (*pgxpool.Pool, error) {
 	// Carrega .env apenas em ambiente de desenvolvimento
-	if os.Getenv("ENV") != "prod" {
-		if err := godotenv.Load(); err != nil {
-			logger.Warn("Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
-		}
-	}
+	// if os.Getenv("ENV") != "prod" {
+	// 	if err := godotenv.Load(); err != nil {
+	// 		logger.Warn("Arquivo .env não encontrado, usando variáveis de ambiente do sistema.")
+	// 	}
+	// }
 
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")

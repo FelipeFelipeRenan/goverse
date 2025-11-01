@@ -11,17 +11,9 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
 
 	logger.Init("info", "user-service")
 
@@ -29,8 +21,6 @@ func main() {
 	if err != nil {
 		logger.Error("Erro ao conectar com banco de dados", "err", err)
 	}
-
-	database.RunMigration(conn)
 
 	repo := repository.NewUserRepository(conn)
 	userService := service.NewUserService(repo)

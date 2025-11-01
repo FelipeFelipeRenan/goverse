@@ -20,11 +20,11 @@ func LoadEnv() error {
 }
 
 func Connect() (*pgxpool.Pool, error) {
-	if os.Getenv("ENV") != "prod" {
-		if err := godotenv.Load(); err != nil {
-			logger.Error("Erro ao carregar .env", "err", err)
-		}
-	}
+	// if os.Getenv("ENV") != "prod" {
+	// 	if err := godotenv.Load(); err != nil {
+	// 		logger.Error("Erro ao carregar .env", "err", err)
+	// 	}
+	// }
 
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
