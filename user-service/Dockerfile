@@ -10,6 +10,8 @@ COPY proto /proto
 
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY user-service/go.mod user-service/go.sum ./
+# Copia o restante do código do user-service
+COPY user-service/. .
 
 # Baixa a CLI do migrate
 RUN apk add --no-cache curl && \
@@ -18,10 +20,8 @@ RUN apk add --no-cache curl && \
     chmod +x /usr/local/bin/migrate
 
 # Rodar o download agora funciona porque o /proto existe
-RUN go mod download
+RUN go mod tidy
 
-# Copia o restante do código do user-service
-COPY user-service/. .
 
 # Compila o binário
 RUN go build -o app ./cmd/main.go

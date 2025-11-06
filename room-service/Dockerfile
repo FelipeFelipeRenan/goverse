@@ -11,6 +11,9 @@ COPY proto /proto
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY room-service/go.mod room-service/go.sum ./
 
+# Copia o restante do código do user-service
+COPY room-service/. .
+
 # Baixa a CLI do migrate
 RUN apk add --no-cache curl && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.1/migrate.linux-amd64.tar.gz | tar xvz && \
@@ -18,10 +21,7 @@ RUN apk add --no-cache curl && \
     chmod +x /usr/local/bin/migrate
 
 # Rodar o download agora funciona porque o /proto existe
-RUN go mod download
-
-# Copia o restante do código do user-service
-COPY room-service/. .
+RUN go mod tidy
 
 # Compila o binário
 RUN go build -o app ./cmd/main.go

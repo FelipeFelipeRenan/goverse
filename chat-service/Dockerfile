@@ -8,6 +8,8 @@ WORKDIR /app
 # Copia os arquivos de gerenciamento de dependências.
 COPY chat-service/go.mod chat-service/go.sum ./
 
+# Copia todo o código fonte do chat-service para o contêiner.
+COPY chat-service/ .
 # Baixa a CLI do migrate
 RUN apk add --no-cache curl && \
     curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.1/migrate.linux-amd64.tar.gz | tar xvz && \
@@ -15,10 +17,8 @@ RUN apk add --no-cache curl && \
     chmod +x /usr/local/bin/migrate
 
 # Baixa as dependências. Este passo é cacheado pelo Docker se os arquivos não mudarem.
-RUN go mod download
+RUN go mod tidy
 
-# Copia todo o código fonte do chat-service para o contêiner.
-COPY chat-service/ .
 
 # Compila a aplicação.
 # CGO_ENABLED=0 cria um binário estático, sem depender de bibliotecas C.

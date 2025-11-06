@@ -4,40 +4,16 @@ on:
   push:
     paths:
       - 'room-service/**'
+      - 'proto/**'
     branches: [ "main" , "feature/*" ]
   pull_request:
     paths:
       - 'room-service/**'
+      - 'proto/**'
     branches: [ "main" ]
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: room-service
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.24.2'
-
-      - name: Check code formatting with gofmt
-        run: |
-          fmt_output=$(gofmt -l .)
-          if [ -n "$fmt_output" ]; then
-            echo "Code is not properly formatted:"
-            echo "$fmt_output"
-            exit 1
-          fi
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Run tests
-        run: go test -v ./...
+  call-reusable-ci:
+    uses: ./.github/workflows/reusable-go-ci.yml
+    with:
+      service-name: room-service

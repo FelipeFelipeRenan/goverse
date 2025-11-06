@@ -1,0 +1,63 @@
+name: Reusable Go CI
+
+# 1. Define que este workflow é "chamável"
+on:
+  workflow_call:
+    # 2. Define a "variável" que ele espera receber: o nome do serviço
+    inputs:
+      service-name:
+        description: 'O nome do módulo para testar (ex: user-service)'
+        required: true
+        type: string
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24.2' # Pega a versão do seu go.work
+
+      - name: Check code formatting with gofmt
+        # 3. Usa a variável de input para construir os caminhos
+        run: |
+          fmt_output=$(gofmt -l ./$)
+          if [ -n "$fmt_output" ]; then
+            echo "Code is not properly formatted:"
+            echo "$fmt_output"
+            exit 1
+          fi
+
+      # 4. (MELHORIA 1) Adicionar Linting (Opcional, mas recomendado)
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          # Testa apenas o módulo específico
+          args: --timeout=5m run ./...
+          # Define o diretório de trabalho para o lint
+          working-directory: $
+
+      # 5. (MELHORIA 2) Adicionar Scan de Vulnerabilidade (Opcional, mas recomendado)
+      - name: Run Go vulnerability check
+        run: govulncheck ./...
+        working-directory: $
+
+      - name: Build
+        run: go build ./...
+        working-directory: $
+
+      - name: Run tests
+        run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+        working-directory: $
+
+      # 6. (MELHORIA 3) Upload do Relatório de Cobertura (Opcional)
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-$
+          path: $
