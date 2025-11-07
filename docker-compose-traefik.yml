@@ -227,7 +227,19 @@ services:
         limits:
           cpus: '0.2'
           memory: 100M
-
+  documentation-service:
+      build:
+        context: .
+        dockerfile: ./api-gateway/Dockerfile # Reutiliza o Dockerfile
+      networks:
+        - goverse_network
+      expose:
+        - "8090" # Porta interna definida no main.go
+      environment:
+        - DOCS_PORT=8090
+        - ENV=dev
+      labels:
+        - "traefik.enable=true"
 
 volumes:
   pgdata:

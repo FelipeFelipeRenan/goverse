@@ -158,6 +158,14 @@ http:
       service: chat-service
       entryPoints: [web]
       middlewares: [auth]
+
+    # === Documentação (Swagger) ===
+    swagger-docs:
+      rule: "PathPrefix(`/swagger`) || Path(`/`)" # Pega /swagger E a raiz
+      service: documentation-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
     # === Dashboards ===
     traefik-dashboard:
       rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
@@ -185,3 +193,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://chat-service:8084"
+
+    documentation-service:
+      loadBalancer:
+        servers:
+          - url: "http://documentation-service:8090"
