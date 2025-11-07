@@ -4,21 +4,15 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/delivery"
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/internal/proxy"
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/middleware"
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/redis"
-	"github.com/joho/godotenv"
 
 	_ "github.com/FelipeFelipeRenan/goverse/api-gateway/docs"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
-// ref: https://swaggo.github.io/swaggo.io/declarative_comments_format/general_api_info.html
-// @title Goverse API GAteway
+// @title Goverse API (Unificada)
 // @version 1.0
-// @description Documentação unificada dos serviços do Goverse
+// @description Documentação unificada dos microsserviços do Goverse.
 // @termsOfService http://swagger.io/terms/
 
 // @contact.name Felipe Renan
@@ -27,7 +21,7 @@ import (
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host localhost:8088
+// @host localhost
 // @BasePath /
 
 // @securityDefinitions.apikey ApiKeyAuth
@@ -35,48 +29,24 @@ import (
 // @name Authorization
 func main() {
 
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
-
 	logger.Init()
-	redis.Init()
 
 	mux := http.NewServeMux()
 
-	// Callback do OAuth
-	mux.Handle("/oauth/google/callback", middleware.LoggingMiddleware(proxy.NewReverseProxy("http://auth-service:8081")))
-
-	// Swagger
+	// 1. A única rota que este serviço terá: servir a UI do Swagger
+	//    Isso usa os arquivos em /api-gateway/docs/
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// Roteamento geral
-	var mainHandler http.Handler = http.HandlerFunc(delivery.RouteRequest)
+	// 2. Um redirect amigável da raiz "/" para a documentação
+	mux.Handle("/", http.RedirectHandler("/swagger/index.html", http.StatusMovedPermanently))
 
-	// Ordem correta dos middlewares (globais):
-	// 1. Recover
-	// 2. Auth (libera rotas públicas)
-	// 3. Cache
-	// 4. Logging
-	// 5. CORS
-	mainHandler = middleware.RecoverMiddleware(mainHandler)
-	//mainHandler = middleware.CacheMiddleware(mainHandler)   // CACHE (primeiro na pilha)
-	mainHandler = middleware.AuthMiddleware(mainHandler)    // AUTENTICAÇÃO (depois do Cache na pilha)
-	mainHandler = middleware.LoggingMiddleware(mainHandler) // LOG
-	mainHandler = middleware.CorsMiddleware(mainHandler)    // CORS
-
-	mux.Handle("/", mainHandler)
-
-	port := os.Getenv("GATEWAY_PORT")
+	port := os.Getenv("DOCS_PORT")
 	if port == "" {
-		port = "8080"
+		port = "8090" // Uma porta interna padrão
 	}
 
-	logger.Info.Info("API Gateway rodando", "port", port)
+	logger.Info.Info("Serviço de Documentação (Swagger) rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		logger.Error.Error("Erro ao iniciar o API Gateway", "err", err)
+		logger.Error.Error("Erro ao iniciar o serviço de documentação", "err", err)
 	}
 }
