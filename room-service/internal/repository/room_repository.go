@@ -105,7 +105,7 @@ func (r *roomRepository) ListAll(ctx context.Context, dbtx DBTX, limit, offset i
 
 func (r *roomRepository) ListPublic(ctx context.Context, dbtx DBTX, limit, offset int) ([]*domain.Room, error) {
 	query := `
-		SELECT id, name, description, owner_id, is_public, member_count, max_members, created_at, updated_at, deleted_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
 		FROM rooms WHERE is_public = true AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2
 	`
 	rows, err := dbtx.Query(ctx, query, limit, offset)
