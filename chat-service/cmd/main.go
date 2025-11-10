@@ -8,9 +8,11 @@ import (
 	"syscall"
 	"time"
 
+	httpHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/httpa"
+	wsHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/websocket"
+
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/websocket"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/repository"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/database"
@@ -27,8 +29,6 @@ func main() {
 	}
 	defer dbPool.Close()
 
-	// 2. Execução da Migração com Lógica de Retry
-
 	roomClient := client.NewRoomClient()
 
 	redisClient := redis.Init()
@@ -39,9 +39,13 @@ func main() {
 	hub := hub.NewHub(messageSvc, redisClient)
 	go hub.Run()
 
-	wsHandler := websocket.NewWebSocketHandler(hub, roomClient)
+	websocketHandler := wsHandler.NewWebSocketHandler(hub, roomClient)
+	restHandler := httpHandler.NewMessageHandler(messageSvc, roomClient)
 
-	http.HandleFunc("/ws", wsHandler.ServeWs)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /ws", websocketHandler.ServeWs) // WebSocket
+	mux.HandleFunc("GET /rooms/{roomId}/messages", restHandler.GetMessagesByRoom)
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 
 	port := os.Getenv("CHAT_SERVICE_PORT")
 	if port == "" {
@@ -50,6 +54,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:         ":" + port,
+		Handler:      mux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

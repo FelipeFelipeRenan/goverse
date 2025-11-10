@@ -158,6 +158,13 @@ http:
       service: chat-service
       entryPoints: [web]
       middlewares: [auth]
+    
+    chat-history-router:
+      rule: "PathPrefix(`/rooms/`) && PathSuffix(`/messages`) && Method(`GET`)"
+      service: chat-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+      priority: 100
 
     # === Documentação (Swagger) ===
     swagger-docs:
