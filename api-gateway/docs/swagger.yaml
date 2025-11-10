@@ -1,40 +1,49 @@
 basePath: /
 definitions:
-  swagger.AddMemberRequest:
+  doc_generators.AddMemberRequest:
     properties:
       role:
         example: member
         type: string
       user_id:
-        example: 3
-        type: integer
+        example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12
+        type: string
     required:
     - user_id
     type: object
-  swagger.CreateRoomRequest:
+  doc_generators.CreateRoomRequest:
     properties:
       description:
-        example: Sala para estudo de algoritmos
+        example: Sala para jogar.
         type: string
+      is_public:
+        example: true
+        type: boolean
+      max_members:
+        example: 50
+        type: integer
       name:
-        example: Sala de Estudos
+        example: Minha Sala de Jogos
         type: string
     required:
     - name
     type: object
-  swagger.CreateUserRequest:
+  doc_generators.CreateUserRequest:
     properties:
       email:
+        example: novo@email.com
         type: string
       password:
+        example: senha123
         type: string
       username:
+        example: novo_usuario
         type: string
     type: object
-  swagger.LoginRequest:
+  doc_generators.LoginRequest:
     properties:
       email:
-        example: joao@email.com
+        example: admin@goverse.com
         type: string
       password:
         example: senha123
@@ -43,132 +52,182 @@ definitions:
         example: password
         type: string
     type: object
-  swagger.LoginResponse:
+  doc_generators.LoginResponse:
     properties:
-      token:
+      csrf_token:
+        example: a1b2c3d4-...
         type: string
+      user:
+        $ref: '#/definitions/doc_generators.UserResponse'
     type: object
-  swagger.MemberResponse:
+  doc_generators.MemberWithUser:
     properties:
-      id:
-        example: 5
-        type: integer
       joined_at:
-        example: "2025-06-05T20:00:00Z"
         type: string
       role:
-        example: admin
+        example: owner
         type: string
       room_id:
-        example: 1
-        type: integer
-      user_id:
-        example: 2
-        type: integer
-      username:
-        example: joaogate
+        example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11
         type: string
+      user:
+        $ref: '#/definitions/doc_generators.UserResponse'
     type: object
-  swagger.RoomResponse:
+  doc_generators.RoomResponse:
     properties:
       created_at:
-        example: "2025-06-06T18:30:00Z"
         type: string
       description:
-        example: Sala para estudo de algoritmos
+        example: Sala pública para todos.
         type: string
       id:
+        example: c0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11
+        type: string
+      is_public:
+        example: true
+        type: boolean
+      max_members:
+        example: 100
+        type: integer
+      member_count:
         example: 1
+        type: integer
+      name:
+        example: Sala Geral
+        type: string
+      owner_id:
+        example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+        type: string
+      updated_at:
+        type: string
+    type: object
+  doc_generators.UpdateRoleRequest:
+    properties:
+      new_role:
+        example: admin
+        type: string
+    required:
+    - new_role
+    type: object
+  doc_generators.UpdateRoomRequest:
+    properties:
+      description:
+        example: Novo foco.
+        type: string
+      is_public:
+        example: false
+        type: boolean
+      max_members:
+        example: 10
         type: integer
       name:
         example: Sala de Estudos
         type: string
-      owner_id:
-        example: 1
-        type: integer
-      updated_at:
-        example: "2025-06-06T19:00:00Z"
-        type: string
     type: object
-  swagger.UpdateRoleRequest:
-    properties:
-      role:
-        example: admin
-        type: string
-    required:
-    - role
-    type: object
-  swagger.UpdateRoomRequest:
-    properties:
-      description:
-        example: Descrição atualizada
-        type: string
-      name:
-        example: Sala Atualizada
-        type: string
-    type: object
-  swagger.UpdateUserRequest:
+  doc_generators.UpdateUserRequest:
     properties:
       picture:
+        example: http://.../img.png
         type: string
       username:
+        example: Novo Nome
         type: string
     type: object
-  swagger.UserResponse:
+  doc_generators.UserResponse:
     properties:
+      created_at:
+        type: string
       email:
-        example: joao@email.com
+        example: admin@goverse.com
         type: string
       id:
-        example: 1
-        type: integer
+        example: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+        type: string
+      is_oauth:
+        type: boolean
       picture:
         type: string
       username:
-        example: joaogate
+        example: Admin Goverse
         type: string
     type: object
-host: localhost:8088
+host: localhost
 info:
   contact:
     email: feliperenanqwerty@gmail.com
     name: Felipe Renan
-  description: Documentação unificada dos serviços do Goverse
+  description: Documentação unificada dos microsserviços do Goverse.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Goverse API GAteway
+  title: Goverse API (Unificada)
   version: "1.0"
 paths:
   /auth/login:
     post:
       consumes:
       - application/json
-      description: Realiza login com email e senha
+      description: Realiza login com email e senha. Salva os cookies 'access_token'
+        (HttpOnly) e 'csrf_token' (JS-readable) no navegador.
       parameters:
       - description: Credenciais de login
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/swagger.LoginRequest'
+          $ref: '#/definitions/doc_generators.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Retorna o usuário e o token CSRF
+          schema:
+            $ref: '#/definitions/doc_generators.LoginResponse'
+        "401":
+          description: Credenciais inválidas
+          schema:
+            type: string
+      summary: Login (Obter Cookies)
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      description: Limpa os cookies 'access_token' and 'csrf_token' do navegador.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout bem-sucedido
+          schema:
+            type: string
+      security:
+      - CookieAuth, CsrfAuth: []
+      summary: Logout (Limpar Cookies)
+      tags:
+      - Auth
+  /auth/me:
+    get:
+      description: Retorna os dados do usuário associado ao cookie 'access_token'.
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/swagger.LoginResponse'
+            $ref: '#/definitions/doc_generators.UserResponse'
         "401":
-          description: Credenciais inválidas
+          description: Não autorizado
           schema:
             type: string
-      summary: Login
+      security:
+      - CookieAuth: []
+      summary: Obter dados do usuário logado
       tags:
       - Auth
   /rooms:
     get:
+      description: Retorna uma lista de salas. Por padrão, apenas salas públicas.
       produces:
       - application/json
       responses:
@@ -176,57 +235,48 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/swagger.RoomResponse'
+              $ref: '#/definitions/doc_generators.RoomResponse'
             type: array
-      security:
-      - ApiKeyAuth: []
-      summary: Listar salas
+      summary: Listar salas (Público)
       tags:
       - Room
     post:
       consumes:
       - application/json
+      description: Cria uma nova sala. O usuário logado será o 'owner'.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Dados da nova sala
         in: body
         name: room
         required: true
         schema:
-          $ref: '#/definitions/swagger.CreateRoomRequest'
+          $ref: '#/definitions/doc_generators.CreateRoomRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/swagger.RoomResponse'
+            $ref: '#/definitions/doc_generators.RoomResponse'
         "400":
           description: Dados inválidos
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Criar nova sala
       tags:
       - Room
   /rooms/{id}:
     delete:
+      description: Exclui uma sala. Requer ser o 'owner' da sala.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       responses:
         "204":
           description: Sala excluída
@@ -237,182 +287,173 @@ paths:
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Excluir sala
       tags:
       - Room
     get:
+      description: Retorna detalhes de uma sala específica. Requer autenticação.
       parameters:
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/swagger.RoomResponse'
+            $ref: '#/definitions/doc_generators.RoomResponse'
         "404":
           description: Sala não encontrada
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth: []
       summary: Buscar sala por ID
       tags:
       - Room
     patch:
       consumes:
       - application/json
+      description: Atualiza os dados de uma sala. Requer ser 'owner' ou 'admin' da
+        sala.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: id
         required: true
-        type: integer
+        type: string
       - description: Dados atualizados da sala
         in: body
         name: room
         required: true
         schema:
-          $ref: '#/definitions/swagger.UpdateRoomRequest'
+          $ref: '#/definitions/doc_generators.UpdateRoomRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/swagger.RoomResponse'
+            $ref: '#/definitions/doc_generators.RoomResponse'
         "400":
           description: Dados inválidos
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Atualizar sala
       tags:
       - Room
   /rooms/{roomID}/join:
     post:
+      description: Entra em uma sala pública.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: roomID
         required: true
-        type: integer
+        type: string
       responses:
         "200":
-          description: OK
+          description: Entrada bem-sucedida
           schema:
-            $ref: '#/definitions/swagger.MemberResponse'
+            type: string
         "403":
-          description: Acesso negado
+          description: 'Acesso negado (ex: sala privada)'
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Entrar em uma sala
       tags:
       - Member
   /rooms/{roomID}/members:
     get:
+      description: Retorna a lista de usuários em uma sala específica.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: roomID
         required: true
-        type: integer
+        type: string
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: '#/definitions/swagger.MemberResponse'
+              $ref: '#/definitions/doc_generators.MemberWithUser'
             type: array
       security:
-      - ApiKeyAuth: []
+      - CookieAuth: []
       summary: Listar membros da sala
       tags:
       - Member
     post:
       consumes:
       - application/json
+      description: Adiciona um usuário a uma sala. Requer ser 'owner' ou 'admin' da
+        sala.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: roomID
         required: true
-        type: integer
+        type: string
       - description: Dados do membro
         in: body
         name: member
         required: true
         schema:
-          $ref: '#/definitions/swagger.AddMemberRequest'
+          $ref: '#/definitions/doc_generators.AddMemberRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/swagger.MemberResponse'
+            $ref: '#/definitions/doc_generators.MemberWithUser'
         "400":
           description: Dados inválidos
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Adicionar membro à sala
       tags:
       - Member
   /rooms/{roomID}/members/{memberID}:
     delete:
+      description: Remove um usuário da sala. Requer ser 'owner'/'admin', ou o próprio
+        usuário.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: roomID
         required: true
-        type: integer
-      - description: ID do membro
+        type: string
+      - description: ID do usuário (UUID)
+        format: uuid
         in: path
         name: memberID
         required: true
-        type: integer
+        type: string
       responses:
         "204":
           description: Removido com sucesso
           schema:
             type: string
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Remover membro da sala
       tags:
       - Member
@@ -420,48 +461,39 @@ paths:
     put:
       consumes:
       - application/json
+      description: Atualiza o 'role' de um membro na sala. Requer ser 'owner' ou 'admin'.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID da sala
+      - description: ID da sala (UUID)
+        format: uuid
         in: path
         name: roomID
         required: true
-        type: integer
-      - description: ID do membro
+        type: string
+      - description: ID do usuário (UUID)
+        format: uuid
         in: path
         name: memberID
         required: true
-        type: integer
+        type: string
       - description: Novo papel
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/swagger.UpdateRoleRequest'
+          $ref: '#/definitions/doc_generators.UpdateRoleRequest'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/swagger.MemberResponse'
+            $ref: '#/definitions/doc_generators.MemberWithUser'
       security:
-      - ApiKeyAuth: []
+      - CookieAuth, CsrfAuth: []
       summary: Atualizar papel do membro
       tags:
       - Member
   /rooms/mine:
     get:
-      description: Retorna todas as salas onde o usuário autenticado é o proprietário
-        (owner_id)
-      parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
+      description: Retorna todas as salas onde o usuário logado é o proprietário.
       produces:
       - application/json
       responses:
@@ -469,83 +501,46 @@ paths:
           description: Lista de salas
           schema:
             items:
-              $ref: '#/definitions/swagger.RoomResponse'
+              $ref: '#/definitions/doc_generators.RoomResponse'
             type: array
         "401":
           description: Não autorizado
           schema:
             type: string
-        "500":
-          description: Erro interno no servidor
-          schema:
-            type: string
       security:
-      - ApiKeyAuth: []
-      summary: Listar salas criadas pelo usuário autenticado
+      - CookieAuth: []
+      summary: Listar minhas salas (criadas por mim)
       tags:
       - Room
   /user:
     post:
       consumes:
       - application/json
+      description: Rota pública para registrar um novo usuário no sistema.
       parameters:
       - description: Dados do novo usuário
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/swagger.CreateUserRequest'
+          $ref: '#/definitions/doc_generators.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/swagger.UserResponse'
+            $ref: '#/definitions/doc_generators.UserResponse'
         "400":
           description: Dados inválidos
           schema:
             type: string
-      summary: Criar novo usuário
-      tags:
-      - User
-  /user/{id}:
-    get:
-      parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: ID do usuário
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/swagger.UserResponse'
-        "401":
-          description: Não autorizado
-          schema:
-            type: string
-      security:
-      - ApiKeyAuth: []
-      summary: Obter usuário por ID
+      summary: Criar novo usuário (Público)
       tags:
       - User
   /user/me:
     delete:
-      parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
+      description: Realiza um 'soft delete' no usuário autenticado.
       responses:
         "204":
           description: Usuário deletado com sucesso
@@ -556,32 +551,28 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
-      summary: Remove (soft delete) o usuário autenticado
+      - CookieAuth, CsrfAuth: []
+      summary: Deletar o usuário logado
       tags:
-      - Usuário
+      - User
     put:
       consumes:
       - application/json
+      description: Atualiza o 'username' ou 'picture' do usuário autenticado.
       parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: Dados do usuário
+      - description: Dados do usuário para atualizar
         in: body
         name: input
         required: true
         schema:
-          $ref: '#/definitions/swagger.UpdateUserRequest'
+          $ref: '#/definitions/doc_generators.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/swagger.UserResponse'
+            $ref: '#/definitions/doc_generators.UserResponse'
         "400":
           description: Requisição inválida
           schema:
@@ -591,19 +582,13 @@ paths:
           schema:
             type: string
       security:
-      - BearerAuth: []
-      summary: Atualiza os dados do usuário autenticado
+      - CookieAuth, CsrfAuth: []
+      summary: Atualizar o usuário logado
       tags:
-      - Usuário
+      - User
   /user/rooms:
     get:
-      description: Retorna todas as salas das quais o usuário participa
-      parameters:
-      - description: Token de autenticação (Bearer token)
-        in: header
-        name: Authorization
-        required: true
-        type: string
+      description: Retorna todas as salas das quais o usuário logado é membro.
       produces:
       - application/json
       responses:
@@ -611,23 +596,20 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/swagger.RoomResponse'
+              $ref: '#/definitions/doc_generators.RoomResponse'
             type: array
         "401":
           description: Não autorizado
           schema:
             type: string
-        "500":
-          description: Erro interno
-          schema:
-            type: string
       security:
-      - ApiKeyAuth: []
-      summary: Listar salas na qual um usuário é membro
+      - CookieAuth: []
+      summary: Listar salas que eu participo
       tags:
       - Room
   /users:
     get:
+      description: Rota pública que retorna uma lista de todos os usuários.
       produces:
       - application/json
       responses:
@@ -635,16 +617,20 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/swagger.UserResponse'
+              $ref: '#/definitions/doc_generators.UserResponse'
             type: array
-      security:
-      - ApiKeyAuth: []
-      summary: Listar todos os usuários
+      summary: Listar todos os usuários (Público)
       tags:
       - User
 securityDefinitions:
-  ApiKeyAuth:
+  CookieAuth:
+    description: Cookie de autenticação HttpOnly (obtido via /auth/login)
+    in: cookie
+    name: access_token
+    type: apiKey
+  CsrfAuth:
+    description: Token CSRF (obtido via /auth/login, necessário para POST/PUT/PATCH/DELETE)
     in: header
-    name: Authorization
+    name: X-CSRF-TOKEN
     type: apiKey
 swagger: "2.0"

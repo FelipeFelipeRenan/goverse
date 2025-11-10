@@ -7,6 +7,8 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
 
 	_ "github.com/FelipeFelipeRenan/goverse/api-gateway/docs"
+
+	_ "github.com/FelipeFelipeRenan/goverse/api-gateway/doc_generators"
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -24,20 +26,27 @@ import (
 // @host localhost
 // @BasePath /
 
-// @securityDefinitions.apikey ApiKeyAuth
+// --- DEFINIÇÕES DE SEGURANÇA CORRIGIDAS (Formato Multi-Linha) ---
+
+// @securityDefinitions.apikey CookieAuth
+// @in cookie
+// @name access_token
+// @description Cookie de autenticação HttpOnly (obtido via /auth/login)
+
+// @securityDefinitions.apikey CsrfAuth
 // @in header
-// @name Authorization
+// @name X-CSRF-TOKEN
+// @description Token CSRF (obtido via /auth/login, necessário para POST/PUT/PATCH/DELETE)
 func main() {
 
 	logger.Init()
 
 	mux := http.NewServeMux()
 
-	// 1. A única rota que este serviço terá: servir a UI do Swagger
-	//    Isso usa os arquivos em /api-gateway/docs/
+	// A única rota que este serviço terá: servir a UI do Swagger
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// 2. Um redirect amigável da raiz "/" para a documentação
+	// redirect amigável da raiz "/" para a documentação
 	mux.Handle("/", http.RedirectHandler("/swagger/index.html", http.StatusMovedPermanently))
 
 	port := os.Getenv("DOCS_PORT")
