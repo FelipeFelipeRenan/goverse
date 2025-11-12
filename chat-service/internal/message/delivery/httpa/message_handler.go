@@ -26,7 +26,7 @@ func (h *MessageHandler) GetMessagesByRoom(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 
 	userID := r.Header.Get("X-User-ID")
-	if userID != "" {
+	if userID == "" {
 		http.Error(w, "Não autorizado: X-User-ID não encontrado", http.StatusUnauthorized)
 		return
 	}
