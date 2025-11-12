@@ -112,7 +112,6 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
-
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", t.Header["alg"])
 		}
@@ -120,8 +119,10 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, err // O token é inválido (ex: assinatura errada)
 	}
+
+	// Agora, verifique se o token é válido E se as claims são do tipo correto
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
 			return nil, errors.New("token expirado")

@@ -160,11 +160,13 @@ http:
       middlewares: [auth]
     
     chat-history-router:
-      rule: "PathPrefix(`/rooms/`) && PathSuffix(`/messages`) && Method(`GET`)"
+      # Use Path com um placeholder regex:
+      # {roomId:[a-f0-9-]+} captura qualquer UUID na URL.
+      rule: "Path(`/rooms/{roomId:[a-f0-9-]+}/messages`) && Method(`GET`)"
       service: chat-service
       entryPoints: [web]
       middlewares: [cors, logging, auth, strict-headers]
-      priority: 100
+      
 
     # === Documentação (Swagger) ===
     swagger-docs:

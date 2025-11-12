@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -30,7 +31,7 @@ func ValidateToken(tokenString string) (*Claims, error) {
 		return nil, fmt.Errorf("não foi possível fazer o parse da chave pública: %w", err)
 	}
 
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (any, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", err)
 		}
@@ -41,23 +42,12 @@ func ValidateToken(tokenString string) (*Claims, error) {
 		return nil, err
 	}
 
-	if rawClaims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		claims := &Claims{}
-
-		if id, ok := rawClaims["user_id"].(string); ok {
-			claims.UserID = id
-		} else {
-			return nil, errors.New("claims 'user_id' ausente ou com tipo inválido")
-		}
-
-		if name, ok := rawClaims["user_name"].(string); ok {
-			claims.UserName = name
-		}
-
-		return claims, nil
-	}
-
+	// Agora só precisamos deste check
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		// (Opcional) Adicionar verificação de expiração
+		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
+			return nil, errors.New("token expirado")
+		}
 		return claims, nil
 	}
 	return nil, errors.New("token inválido")
