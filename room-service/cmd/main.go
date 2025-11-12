@@ -15,6 +15,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/database"
+	grpc_server "github.com/FelipeFelipeRenan/goverse/room-service/pkg/grpc"
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -52,6 +53,9 @@ func main() {
 	roomHandler := handler.NewRoomHandler(roomService, userClient)
 	memberHandler := handler.NewMemberHandler(memberService)
 	routes.RegisterRoutes(roomHandler, memberHandler)
+
+	grpcHandler := handler.NewGRPCHandler(memberService)
+	go grpc_server.StartGRPCServer(grpcHandler)
 
 	port := os.Getenv("ROOM_SERVICE_PORT")
 	if port == "" {

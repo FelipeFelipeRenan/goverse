@@ -28,8 +28,6 @@ func RegisterRoutes(roomHandler *handler.RoomHandler, memberHandler *handler.Mem
 	http.HandleFunc("PUT /rooms/{roomID}/members/{memberID}/role", withCommonMiddleware("room-service", memberHandler.UpdateRole))
 	http.HandleFunc("DELETE /rooms/{roomID}/members/{memberID}", withCommonMiddleware("room-service", memberHandler.RemoveMember))
 
-	// Rota interna para verificação de outros serviços
-	http.HandleFunc("GET /internal/rooms/{roomID}/members/{userID}", withCommonMiddleware("room-service-internal", memberHandler.CheckIsMember)) // /metrics
 	http.Handle("/metrics", promhttp.Handler())
 
 	// 404

@@ -94,6 +94,7 @@ services:
       - goverse_network
     expose:
       - "8080"
+      - "50052"
     environment:
       - DB_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/rooms?sslmode=disable
       - DB_HOST=postgres
@@ -140,9 +141,9 @@ services:
       - goverse_network
     expose:
       - "8084" # Porta interna do serviço
+      - "50052"
     labels:
       - "traefik.enable=true"
-  # --- FIM DO NOVO SERVIÇO ---
 
   auth-middleware:
     build:

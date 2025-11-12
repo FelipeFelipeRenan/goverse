@@ -10,6 +10,8 @@ import (
 
 	httpHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/httpa"
 	wsHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/websocket"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
@@ -29,7 +31,24 @@ func main() {
 	}
 	defer dbPool.Close()
 
-	roomClient := client.NewRoomClient()
+	roomGrpcHost := os.Getenv("ROOM_SERVICE_GRPC_HOST")
+	if roomGrpcHost == "" {
+		roomGrpcHost = "room-service"
+	}
+
+	roomGrpcPort := os.Getenv("ROOM_SERVICE_GRPC_PORT")
+	if roomGrpcPort == "" {
+		roomGrpcPort = ":50052"
+	}
+
+	conn, err := grpc.NewClient(roomGrpcHost+roomGrpcPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		logger.Error("falha ao conectar ao room-service via gRPC: ", "err", err)
+	}
+
+	defer conn.Close()
+
+	roomClient := client.NewRoomClient(conn)
 
 	redisClient := redis.Init()
 

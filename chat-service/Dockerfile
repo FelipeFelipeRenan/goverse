@@ -5,6 +5,8 @@ FROM golang:1.24-alpine AS builder
 # Define o diretório de trabalho dentro do contêiner.
 WORKDIR /app
 
+COPY proto /proto
+
 # Copia os arquivos de gerenciamento de dependências.
 COPY chat-service/go.mod chat-service/go.sum ./
 

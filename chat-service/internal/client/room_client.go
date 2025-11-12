@@ -3,10 +3,9 @@ package client
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"os"
 
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	roompb "github.com/FelipeFelipeRenan/goverse/proto/room"
+	"google.golang.org/grpc"
 )
 
 type RoomClient interface {
@@ -14,47 +13,28 @@ type RoomClient interface {
 }
 
 type roomClient struct {
-	httpClient *http.Client
-	baseURL    string
+	grpcClient roompb.RoomServiceClient
 }
 
-func NewRoomClient() RoomClient {
-	baseURL := os.Getenv("ROOM_SERVICE_URL")
-	if baseURL == "" {
-		baseURL = "http://room-service:8080"
-		logger.Warn("ROOM_SERVICE_URL não definido, usando padrão", "url", baseURL)
-	}
-
+func NewRoomClient(coon *grpc.ClientConn) RoomClient {
 	return &roomClient{
-		httpClient: &http.Client{},
-		baseURL:    baseURL,
+		grpcClient: roompb.NewRoomServiceClient(coon),
 	}
 
 }
 
 // IsUserMember implements RoomClient.
 func (c *roomClient) IsUserMember(ctx context.Context, roomID string, userID string) (bool, error) {
-	url := fmt.Sprintf("%s/internal/rooms/%s/members/%s", c.baseURL, roomID, userID)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req := &roompb.IsMemberRequest{
+		RoomId: roomID,
+		UserId: userID,
+	}
+
+	resp, err := c.grpcClient.IsMember(ctx, req)
 	if err != nil {
-		return false, fmt.Errorf("falha ao criar requisição: %w", err)
+		return false, fmt.Errorf("falha ao chamar room-service via gRPC: %w", err)
 	}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("falha ao chamar room-service: %w", err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		return true, nil
-	}
-
-	if resp.StatusCode == http.StatusForbidden {
-		return false, nil
-	}
-
-	return false, fmt.Errorf("room-service respondeu com status inesperado: %d", resp.StatusCode)
+	return resp.IsMember, nil
 }
