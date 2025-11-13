@@ -3,6 +3,7 @@ package hub
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
@@ -74,6 +75,7 @@ func (h *Hub) Run() {
 
 	// inicia o ouvinte redis em uma goroutine separada
 	go h.runRedisSubscriber()
+	ctx := context.Background()
 
 	for {
 		select {
@@ -84,6 +86,22 @@ func (h *Hub) Run() {
 			}
 			// Registra o cliente na sala.
 			h.Rooms[client.RoomID][client] = true
+
+			//  Define o status no Redis com expiração (ex: 5 minutos)
+			//    Isso garante que, se o serviço cair, o usuário ficará "offline"
+			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "online", 5*time.Minute)
+
+			// Cria uma mensagem de presença para modificar a sala
+			presenceMsg := &domain.Message{
+				Content:  "entrou na sala", // tratar com o front depois
+				RoomID:   client.RoomID,
+				UserID:   client.UserID,
+				Username: client.Username,
+				// adicionar type depois, para diferenciar o tipo de mensagem
+			}
+
+			h.Broadcast <- presenceMsg
+			logger.Info("Cliente registrado e presença 'online' definida", "userID", client.UserID)
 
 		case client := <-h.Unregister:
 			// Remove o cliente da sala.
@@ -97,6 +115,22 @@ func (h *Hub) Run() {
 					delete(h.Rooms, client.RoomID)
 				}
 			}
+
+			//    Define o status no Redis como "offline"
+			//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
+			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "offline", 24*time.Hour)
+
+			// Cria uma mensagem de presença para modificar a sala
+			presenceMsg := &domain.Message{
+				Content:  "entrou na sala", // tratar com o front depois
+				RoomID:   client.RoomID,
+				UserID:   client.UserID,
+				Username: client.Username,
+				// adicionar type depois, para diferenciar o tipo de mensagem
+			}
+
+			h.Broadcast <- presenceMsg
+			logger.Info("Cliente registrado e presença 'online' definida", "userID", client.UserID)
 
 		case message := <-h.Broadcast:
 

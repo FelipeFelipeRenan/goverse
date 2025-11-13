@@ -1,7 +1,9 @@
 package hub
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 	"github.com/gorilla/websocket"
@@ -9,12 +11,12 @@ import (
 
 // Client é a representação de um usuário conectado via WebSocket.
 type Client struct {
-	Conn   *websocket.Conn
-	Hub    *Hub
-	RoomID string
-	UserID string
+	Conn     *websocket.Conn
+	Hub      *Hub
+	RoomID   string
+	UserID   string
 	Username string
-	Send   chan []byte
+	Send     chan []byte
 }
 
 // ReadPump lê mensagens do cliente e as envia para o hub.
@@ -34,8 +36,13 @@ func (c *Client) ReadPump() {
 		}
 
 		var msg domain.Message
-		if err := domain.FromJSON(payload, &msg); err != nil{
+		if err := domain.FromJSON(payload, &msg); err != nil {
 			log.Printf("erro ao decodificar mensagem JSON: %v", err)
+			continue
+		}
+
+		if msg.Content == "PING" {
+			c.Hub.redisClient.Expire(context.Background(), "user:status:"+c.UserID, 5*time.Minute)
 			continue
 		}
 
