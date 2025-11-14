@@ -19,6 +19,8 @@ type Hub struct {
 	// Mensagens de entrada dos clientes
 	Broadcast chan *domain.Message
 
+	// Mensagens efemeras (nao serao salvas )
+	Relay chan *domain.Message
 	// Solicitação de registros de clientes
 	Register chan *Client
 
@@ -33,6 +35,7 @@ type Hub struct {
 func NewHub(svc service.MessageService, redisClient *redis.Client) *Hub {
 	return &Hub{
 		Broadcast:   make(chan *domain.Message),
+		Relay:       make(chan *domain.Message),
 		Register:    make(chan *Client),
 		Unregister:  make(chan *Client),
 		Rooms:       make(map[string]map[*Client]bool),
@@ -80,78 +83,94 @@ func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			// Se a sala não existir, crie-a.
-			if _, ok := h.Rooms[client.RoomID]; !ok {
-				h.Rooms[client.RoomID] = make(map[*Client]bool)
-			}
-			// Registra o cliente na sala.
-			h.Rooms[client.RoomID][client] = true
+			go func(c *Client) {
+				// Se a sala não existir, crie-a.
+				if _, ok := h.Rooms[c.RoomID]; !ok {
+					h.Rooms[c.RoomID] = make(map[*Client]bool)
+				}
+				// Registra o cliente na sala.
+				h.Rooms[c.RoomID][c] = true
 
-			//  Define o status no Redis com expiração (ex: 5 minutos)
-			//    Isso garante que, se o serviço cair, o usuário ficará "offline"
-			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "online", 5*time.Minute)
+				//  Define o status no Redis com expiração (ex: 5 minutos)
+				//    Isso garante que, se o serviço cair, o usuário ficará "offline"
+				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "online", 5*time.Minute)
 
-			// Cria uma mensagem de presença para modificar a sala
-			presenceMsg := &domain.Message{
-				Content:  "entrou na sala", // tratar com o front depois
-				RoomID:   client.RoomID,
-				UserID:   client.UserID,
-				Username: client.Username,
-				// adicionar type depois, para diferenciar o tipo de mensagem
-			}
+				// Cria uma mensagem de presença para modificar a sala
+				presenceMsg := &domain.Message{
+					Content:  "entrou na sala", // tratar com o front depois
+					RoomID:   c.RoomID,
+					UserID:   c.UserID,
+					Username: c.Username,
+					Type:     "PRESENCE",
+					// adicionar type depois, para diferenciar o tipo de mensagem
+				}
 
-			h.Broadcast <- presenceMsg
-			logger.Info("Cliente registrado e presença 'online' definida", "userID", client.UserID)
+				h.Broadcast <- presenceMsg
+				logger.Info("Cliente registrado e presença 'online' definida", "userID", c.UserID)
+			}(client)
 
 		case client := <-h.Unregister:
-			// Remove o cliente da sala.
-			if room, ok := h.Rooms[client.RoomID]; ok {
-				if _, ok := room[client]; ok {
-					delete(h.Rooms[client.RoomID], client)
-					close(client.Send)
+			go func(c *Client) {
+
+				// Remove o cliente da sala.
+				if room, ok := h.Rooms[c.RoomID]; ok {
+					if _, ok := room[c]; ok {
+						delete(h.Rooms[client.RoomID], c)
+						close(c.Send)
+					}
+					// Se a sala ficar vazia, opcionalmente, remova a sala do map.
+					if len(h.Rooms[c.RoomID]) == 0 {
+						delete(h.Rooms, c.RoomID)
+					}
 				}
-				// Se a sala ficar vazia, opcionalmente, remova a sala do map.
-				if len(h.Rooms[client.RoomID]) == 0 {
-					delete(h.Rooms, client.RoomID)
+
+				//    Define o status no Redis como "offline"
+				//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
+				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "offline", 24*time.Hour)
+
+				// Cria uma mensagem de presença para modificar a sala
+				presenceMsg := &domain.Message{
+					Content:  "saiu da sala", // tratar com o front depois
+					RoomID:   c.RoomID,
+					UserID:   c.UserID,
+					Username: c.Username,
+					Type:     "PRESENCE",
+					// adicionar type depois, para diferenciar o tipo de mensagem
 				}
-			}
 
-			//    Define o status no Redis como "offline"
-			//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
-			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "offline", 24*time.Hour)
+				h.Broadcast <- presenceMsg
+				logger.Info("Cliente registrado e presença 'online' definida", "userID", c.UserID)
 
-			// Cria uma mensagem de presença para modificar a sala
-			presenceMsg := &domain.Message{
-				Content:  "entrou na sala", // tratar com o front depois
-				RoomID:   client.RoomID,
-				UserID:   client.UserID,
-				Username: client.Username,
-				// adicionar type depois, para diferenciar o tipo de mensagem
-			}
-
-			h.Broadcast <- presenceMsg
-			logger.Info("Cliente registrado e presença 'online' definida", "userID", client.UserID)
-
+			}(client)
 		case message := <-h.Broadcast:
-
 			ctx := context.Background()
-
-			// usando o serviço para processar e salvar a mensagem
-			if err := h.Svc.ProcessAndSaveMessage(ctx, message); err != nil {
-				logger.Error("erro ao processar mensagem", "err", err)
-				continue
+			if message.Type == "CHAT" {
+				// 2. Agora, tentar salvar no banco
+				if err := h.Svc.ProcessAndSaveMessage(ctx, message); err != nil {
+					logger.Error("!!! ERRO AO SALVAR MENSAGEM !!!", "err", err) // Mudei o log para ficar óbvio
+					// Não damos 'continue' para que o Redis ainda funcione
+				}
 			}
-
 			payload, err := message.ToJSON()
 			if err != nil {
 				logger.Error("erro ao parsear mensagem", "err", err)
 				continue
 			}
-
-			// Publica a mensagem no Redis para que TODAS as instâncias recebam
+			// 3. Publica a mensagem no Redis
 			channelName := "chat:room:" + message.RoomID
 			if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
 				logger.Error("erro ao publicar mensagem ao Redis", "err", err)
+			}
+		case message := <-h.Relay:
+			// mensagem efemera, apenas retransmitir no redis
+			payload, err := message.ToJSON()
+			if err != nil {
+				logger.Error("erro ao parsear mensagem de relay", "err", err)
+				continue
+			}
+			channelName := "chat:room:" + message.RoomID
+			if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
+				logger.Error("erro ao publicar relay ao Redis", "err", err)
 			}
 		}
 	}

@@ -6,11 +6,12 @@ import (
 )
 
 type Message struct {
-	ID string `json:"id,omitempty"`
-	Content  string `json:"content"`
-	RoomID   string `json:"room_id"`
-	UserID   string `json:"user_id"`
-	Username string `json:"username"`
+	ID        string    `json:"id,omitempty"`
+	Type      string    `json:"type,omitempty"`
+	Content   string    `json:"content"`
+	RoomID    string    `json:"room_id"`
+	UserID    string    `json:"user_id"`
+	Username  string    `json:"username"`
 	CreatedAt time.Time `json:",omitempty"`
 }
 

@@ -2,10 +2,10 @@ package hub
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
 	"github.com/gorilla/websocket"
 )
 
@@ -30,14 +30,15 @@ func (c *Client) ReadPump() {
 		_, payload, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("erro inesperado de websocket: %v", err)
+				logger.Error("erro inesperado no websocket", "err", err)
+
 			}
 			break
 		}
 
 		var msg domain.Message
 		if err := domain.FromJSON(payload, &msg); err != nil {
-			log.Printf("erro ao decodificar mensagem JSON: %v", err)
+			logger.Error("erro ao decodificar json", "err", err)
 			continue
 		}
 
@@ -49,8 +50,16 @@ func (c *Client) ReadPump() {
 		msg.UserID = c.UserID
 		msg.Username = c.Username
 		msg.RoomID = c.RoomID
-		// Por enquanto, apenas enviamos a mensagem bruta para o hub processar.
-		c.Hub.Broadcast <- &msg
+
+		if msg.Type == "TYPING_START" || msg.Type == "TYPING_STOP" {
+			c.Hub.Relay <- &msg
+		} else {
+			if msg.Type == "" {
+				msg.Type = "CHAT"
+			}
+			// Por enquanto, apenas enviamos a mensagem bruta para o hub processar.
+			c.Hub.Broadcast <- &msg
+		}
 	}
 }
 
@@ -70,7 +79,7 @@ func (c *Client) WritePump() {
 
 		err := c.Conn.WriteMessage(websocket.TextMessage, message)
 		if err != nil {
-			log.Printf("erro ao escrever mensagem para o websocket: %v", err)
+			logger.Error("erro ao escrever mensagem ao websocket", "err", err)
 			return
 		}
 	}
