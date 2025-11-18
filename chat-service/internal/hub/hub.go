@@ -95,6 +95,11 @@ func (h *Hub) Run() {
 				//    Isso garante que, se o serviço cair, o usuário ficará "offline"
 				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "online", 5*time.Minute)
 
+				// adicionar à lista de membros ativos da sala
+				roomKey := "room:active:" + c.RoomID
+				if err := h.redisClient.SAdd(ctx, roomKey, c.UserID).Err(); err != nil {
+					logger.Error("Erro ao adicionar usuario ao set da sala do Redis", "err", err)
+				}
 				// Cria uma mensagem de presença para modificar a sala
 				presenceMsg := &domain.Message{
 					Content:  "entrou na sala", // tratar com o front depois
@@ -127,6 +132,11 @@ func (h *Hub) Run() {
 				//    Define o status no Redis como "offline"
 				//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
 				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "offline", 24*time.Hour)
+
+				roomKey := "room:active:" + c.RoomID
+				if err := h.redisClient.SRem(ctx, roomKey, c.UserID).Err(); err != nil {
+					logger.Error("Erro ao remover usuário do set da sala no Redis", "err", err)
+				}
 
 				// Cria uma mensagem de presença para modificar a sala
 				presenceMsg := &domain.Message{
