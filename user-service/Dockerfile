@@ -5,8 +5,10 @@ RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /app
 
-# Copia proto antes de rodar o go mod download (necessário por causa do replace ../proto)
+# Copia proto e common antes de rodar o go mod download (necessário por causa do replace ../proto)
 COPY proto /proto
+
+COPY common /common
 
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY user-service/go.mod user-service/go.sum ./

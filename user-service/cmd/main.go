@@ -8,9 +8,9 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/handler"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/repository"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
 )
 
 func main() {

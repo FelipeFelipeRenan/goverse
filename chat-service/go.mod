@@ -33,3 +33,5 @@ require (
 )
 
 replace github.com/FelipeFelipeRenan/goverse/proto => ../proto
+
+replace github.com/FelipeFelipeRenan/goverse/common => ../common

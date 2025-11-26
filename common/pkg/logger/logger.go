@@ -7,14 +7,13 @@ import (
 	"strings"
 )
 
-var (
-	Log *slog.Logger
-)
+var Log *slog.Logger
 
 type contextKey string
 
 var RequestIDKey = contextKey("requestID")
 
+// Init inicializa o logger com o nível e nome do serviço especificados
 func Init(level, serviceName string) {
 	var logLevel slog.Level
 
@@ -40,22 +39,36 @@ func Init(level, serviceName string) {
 }
 
 func Info(msg string, args ...any) {
-	Log.Info(msg, args...)
+	if Log != nil {
+		Log.Info(msg, args...)
+	}
 }
 
 func Error(msg string, args ...any) {
-	Log.Error(msg, args...)
+	if Log != nil {
+		Log.Error(msg, args...)
+	}
 }
 
 func Debug(msg string, args ...any) {
-	Log.Debug(msg, args...)
+	if Log != nil {
+		Log.Debug(msg, args...)
+	}
 }
 
 func Warn(msg string, args ...any) {
-	Log.Warn(msg, args...)
+	if Log != nil {
+		Log.Warn(msg, args...)
+	}
 }
 
 func WithContext(ctx context.Context) *slog.Logger {
+	if Log == nil {
+		return slog.Default()
+	}
 	requestID, _ := ctx.Value(RequestIDKey).(string)
+	if requestID == "" {
+		return Log
+	}
 	return Log.With("request_id", requestID)
 }
