@@ -7,7 +7,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 )
 
 type MessageHandler struct {

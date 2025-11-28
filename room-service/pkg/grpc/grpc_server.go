@@ -4,9 +4,9 @@ import (
 	"net"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	roompb "github.com/FelipeFelipeRenan/goverse/proto/room"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
 	"google.golang.org/grpc"
 )
 

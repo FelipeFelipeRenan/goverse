@@ -8,7 +8,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

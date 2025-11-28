@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 

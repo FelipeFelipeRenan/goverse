@@ -9,14 +9,14 @@ import (
 	"time"
 
 	//userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/delivery/routes"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/database"
 	grpc_server "github.com/FelipeFelipeRenan/goverse/room-service/pkg/grpc"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

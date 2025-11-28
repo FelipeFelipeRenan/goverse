@@ -8,6 +8,8 @@ WORKDIR /app
 # Copia proto antes de rodar o go mod download (necessário por causa do replace ../proto)
 COPY proto /proto
 
+COPY common /common
+
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY room-service/go.mod room-service/go.sum ./
 

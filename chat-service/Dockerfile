@@ -7,6 +7,8 @@ WORKDIR /app
 
 COPY proto /proto
 
+COPY common /common
+
 # Copia os arquivos de gerenciamento de dependências.
 COPY chat-service/go.mod chat-service/go.sum ./
 

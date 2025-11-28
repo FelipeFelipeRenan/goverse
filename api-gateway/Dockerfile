@@ -5,6 +5,8 @@ RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /app
 
+COPY common /common
+
 # Copia os arquivos de módulo
 COPY api-gateway/go.mod api-gateway/go.sum ./
 

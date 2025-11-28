@@ -8,6 +8,8 @@ WORKDIR /app
 # Copia proto antes de rodar o go mod download (necessário por causa do replace ../proto)
 COPY proto /proto
 
+COPY common /common
+
 # Copia os arquivos de go.mod e go.sum do user-service
 COPY auth-service/go.mod auth-service/go.sum ./
 # Copia o restante do código do user-service

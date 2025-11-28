@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/FelipeFelipeRenan/goverse/api-gateway/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 
 	_ "github.com/FelipeFelipeRenan/goverse/api-gateway/docs"
 
@@ -39,7 +39,7 @@ import (
 // @description Token CSRF (obtido via /auth/login, necessário para POST/PUT/PATCH/DELETE)
 func main() {
 
-	logger.Init()
+	logger.Init("info", "documentation-service")
 
 	mux := http.NewServeMux()
 
@@ -54,8 +54,8 @@ func main() {
 		port = "8090" // Uma porta interna padrão
 	}
 
-	logger.Info.Info("Serviço de Documentação (Swagger) rodando", "port", port)
+	logger.Info("Serviço de Documentação (Swagger) rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		logger.Error.Error("Erro ao iniciar o serviço de documentação", "err", err)
+		logger.Error("Erro ao iniciar o serviço de documentação", "err", err)
 	}
 }

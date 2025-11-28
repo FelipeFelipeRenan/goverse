@@ -6,8 +6,8 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/middleware"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/metrics"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

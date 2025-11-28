@@ -6,7 +6,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/auth"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/gorilla/websocket"
 )
 

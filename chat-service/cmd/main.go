@@ -17,9 +17,9 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/repository"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/database"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/redis"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 )
 
 func main() {

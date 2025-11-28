@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 )
 
 func generateRequestID() string {

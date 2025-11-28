@@ -88,10 +88,7 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*") // Ajuste se quiser restringir
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Vary", "Origin")
+
 }
 
 func respondUnauthorized(w http.ResponseWriter, msg string) {

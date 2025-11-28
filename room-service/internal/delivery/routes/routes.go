@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
 	"github.com/FelipeFelipeRenan/goverse/room-service/middleware"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

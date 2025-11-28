@@ -7,7 +7,7 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
