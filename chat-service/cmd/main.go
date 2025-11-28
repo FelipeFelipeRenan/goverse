@@ -10,6 +10,7 @@ import (
 
 	httpHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/httpa"
 	wsHandler "github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/delivery/websocket"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/worker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/hub"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/repository"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/kafka"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/redis"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
@@ -52,10 +54,24 @@ func main() {
 
 	redisClient := redis.Init()
 
+	// Inicializa o Kafka Producer
+	kafkaProducer := kafka.NewProducer("chat_messages")
+	defer kafkaProducer.Close()
+
 	messageRepo := repository.NewMessageRepository(dbPool)
 	messageSvc := service.NewMessageService(messageRepo)
 
-	hub := hub.NewHub(messageSvc, redisClient)
+	// Inicializa e roda o Kafka Consumer (worker) em goroutine
+	kafkaConsumer := worker.NewMessageConsumer("chat_messages", messageSvc)
+	defer kafkaConsumer.Close()
+
+	// contexto cancelável para o worker parar gracioso
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	go kafkaConsumer.Start(ctx)
+
+	hub := hub.NewHub(redisClient, kafkaProducer)
 	go hub.Run()
 
 	websocketHandler := wsHandler.NewWebSocketHandler(hub, roomClient)
@@ -90,7 +106,7 @@ func main() {
 	<-stop
 
 	logger.Info("Encerrando Chat Service...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		logger.Error("Erro ao encerrar servidor HTTP", "err", err)

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
+	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/kafka"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -27,20 +27,20 @@ type Hub struct {
 	// Solicitação de cancelamento de registro de clientes
 	Unregister chan *Client
 
-	Svc service.MessageService
+	KafkaProducer *kafka.Producer
 
 	redisClient *redis.Client
 }
 
-func NewHub(svc service.MessageService, redisClient *redis.Client) *Hub {
+func NewHub(redisClient *redis.Client, kafkaProducer *kafka.Producer) *Hub {
 	return &Hub{
-		Broadcast:   make(chan *domain.Message),
-		Relay:       make(chan *domain.Message),
-		Register:    make(chan *Client),
-		Unregister:  make(chan *Client),
-		Rooms:       make(map[string]map[*Client]bool),
-		Svc:         svc,
-		redisClient: redisClient,
+		Broadcast:     make(chan *domain.Message),
+		Relay:         make(chan *domain.Message),
+		Register:      make(chan *Client),
+		Unregister:    make(chan *Client),
+		Rooms:         make(map[string]map[*Client]bool),
+		redisClient:   redisClient,
+		KafkaProducer: kafkaProducer,
 	}
 }
 
@@ -155,11 +155,13 @@ func (h *Hub) Run() {
 		case message := <-h.Broadcast:
 			ctx := context.Background()
 			if message.Type == "CHAT" {
-				// 2. Agora, tentar salvar no banco
-				if err := h.Svc.ProcessAndSaveMessage(ctx, message); err != nil {
-					logger.Error("!!! ERRO AO SALVAR MENSAGEM !!!", "err", err) // Mudei o log para ficar óbvio
-					// Não damos 'continue' para que o Redis ainda funcione
+				jsonBytes, _ := message.ToJSON()
+				// usamos o RoomID como Key para garantir ordem (mensagens da mesma sala na mesma partição)
+				err := h.KafkaProducer.WriteMessage(ctx, []byte(message.RoomID), jsonBytes)
+				if err != nil {
+					logger.Error("Erro ao enviar mensagem para o Kafka", "err", err)
 				}
+
 			}
 			payload, err := message.ToJSON()
 			if err != nil {
