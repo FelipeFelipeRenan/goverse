@@ -9,6 +9,7 @@ import (
 	"time"
 
 	//userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/config"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
@@ -16,6 +17,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
+
 	grpc_server "github.com/FelipeFelipeRenan/goverse/room-service/pkg/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,6 +26,12 @@ import (
 func main() {
 
 	logger.Init("info", "room-service")
+
+	// Fail Fast: Se não tiver essas variáveis, nem tenta subir
+	if err := config.RequireEnv("DB_HOST", "DB_USER"); err != nil {
+		logger.Error("Erro de configuração inicial", "err", err)
+		os.Exit(1)
+	}
 
 	// Conexão com banco de dados
 	dbPool, err := database.Connect()

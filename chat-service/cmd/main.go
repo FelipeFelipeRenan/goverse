@@ -20,6 +20,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/service"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/kafka"
 	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/redis"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/config"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 )
@@ -27,6 +28,13 @@ import (
 func main() {
 
 	logger.Init("INFO", "chat-service")
+
+	// Fail Fast: Se não tiver essas variáveis, nem tenta subir
+	if err := config.RequireEnv("DB_HOST", "DB_USER"); err != nil {
+		logger.Error("Erro de configuração inicial", "err", err)
+		os.Exit(1)
+	}
+
 	dbPool, err := database.Connect()
 	if err != nil {
 		logger.Error("Erro ao conectar ao banco de dados", "err", err)
@@ -62,7 +70,7 @@ func main() {
 	messageSvc := service.NewMessageService(messageRepo)
 
 	// Inicializa e roda o Kafka Consumer (worker) em goroutine
-	kafkaConsumer := worker.NewMessageConsumer("chat_messages", messageSvc)
+	kafkaConsumer := worker.NewMessageConsumer("chat_messages", "chat_messages_dlq", messageSvc)
 	defer kafkaConsumer.Close()
 
 	// contexto cancelável para o worker parar gracioso

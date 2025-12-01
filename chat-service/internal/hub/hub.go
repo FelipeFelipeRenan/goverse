@@ -13,6 +13,10 @@ import (
 
 // Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
 type Hub struct {
+
+	// Mapa global para clientes conectados
+	Clients map[string]*Client
+
 	// Mapeia um ID de sala para um map de clientes naquela sala
 	Rooms map[string]map[*Client]bool
 
@@ -39,6 +43,7 @@ func NewHub(redisClient *redis.Client, kafkaProducer *kafka.Producer) *Hub {
 		Register:      make(chan *Client),
 		Unregister:    make(chan *Client),
 		Rooms:         make(map[string]map[*Client]bool),
+		Clients:       make(map[string]*Client),
 		redisClient:   redisClient,
 		KafkaProducer: kafkaProducer,
 	}
@@ -91,6 +96,8 @@ func (h *Hub) Run() {
 				// Registra o cliente na sala.
 				h.Rooms[c.RoomID][c] = true
 
+				h.Clients[client.UserID] = client
+
 				//  Define o status no Redis com expiração (ex: 5 minutos)
 				//    Isso garante que, se o serviço cair, o usuário ficará "offline"
 				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "online", 5*time.Minute)
@@ -129,6 +136,10 @@ func (h *Hub) Run() {
 					}
 				}
 
+				if _, ok := h.Clients[client.UserID]; ok {
+					delete(h.Clients, client.UserID)
+				}
+
 				//    Define o status no Redis como "offline"
 				//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
 				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "offline", 24*time.Hour)
@@ -154,7 +165,7 @@ func (h *Hub) Run() {
 			}(client)
 		case message := <-h.Broadcast:
 			ctx := context.Background()
-			if message.Type == "CHAT" {
+			if message.Type == "CHAT" || message.Type == "DIRECT" {
 				jsonBytes, _ := message.ToJSON()
 				// usamos o RoomID como Key para garantir ordem (mensagens da mesma sala na mesma partição)
 				err := h.KafkaProducer.WriteMessage(ctx, []byte(message.RoomID), jsonBytes)
@@ -164,15 +175,33 @@ func (h *Hub) Run() {
 
 			}
 			payload, err := message.ToJSON()
+
 			if err != nil {
 				logger.Error("erro ao parsear mensagem", "err", err)
 				continue
 			}
-			// 3. Publica a mensagem no Redis
-			channelName := "chat:room:" + message.RoomID
-			if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
-				logger.Error("erro ao publicar mensagem ao Redis", "err", err)
+
+			if message.Type == "DIRECT" || message.Type == "SIGNAL" {
+				if target, ok := h.Clients[message.TargetUserID]; ok {
+					select {
+					case target.Send <- payload:
+					default:
+						close(target.Send)
+						delete(h.Clients, message.TargetUserID)
+					}
+				}
+
+				if sender, ok := h.Clients[message.UserID]; ok {
+					sender.Send <- payload
+				}
+			} else {
+				// 3. Publica a mensagem no Redis
+				channelName := "chat:room:" + message.RoomID
+				if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
+					logger.Error("erro ao publicar mensagem ao Redis", "err", err)
+				}
 			}
+
 		case message := <-h.Relay:
 			// mensagem efemera, apenas retransmitir no redis
 			payload, err := message.ToJSON()
