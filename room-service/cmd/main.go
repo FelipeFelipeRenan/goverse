@@ -9,28 +9,29 @@ import (
 	"time"
 
 	//userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/config"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/client"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/delivery/routes"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/handler"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/repository"
 	"github.com/FelipeFelipeRenan/goverse/room-service/internal/service"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/database"
-	"github.com/FelipeFelipeRenan/goverse/room-service/pkg/logger"
-	"github.com/joho/godotenv"
+
+	grpc_server "github.com/FelipeFelipeRenan/goverse/room-service/pkg/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
 
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
-
 	logger.Init("info", "room-service")
+
+	// Fail Fast: Se não tiver essas variáveis, nem tenta subir
+	if err := config.RequireEnv("DB_HOST", "DB_USER"); err != nil {
+		logger.Error("Erro de configuração inicial", "err", err)
+		os.Exit(1)
+	}
 
 	// Conexão com banco de dados
 	dbPool, err := database.Connect()
@@ -39,11 +40,6 @@ func main() {
 		return
 	}
 	defer dbPool.Close()
-
-	if err := database.RunMigration(dbPool); err != nil {
-		logger.Error("Erro ao rodar migrações", "err", err)
-		return
-	}
 
 	grpc_host := os.Getenv("GRPC_SERVER_HOST")
 	grpc_port := os.Getenv("GRPC_SERVER_PORT")
@@ -65,6 +61,9 @@ func main() {
 	roomHandler := handler.NewRoomHandler(roomService, userClient)
 	memberHandler := handler.NewMemberHandler(memberService)
 	routes.RegisterRoutes(roomHandler, memberHandler)
+
+	grpcHandler := handler.NewGRPCHandler(memberService)
+	go grpc_server.StartGRPCServer(grpcHandler)
 
 	port := os.Getenv("ROOM_SERVICE_PORT")
 	if port == "" {

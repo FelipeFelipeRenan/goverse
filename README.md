@@ -36,7 +36,7 @@ goverse/
 ├── user-service/
 ├── room-service/
 ├── auth-middleware/
-├── chat-service/     # Em breve
+├── chat-service/ 
 ├── traefik/
 ├── monitoring/
 └── k8s/
@@ -60,9 +60,12 @@ O projeto contém dois ambientes:
 
 Ambiente de Produção-Like (Recomendado): Usa o Traefik como gateway, forçando toda a comunicação pela borda.
 
+
 ```bash
 docker-compose -f docker-compose-traefik.yml up --build
 ```
+Ambiente de Desenvolvimento Rápido: Expõe as portas de todos os serviços diretamente, útil para debug.
+
 Ambiente de Desenvolvimento Rápido: Expõe as portas de todos os serviços diretamente, útil para debug.
 
 ```bash
@@ -105,8 +108,8 @@ Criar um usuário:
 curl -X POST http://localhost/user \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "usuario",
-    "email": "usuario@email.com",
+    "username": "novo_usuario",
+    "email": "novo@email.com",
     "password": "senha123"
   }'
 ```
@@ -120,17 +123,20 @@ curl http://localhost/users
 Fazer Login (para obter um token):
 
 ```bash
-curl -X POST http://localhost/auth/login \
+export CSRF_TOKEN=$(curl -s -X POST http://localhost/auth/login \
   -H "Content-Type: application/json" \
-  -d '{
-    "type": "password",
-    "email": "usuario@email.com",
-    "password": "senha123"
-  }'
+  -d '{"type": "password", "email": "admin@goverse.com", "password": "senha123"}' \
+  --cookie-jar cookies.txt | jq -r '.csrf_token')
 ```
 
 Rotas Protegidas
 Após obter um token JWT com a rota de login, você pode usá-lo para acessar as rotas protegidas no cabeçalho Authorization.
+
+Retornar os dados de um usuário logado
+
+```
+curl http://localhost/auth/me --cookie cookies.txt
+```
 
 Retornar um usuário pelo seu ID:
 
@@ -143,14 +149,21 @@ Criar uma sala:
 
 ```bash
 curl -X POST http://localhost/rooms \
+  --cookie cookies.txt \
+  -H "X-CSRF-TOKEN: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{
-    "name": "Minha Sala de Estudos",
-    "description": "Sala para focar em Go e arquitetura.",
+    "name": "Sala do Admin",
+    "description": "Sala criada via cURL",
     "is_public": true,
     "max_members": 20
   }'
+```
+
+Listar salas do usuário logado
+
+```bash
+curl http://localhost/rooms/mine --cookie cookies.txt
 ```
 
 Listar todas as salas (com filtros):
@@ -163,13 +176,12 @@ curl "http://localhost/rooms?limit=10&offset=0&public_only=true&keyword=Estudos"
 Atualizar informações de uma sala (requer ser dono ou admin):
 
 ```bash
-curl -X PATCH http://localhost/rooms/<id_da_sala> \
-
+curl -X PATCH http://localhost/rooms/<id-da-sala> \
+  --cookie cookies.txt \
+  -H "X-CSRF-TOKEN: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{
-    "name": "Novo Nome da Sala",
-    "description": "Nova descrição"
+    "name": "Novo Nome da Sala Geral"
   }'
 ```
 
@@ -190,11 +202,12 @@ curl http://localhost/rooms/<id_da_sala>/members \
 Adicionar um membro a uma sala (requer ser dono ou admin):
 
 ```bash
-curl -X POST http://localhost/rooms/<id_da_sala>/members \
+curl -X POST http://localhost/rooms/<id-da-sala>/members \
+  --cookie cookies.txt \
+  -H "X-CSRF-TOKEN: $CSRF_TOKEN" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{
-    "user_id": "<id_do_usuario_a_ser_adicionado>",
+    "user_id": "<id-do-usuario-adicionado>",
     "role": "member"
   }'
 ```
@@ -213,6 +226,14 @@ curl -X PUT http://localhost/rooms/<id_da_sala>/members/<id_do_membro>/role \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <SEU_TOKEN_JWT>" \
   -d '{ "new_role": "admin" }'
+```
+
+### Chat Service
+
+Para se conectar a sala, basta rodar o comando:
+```bash
+wscat -c "ws://localhost/ws?roomId=sala-final" \
+-H "Cookie: access_token=$(grep 'access_token' cookies.txt | cut -f7)"
 ```
 
 ## ☸️ Utilizando Kubernetes (k8s)

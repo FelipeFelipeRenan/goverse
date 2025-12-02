@@ -4,35 +4,30 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/config"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/database"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/delivery/rest/routes"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/handler"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/repository"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/database"
 	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/grpc"
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
+	logger.Init("info", "user-service")
 
-	logger.Init("info", "room-service")
+	// Fail Fast: Se não tiver essas variáveis, nem tenta subir
+	if err := config.RequireEnv("DB_HOST", "DB_USER", "GRPC_PORT"); err != nil {
+		logger.Error("Erro de configuração inicial", "err", err)
+		os.Exit(1)
+	}
 
 	conn, err := database.Connect()
 	if err != nil {
 		logger.Error("Erro ao conectar com banco de dados", "err", err)
 	}
-
-	defer conn.Close(nil)
-
-	database.RunMigration(conn)
 
 	repo := repository.NewUserRepository(conn)
 	userService := service.NewUserService(repo)

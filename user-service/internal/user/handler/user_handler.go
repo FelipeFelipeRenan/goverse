@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,14 +34,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(body, &user); err != nil {
 		sendError(w, http.StatusBadRequest, fmt.Sprintf("formato de requisição inválido: %v", err))
 		return
-	}
-	// Se a senha estiver vazia, gera uma senha aleatória para evitar erro no serviço
-	if user.Password == "" {
-		user.Password, err = generateRandomPassword(16)
-		if err != nil {
-			sendError(w, http.StatusInternalServerError, fmt.Sprintf("erro ao gerar senha automática: %v", err))
-			return
-		}
 	}
 
 	id, err := h.Service.Register(r.Context(), user)
@@ -143,18 +134,4 @@ func sendResponse(w http.ResponseWriter, statusCode int, data interface{}) {
 	if data != nil {
 		json.NewEncoder(w).Encode(data)
 	}
-}
-
-// Essa função é uma gambiarra
-func generateRandomPassword(length int) (string, error) {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	bytes := make([]byte, length)
-	_, err := rand.Read(bytes)
-	if err != nil {
-		return "", err
-	}
-	for i := range bytes {
-		bytes[i] = letters[bytes[i]%byte(len(letters))]
-	}
-	return string(bytes), nil
 }

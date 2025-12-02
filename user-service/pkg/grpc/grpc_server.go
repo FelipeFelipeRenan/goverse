@@ -7,7 +7,7 @@ import (
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/handler"
 	"github.com/FelipeFelipeRenan/goverse/user-service/internal/user/service"
-	"github.com/FelipeFelipeRenan/goverse/user-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 )

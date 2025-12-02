@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package room;
+
+option go_package = "proto/room;roompb";
+
+// O serviço gRPC para o room-service
+service RoomService{
+
+    // Verifica se um usuario é membro de uma sala
+    rpc IsMember(IsMemberRequest) returns (IsMemberResponse);
+
+    // busca as salas de um usuario
+    rpc GetUserRooms(UserIDRequest) returns (UserRoomsResponse);
+}
+
+message IsMemberRequest{
+    string room_id = 1;
+    string user_id = 2;
+}
+
+message IsMemberResponse {
+    bool is_member = 1;
+}
+
+message UserIDRequest{
+    string user_id = 1;
+}
+
+message Room {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    bool is_public = 4;
+    int32 member_count = 5;
+}
+
+message UserRoomsResponse{
+    repeated Room rooms = 1;
+}

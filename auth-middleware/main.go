@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -20,6 +19,8 @@ type CustomClaims struct {
 
 func main() {
 	http.HandleFunc("/auth/validate", validateHandler)
+
+	http.HandleFunc("/health", healthCheck)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -39,14 +40,22 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token := extractTokenFromHeader(r)
-	if token == "" {
-		respondUnauthorized(w, "Token não fornecido")
+	cookie, err := r.Cookie("access_token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			respondUnauthorized(w, "Cookie de atuenticação não encontrado")
+			return
+		}
+		respondUnauthorized(w, "Requisição inválida")
 		return
 	}
 
-	claims, err := validateToken(token)
+	tokenString := cookie.Value
+
+	claims, err := validateToken(tokenString)
 	if err != nil {
+		log.Printf("ERRO DE VALIDAÇÃO DO TOKEN: %v", err)
+
 		respondUnauthorized(w, "Token inválido: "+err.Error())
 		return
 	}
@@ -55,33 +64,36 @@ func validateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" || r.Method == "DELETE" {
+		csrfCookie, err := r.Cookie("csrf_token")
+		if err != nil {
+			respondUnauthorized(w, "Cookie CSRF não encontrado")
+			return
+		}
+
+		csrfHeader := r.Header.Get("X-CSRF-TOKEN")
+		if csrfHeader == "" {
+			respondUnauthorized(w, "Cabeçalho CSRF não encontrado")
+			return
+		}
+
+		// A validação crucial: o valor do cookie deve ser igual ao do cabeçalho
+		if csrfCookie.Value != csrfHeader {
+			respondUnauthorized(w, "Token CSRF inválido")
+			return
+		}
+	}
 	w.Header().Set("X-User-ID", claims.UserID)
 	w.WriteHeader(http.StatusOK)
 }
 
 func addCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*") // Ajuste se quiser restringir
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-User-ID")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-	w.Header().Set("Vary", "Origin")
+
 }
 
 func respondUnauthorized(w http.ResponseWriter, msg string) {
 	addCORSHeaders(w)
 	http.Error(w, msg, http.StatusUnauthorized)
-}
-
-func extractTokenFromHeader(r *http.Request) string {
-	auth := r.Header.Get("Authorization")
-	if auth == "" {
-		return ""
-	}
-
-	parts := strings.SplitN(auth, " ", 2)
-	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-		return ""
-	}
-	return parts[1]
 }
 
 func validateToken(tokenString string) (*CustomClaims, error) {
@@ -97,7 +109,6 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 	}
 
 	token, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(t *jwt.Token) (interface{}, error) {
-
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("algoritmo de assinatura inesperado: %v", t.Header["alg"])
 		}
@@ -105,8 +116,10 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, err // O token é inválido (ex: assinatura errada)
 	}
+
+	// Agora, verifique se o token é válido E se as claims são do tipo correto
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
 			return nil, errors.New("token expirado")
@@ -114,4 +127,9 @@ func validateToken(tokenString string) (*CustomClaims, error) {
 		return claims, nil
 	}
 	return nil, errors.New("token inválido")
+}
+
+func healthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

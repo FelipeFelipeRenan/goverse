@@ -25,3 +25,7 @@ go.work.sum
 .env
 k8s/base/secrets/*
 .keys   
+
+cookies.txt
+cookie_admin.txt
+cookie_user.txt

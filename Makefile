@@ -1,8 +1,26 @@
 NAMESPACE=goverse
 
+# =========== DOCKER ===========
+
+docker-bp:
+	@echo "🚀 Realizando build e push para o Docker Registry"
+	@echo "🛠️ Realizando build e push do User Service"
+		docker build -t felipedev21/user-service:latest -f user-service/Dockerfile .
+		docker push felipedev21/user-service:latest
+	@echo "🛠️ Realizando build e push do Auth Service"
+		docker build -t felipedev21/auth-service:latest -f auth-service/Dockerfile .
+		docker push felipedev21/auth-service:latest
+	@echo "🛠️ Realizando build e push do Room Service"
+		docker build -t felipedev21/room-service:latest -f room-service/Dockerfile .
+		docker push felipedev21/room-service:latest
+	@echo "🛠️ Realizando build e push do Auth Middleware"
+		docker build -t felipedev21/auth-middleware:latest ./auth-middleware
+		docker push felipedev21/auth-middleware:latest
+
 # ========== TRAEFIK ==========
 
 # Lista todos os deployments no namespace e faz rollout restart em cada um
+
 restart-all:
 	@echo "Reiniciando todos os deployments no namespace $(NAMESPACE)..."
 	@for deploy in $$(kubectl get deployments -n $(NAMESPACE) -o jsonpath='{.items[*].metadata.name}'); do \
@@ -27,9 +45,8 @@ traefik-port:
 
 # ========== SERVIÇOS ==========
 auth-apply:
-	kubectl apply -f k8s/base/deployments/auth-service-deployment.yml -n $(NAMESPACE)
-	kubectl apply -f k8s/base/services/auth-service.yml -n $(NAMESPACE)
-	kubectl apply -f k8s/base/configmaps/auth-service-configmap.yml -n $(NAMESPACE)
+	@echo "🛠️ Aplicando configurações do cluster no namespace $(NAMESPACE)"
+	kubectl apply -n $(NAMESPACE) -f k8s/ --recursive
 
 user-apply:
 	kubectl apply -f k8s/base/deployments/user-service-deployment.yml -n $(NAMESPACE)
@@ -63,6 +80,7 @@ describe-traefik:
 
 help:
 	@echo "🧪 Goverse Kubernetes Makefile:"
+	@echo "  make docker-bp               # Build e push dos serviços para Docker Registry"
 	@echo "  make k8s-apply           	# Aplica tudo: traefik + serviços"
 	@echo "  make traefik-apply       	# Aplica apenas configs/deploy de traefik"
 	@echo "  make traefik-restart     	# Reinicia o traefik"

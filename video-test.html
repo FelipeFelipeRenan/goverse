@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Goverse WebRTC Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .box { border: 1px solid #ccc; padding: 15px; border-radius: 8px; }
+        .videos { display: flex; gap: 10px; margin-top: 20px; }
+        video { width: 45%; background: black; border-radius: 8px; }
+        button { cursor: pointer; padding: 8px 16px; }
+        .log { background: #f0f0f0; padding: 10px; height: 150px; overflow-y: scroll; font-family: monospace; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🎥 Goverse WebRTC Test</h1>
+
+    <div class="box">
+        <h3>1. Login & Conexão</h3>
+        <select id="userSelect">
+            <option value="admin">Admin (admin@goverse.com)</option>
+            <option value="user">Usuário Comum (usuario@goverse.com)</option>
+        </select>
+        <button onclick="loginAndConnect()">Logar e Conectar WS</button>
+        <span id="status">Desconectado</span>
+    </div>
+
+    <div class="box">
+        <h3>2. Controles de Vídeo</h3>
+        <button onclick="startCamera()">📷 Ligar Câmera</button>
+        
+        <div style="margin-top: 10px;">
+            <label>ID do Destinatário:</label>
+            <input type="text" id="targetId" placeholder="Cole o ID do outro usuário aqui" style="width: 300px;">
+            <button onclick="callUser()">📞 Ligar</button>
+        </div>
+    </div>
+
+    <div class="videos">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+    </div>
+
+    <div class="log" id="logs"></div>
+
+    <script>
+        // Configuração Fixa (Baseada nas suas Seeds)
+        const ROOM_ID = 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11'; // Sala Geral
+        const USERS = {
+            admin: { email: 'admin@goverse.com', pass: 'senha123', id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' },
+            user: { email: 'usuario@goverse.com', pass: 'senha123', id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12' }
+        };
+
+        // Configuração WebRTC (Apontando para nosso Coturn local)
+        const rtcConfig = {
+            iceServers: [
+                { urls: 'stun:localhost:3478' },
+                { urls: 'turn:localhost:3478', username: 'user', credential: 'password' }
+            ]
+        };
+
+        let ws;
+        let localStream;
+        let peerConnection;
+        let myUserId;
+
+        function log(msg) {
+            const el = document.getElementById('logs');
+            el.innerHTML += `<div>${new Date().toLocaleTimeString()} - ${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+            console.log(msg);
+        }
+
+        async function loginAndConnect() {
+            const userKey = document.getElementById('userSelect').value;
+            const creds = USERS[userKey];
+            myUserId = creds.id;
+
+            log(`Tentando logar como ${userKey}...`);
+
+            // 1. Login REST para pegar Cookie
+            try {
+                await fetch('http://localhost/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'password', email: creds.email, password: creds.pass })
+                });
+                log("Login OK! Conectando WebSocket...");
+                
+                // 2. Conectar WebSocket
+                ws = new WebSocket(`ws://localhost/ws?roomId=${ROOM_ID}`);
+                
+                ws.onopen = () => {
+                    document.getElementById('status').innerText = `Conectado como ${userKey}`;
+                    document.getElementById('status').style.color = 'green';
+                    log("WebSocket Conectado!");
+                };
+
+                ws.onmessage = async (event) => {
+                    const msg = JSON.parse(event.data);
+                    handleMessage(msg);
+                };
+
+            } catch (e) {
+                log("Erro no login: " + e);
+            }
+        }
+
+        async function startCamera() {
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                document.getElementById('localVideo').srcObject = localStream;
+                log("Câmera iniciada.");
+            } catch (e) {
+                log("Erro na câmera: " + e);
+            }
+        }
+
+        // --- Lógica WebRTC ---
+
+        async function createPeerConnection(targetId) {
+            peerConnection = new RTCPeerConnection(rtcConfig);
+
+            // Adiciona tracks locais
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            // Quando receber vídeo remoto
+            peerConnection.ontrack = event => {
+                log("Stream remoto recebido!");
+                document.getElementById('remoteVideo').srcObject = event.streams[0];
+            };
+
+            // Quando gerar candidatos ICE (endereços de rede)
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    sendSignal('candidate', event.candidate, targetId);
+                }
+            };
+        }
+
+        async function callUser() {
+            const targetId = document.getElementById('targetId').value;
+            if (!targetId) return alert('Coloque o ID do destino!');
+            
+            log(`Iniciando chamada para ${targetId}...`);
+            await createPeerConnection(targetId);
+
+            const offer = await peerConnection.createOffer();
+            await peerConnection.setLocalDescription(offer);
+
+            sendSignal('offer', offer, targetId);
+        }
+
+        async function handleMessage(msg) {
+            // Ignora mensagens que não sejam de Sinalização Direta
+            if (msg.type !== 'SIGNAL') return;
+
+            const content = JSON.parse(msg.content);
+            const senderId = msg.user_id;
+
+            log(`Recebido sinal ${content.type} de ${msg.username}`);
+
+            if (!peerConnection) {
+                // Se não tenho conexão e recebi oferta, sou o "Caler" passivo
+                await createPeerConnection(senderId);
+            }
+
+            if (content.type === 'offer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(content.payload));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                sendSignal('answer', answer, senderId);
+            } 
+            else if (content.type === 'answer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(content.payload));
+            } 
+            else if (content.type === 'candidate') {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(content.payload));
+            }
+        }
+
+        function sendSignal(type, payload, targetId) {
+            const msg = {
+                type: 'SIGNAL', // Backend usa isso para rotear
+                target_user_id: targetId,
+                room_id: ROOM_ID, // Necessário para o backend, embora seja DM
+                content: JSON.stringify({ type, payload }) // Payload WebRTC vai dentro do content
+            };
+            ws.send(JSON.stringify(msg));
+        }
+    </script>
+</body>
+</html>

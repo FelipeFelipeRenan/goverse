@@ -25,7 +25,7 @@ const docTemplate = `{
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Realiza login com email e senha",
+                "description": "Realiza login com email e senha. Salva os cookies 'access_token' (HttpOnly) e 'csrf_token' (JS-readable) no navegador.",
                 "consumes": [
                     "application/json"
                 ],
@@ -35,7 +35,7 @@ const docTemplate = `{
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Login",
+                "summary": "Login (Obter Cookies)",
                 "parameters": [
                     {
                         "description": "Credenciais de login",
@@ -43,15 +43,15 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.LoginRequest"
+                            "$ref": "#/definitions/doc_generators.LoginRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Retorna o usuário e o token CSRF",
                         "schema": {
-                            "$ref": "#/definitions/swagger.LoginResponse"
+                            "$ref": "#/definitions/doc_generators.LoginResponse"
                         }
                     },
                     "401": {
@@ -63,27 +63,79 @@ const docTemplate = `{
                 }
             }
         },
-        "/rooms": {
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "CookieAuth, CsrfAuth": []
+                    }
+                ],
+                "description": "Limpa os cookies 'access_token' and 'csrf_token' do navegador.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout (Limpar Cookies)",
+                "responses": {
+                    "200": {
+                        "description": "Logout bem-sucedido",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/me": {
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth": []
                     }
                 ],
+                "description": "Retorna os dados do usuário associado ao cookie 'access_token'.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Obter dados do usuário logado",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/doc_generators.UserResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/rooms": {
+            "get": {
+                "description": "Retorna uma lista de salas. Por padrão, apenas salas públicas.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Room"
                 ],
-                "summary": "Listar salas",
+                "summary": "Listar salas (Público)",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/swagger.RoomResponse"
+                                "$ref": "#/definitions/doc_generators.RoomResponse"
                             }
                         }
                     }
@@ -92,9 +144,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Cria uma nova sala. O usuário logado será o 'owner'.",
                 "consumes": [
                     "application/json"
                 ],
@@ -107,19 +160,12 @@ const docTemplate = `{
                 "summary": "Criar nova sala",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
                         "description": "Dados da nova sala",
                         "name": "room",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.CreateRoomRequest"
+                            "$ref": "#/definitions/doc_generators.CreateRoomRequest"
                         }
                     }
                 ],
@@ -127,7 +173,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/swagger.RoomResponse"
+                            "$ref": "#/definitions/doc_generators.RoomResponse"
                         }
                     },
                     "400": {
@@ -143,44 +189,29 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth": []
                     }
                 ],
-                "description": "Retorna todas as salas onde o usuário autenticado é o proprietário (owner_id)",
+                "description": "Retorna todas as salas onde o usuário logado é o proprietário.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Room"
                 ],
-                "summary": "Listar salas criadas pelo usuário autenticado",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Listar minhas salas (criadas por mim)",
                 "responses": {
                     "200": {
                         "description": "Lista de salas",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/swagger.RoomResponse"
+                                "$ref": "#/definitions/doc_generators.RoomResponse"
                             }
                         }
                     },
                     "401": {
                         "description": "Não autorizado",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Erro interno no servidor",
                         "schema": {
                             "type": "string"
                         }
@@ -192,9 +223,10 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth": []
                     }
                 ],
+                "description": "Retorna detalhes de uma sala específica. Requer autenticação.",
                 "produces": [
                     "application/json"
                 ],
@@ -204,8 +236,9 @@ const docTemplate = `{
                 "summary": "Buscar sala por ID",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -215,7 +248,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/swagger.RoomResponse"
+                            "$ref": "#/definitions/doc_generators.RoomResponse"
                         }
                     },
                     "404": {
@@ -229,9 +262,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Exclui uma sala. Requer ser o 'owner' da sala.",
                 "tags": [
                     "Room"
                 ],
@@ -239,14 +273,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -270,9 +298,10 @@ const docTemplate = `{
             "patch": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Atualiza os dados de uma sala. Requer ser 'owner' ou 'admin' da sala.",
                 "consumes": [
                     "application/json"
                 ],
@@ -286,14 +315,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -304,7 +327,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.UpdateRoomRequest"
+                            "$ref": "#/definitions/doc_generators.UpdateRoomRequest"
                         }
                     }
                 ],
@@ -312,7 +335,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/swagger.RoomResponse"
+                            "$ref": "#/definitions/doc_generators.RoomResponse"
                         }
                     },
                     "400": {
@@ -328,9 +351,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Entra em uma sala pública.",
                 "tags": [
                     "Member"
                 ],
@@ -338,14 +362,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "roomID",
                         "in": "path",
                         "required": true
@@ -353,13 +371,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Entrada bem-sucedida",
                         "schema": {
-                            "$ref": "#/definitions/swagger.MemberResponse"
+                            "type": "string"
                         }
                     },
                     "403": {
-                        "description": "Acesso negado",
+                        "description": "Acesso negado (ex: sala privada)",
                         "schema": {
                             "type": "string"
                         }
@@ -371,9 +389,10 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth": []
                     }
                 ],
+                "description": "Retorna a lista de usuários em uma sala específica.",
                 "tags": [
                     "Member"
                 ],
@@ -381,14 +400,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "roomID",
                         "in": "path",
                         "required": true
@@ -400,7 +413,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/swagger.MemberResponse"
+                                "$ref": "#/definitions/doc_generators.MemberWithUser"
                             }
                         }
                     }
@@ -409,9 +422,10 @@ const docTemplate = `{
             "post": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Adiciona um usuário a uma sala. Requer ser 'owner' ou 'admin' da sala.",
                 "consumes": [
                     "application/json"
                 ],
@@ -425,14 +439,8 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "roomID",
                         "in": "path",
                         "required": true
@@ -443,7 +451,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.AddMemberRequest"
+                            "$ref": "#/definitions/doc_generators.AddMemberRequest"
                         }
                     }
                 ],
@@ -451,7 +459,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/swagger.MemberResponse"
+                            "$ref": "#/definitions/doc_generators.MemberWithUser"
                         }
                     },
                     "400": {
@@ -467,9 +475,10 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Remove um usuário da sala. Requer ser 'owner'/'admin', ou o próprio usuário.",
                 "tags": [
                     "Member"
                 ],
@@ -477,21 +486,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "roomID",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "integer",
-                        "description": "ID do membro",
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID do usuário (UUID)",
                         "name": "memberID",
                         "in": "path",
                         "required": true
@@ -511,9 +515,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Atualiza o 'role' de um membro na sala. Requer ser 'owner' ou 'admin'.",
                 "consumes": [
                     "application/json"
                 ],
@@ -524,21 +529,16 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID da sala",
+                        "format": "uuid",
+                        "description": "ID da sala (UUID)",
                         "name": "roomID",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "type": "integer",
-                        "description": "ID do membro",
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID do usuário (UUID)",
                         "name": "memberID",
                         "in": "path",
                         "required": true
@@ -549,7 +549,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.UpdateRoleRequest"
+                            "$ref": "#/definitions/doc_generators.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -557,7 +557,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/swagger.MemberResponse"
+                            "$ref": "#/definitions/doc_generators.MemberWithUser"
                         }
                     }
                 }
@@ -565,6 +565,7 @@ const docTemplate = `{
         },
         "/user": {
             "post": {
+                "description": "Rota pública para registrar um novo usuário no sistema.",
                 "consumes": [
                     "application/json"
                 ],
@@ -574,7 +575,7 @@ const docTemplate = `{
                 "tags": [
                     "User"
                 ],
-                "summary": "Criar novo usuário",
+                "summary": "Criar novo usuário (Público)",
                 "parameters": [
                     {
                         "description": "Dados do novo usuário",
@@ -582,7 +583,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.CreateUserRequest"
+                            "$ref": "#/definitions/doc_generators.CreateUserRequest"
                         }
                     }
                 ],
@@ -590,7 +591,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/swagger.UserResponse"
+                            "$ref": "#/definitions/doc_generators.UserResponse"
                         }
                     },
                     "400": {
@@ -606,9 +607,10 @@ const docTemplate = `{
             "put": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Atualiza o 'username' ou 'picture' do usuário autenticado.",
                 "consumes": [
                     "application/json"
                 ],
@@ -616,24 +618,17 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Usuário"
+                    "User"
                 ],
-                "summary": "Atualiza os dados do usuário autenticado",
+                "summary": "Atualizar o usuário logado",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "Dados do usuário",
+                        "description": "Dados do usuário para atualizar",
                         "name": "input",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/swagger.UpdateUserRequest"
+                            "$ref": "#/definitions/doc_generators.UpdateUserRequest"
                         }
                     }
                 ],
@@ -641,7 +636,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/swagger.UserResponse"
+                            "$ref": "#/definitions/doc_generators.UserResponse"
                         }
                     },
                     "400": {
@@ -661,22 +656,14 @@ const docTemplate = `{
             "delete": {
                 "security": [
                     {
-                        "BearerAuth": []
+                        "CookieAuth, CsrfAuth": []
                     }
                 ],
+                "description": "Realiza um 'soft delete' no usuário autenticado.",
                 "tags": [
-                    "Usuário"
+                    "User"
                 ],
-                "summary": "Remove (soft delete) o usuário autenticado",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Deletar o usuário logado",
                 "responses": {
                     "204": {
                         "description": "Usuário deletado com sucesso",
@@ -697,86 +684,25 @@ const docTemplate = `{
             "get": {
                 "security": [
                     {
-                        "ApiKeyAuth": []
+                        "CookieAuth": []
                     }
                 ],
-                "description": "Retorna todas as salas das quais o usuário participa",
+                "description": "Retorna todas as salas das quais o usuário logado é membro.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Room"
                 ],
-                "summary": "Listar salas na qual um usuário é membro",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
+                "summary": "Listar salas que eu participo",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/swagger.RoomResponse"
+                                "$ref": "#/definitions/doc_generators.RoomResponse"
                             }
-                        }
-                    },
-                    "401": {
-                        "description": "Não autorizado",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "500": {
-                        "description": "Erro interno",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/{id}": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "User"
-                ],
-                "summary": "Obter usuário por ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Token de autenticação (Bearer token)",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID do usuário",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/swagger.UserResponse"
                         }
                     },
                     "401": {
@@ -790,25 +716,21 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
+                "description": "Rota pública que retorna uma lista de todos os usuários.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "User"
                 ],
-                "summary": "Listar todos os usuários",
+                "summary": "Listar todos os usuários (Público)",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/swagger.UserResponse"
+                                "$ref": "#/definitions/doc_generators.UserResponse"
                             }
                         }
                     }
@@ -817,7 +739,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "swagger.AddMemberRequest": {
+        "doc_generators.AddMemberRequest": {
             "type": "object",
             "required": [
                 "user_id"
@@ -828,12 +750,12 @@ const docTemplate = `{
                     "example": "member"
                 },
                 "user_id": {
-                    "type": "integer",
-                    "example": 3
+                    "type": "string",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12"
                 }
             }
         },
-        "swagger.CreateRoomRequest": {
+        "doc_generators.CreateRoomRequest": {
             "type": "object",
             "required": [
                 "name"
@@ -841,34 +763,45 @@ const docTemplate = `{
             "properties": {
                 "description": {
                     "type": "string",
-                    "example": "Sala para estudo de algoritmos"
+                    "example": "Sala para jogar."
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_members": {
+                    "type": "integer",
+                    "example": 50
                 },
                 "name": {
                     "type": "string",
-                    "example": "Sala de Estudos"
+                    "example": "Minha Sala de Jogos"
                 }
             }
         },
-        "swagger.CreateUserRequest": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
-        "swagger.LoginRequest": {
+        "doc_generators.CreateUserRequest": {
             "type": "object",
             "properties": {
                 "email": {
                     "type": "string",
-                    "example": "joao@email.com"
+                    "example": "novo@email.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "senha123"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "novo_usuario"
+                }
+            }
+        },
+        "doc_generators.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "admin@goverse.com"
                 },
                 "password": {
                     "type": "string",
@@ -880,133 +813,160 @@ const docTemplate = `{
                 }
             }
         },
-        "swagger.LoginResponse": {
+        "doc_generators.LoginResponse": {
             "type": "object",
             "properties": {
-                "token": {
+                "csrf_token": {
+                    "type": "string",
+                    "example": "a1b2c3d4-..."
+                },
+                "user": {
+                    "$ref": "#/definitions/doc_generators.UserResponse"
+                }
+            }
+        },
+        "doc_generators.MemberWithUser": {
+            "type": "object",
+            "properties": {
+                "joined_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "owner"
+                },
+                "room_id": {
+                    "type": "string",
+                    "example": "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11"
+                },
+                "user": {
+                    "$ref": "#/definitions/doc_generators.UserResponse"
+                }
+            }
+        },
+        "doc_generators.RoomResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Sala pública para todos."
+                },
+                "id": {
+                    "type": "string",
+                    "example": "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380b11"
+                },
+                "is_public": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_members": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "member_count": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Sala Geral"
+                },
+                "owner_id": {
+                    "type": "string",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "swagger.MemberResponse": {
+        "doc_generators.UpdateRoleRequest": {
             "type": "object",
+            "required": [
+                "new_role"
+            ],
             "properties": {
-                "id": {
-                    "type": "integer",
-                    "example": 5
-                },
-                "joined_at": {
-                    "type": "string",
-                    "example": "2025-06-05T20:00:00Z"
-                },
-                "role": {
+                "new_role": {
                     "type": "string",
                     "example": "admin"
-                },
-                "room_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "user_id": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "username": {
-                    "type": "string",
-                    "example": "joaogate"
                 }
             }
         },
-        "swagger.RoomResponse": {
+        "doc_generators.UpdateRoomRequest": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2025-06-06T18:30:00Z"
-                },
                 "description": {
                     "type": "string",
-                    "example": "Sala para estudo de algoritmos"
+                    "example": "Novo foco."
                 },
-                "id": {
+                "is_public": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "max_members": {
                     "type": "integer",
-                    "example": 1
+                    "example": 10
                 },
                 "name": {
                     "type": "string",
                     "example": "Sala de Estudos"
-                },
-                "owner_id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2025-06-06T19:00:00Z"
                 }
             }
         },
-        "swagger.UpdateRoleRequest": {
-            "type": "object",
-            "required": [
-                "role"
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "example": "admin"
-                }
-            }
-        },
-        "swagger.UpdateRoomRequest": {
-            "type": "object",
-            "properties": {
-                "description": {
-                    "type": "string",
-                    "example": "Descrição atualizada"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Sala Atualizada"
-                }
-            }
-        },
-        "swagger.UpdateUserRequest": {
+        "doc_generators.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "picture": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "http://.../img.png"
                 },
                 "username": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Novo Nome"
                 }
             }
         },
-        "swagger.UserResponse": {
+        "doc_generators.UserResponse": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string",
-                    "example": "joao@email.com"
+                    "example": "admin@goverse.com"
                 },
                 "id": {
-                    "type": "integer",
-                    "example": 1
+                    "type": "string",
+                    "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+                },
+                "is_oauth": {
+                    "type": "boolean"
                 },
                 "picture": {
                     "type": "string"
                 },
                 "username": {
                     "type": "string",
-                    "example": "joaogate"
+                    "example": "Admin Goverse"
                 }
             }
         }
     },
     "securityDefinitions": {
-        "ApiKeyAuth": {
+        "CookieAuth": {
+            "description": "Cookie de autenticação HttpOnly (obtido via /auth/login)",
             "type": "apiKey",
-            "name": "Authorization",
+            "name": "access_token",
+            "in": "cookie"
+        },
+        "CsrfAuth": {
+            "description": "Token CSRF (obtido via /auth/login, necessário para POST/PUT/PATCH/DELETE)",
+            "type": "apiKey",
+            "name": "X-CSRF-TOKEN",
             "in": "header"
         }
     }
@@ -1015,11 +975,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8088",
+	Host:             "localhost",
 	BasePath:         "/",
 	Schemes:          []string{},
-	Title:            "Goverse API GAteway",
-	Description:      "Documentação unificada dos serviços do Goverse",
+	Title:            "Goverse API (Unificada)",
+	Description:      "Documentação unificada dos microsserviços do Goverse.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

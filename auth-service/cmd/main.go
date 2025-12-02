@@ -8,21 +8,13 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/service"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	userpb "github.com/FelipeFelipeRenan/goverse/proto/user"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-
-	if os.Getenv("ENV") != "prod" {
-		erro := godotenv.Load()
-		if erro != nil {
-			logger.Error("Erro ao carregar .env", "err", erro)
-		}
-	}
 
 	logger.Init("info", "auth-service")
 
@@ -49,7 +41,7 @@ func main() {
 		"oauth":    service.NewOAuthAuth(authRepo),
 	}
 	// jwt_secret := os.Getenv("JWT_SECRET")
-	authService := service.NewAuthService(authMethods, privateKeyBytes)
+	authService := service.NewAuthService(authMethods, authRepo, privateKeyBytes)
 
 	authHandler := handler.NewAuthHandler(authService)
 
@@ -58,6 +50,6 @@ func main() {
 	port := os.Getenv("APP_PORT")
 	logger.Info("Service de autenticação rodando", "port", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		logger.Info("Erro ao iniciar o serviço de autenticação: ", "err", err)
+		logger.Info("Erro ao iniciar o serviço de authHandler.Meautenticação: ", "err", err)
 	}
 }

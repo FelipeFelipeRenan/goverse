@@ -1,14 +1,15 @@
 # Etapa de build
 FROM golang:1.24-alpine AS builder
 
-RUN apk add --no-cache git gcc musl-dev
+RUN apk add --no-cache git gcc musl-dev wget
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
 
 COPY . .
+
+RUN go mod tidy
 
 RUN go build -o auth-middleware
 

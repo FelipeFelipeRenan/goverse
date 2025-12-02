@@ -72,7 +72,7 @@ func (r *roomRepository) Update(ctx context.Context, dbtx DBTX, room *domain.Roo
 
 func (r *roomRepository) GetByID(ctx context.Context, dbtx DBTX, id string) (*domain.Room, error) {
 	query := `
-		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
 		FROM rooms
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -80,7 +80,7 @@ func (r *roomRepository) GetByID(ctx context.Context, dbtx DBTX, id string) (*do
 	var room domain.Room
 	err := row.Scan(
 		&room.ID, &room.Name, &room.Description, &room.IsPublic, &room.OwnerID,
-		&room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt,
+		&room.MemberCount, &room.MaxMembers, &room.CreatedAt, &room.UpdatedAt, &room.DeletedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -93,7 +93,7 @@ func (r *roomRepository) GetByID(ctx context.Context, dbtx DBTX, id string) (*do
 
 func (r *roomRepository) ListAll(ctx context.Context, dbtx DBTX, limit, offset int) ([]*domain.Room, error) {
 	query := `
-        SELECT id, name, description, owner_id, is_public, member_count, max_members, created_at, updated_at
+        SELECT id, name, description, owner_id, is_public, member_count, max_members, created_at, updated_at, deleted_at
         FROM rooms WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2
     `
 	rows, err := dbtx.Query(ctx, query, limit, offset)
@@ -105,7 +105,7 @@ func (r *roomRepository) ListAll(ctx context.Context, dbtx DBTX, limit, offset i
 
 func (r *roomRepository) ListPublic(ctx context.Context, dbtx DBTX, limit, offset int) ([]*domain.Room, error) {
 	query := `
-		SELECT id, name, description, owner_id, is_public, member_count, max_members, created_at, updated_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
 		FROM rooms WHERE is_public = true AND deleted_at IS NULL ORDER BY created_at DESC LIMIT $1 OFFSET $2
 	`
 	rows, err := dbtx.Query(ctx, query, limit, offset)
@@ -117,7 +117,7 @@ func (r *roomRepository) ListPublic(ctx context.Context, dbtx DBTX, limit, offse
 
 func (r *roomRepository) SearchByName(ctx context.Context, dbtx DBTX, keyword string) ([]*domain.Room, error) {
 	query := `
-		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
 		FROM rooms WHERE name ILIKE '%' || $1 || '%' AND deleted_at IS NULL
 	`
 	rows, err := dbtx.Query(ctx, query, keyword)

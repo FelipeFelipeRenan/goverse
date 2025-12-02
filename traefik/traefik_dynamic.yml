@@ -14,8 +14,12 @@ http:
 
     cors:
       headers:
+        accessControlAllowCredentials: true
         accessControlAllowOriginList:
-          - "*"
+          - "http://127.0.0.1:4200"
+          - "https://goverse-frontend.vercel.app"
+          - "http://localhost:4200" # <-- Especifique a origem do seu frontend
+          - "https://goverse.localhost"
         accessControlAllowMethods:
           - GET
           - POST
@@ -26,6 +30,7 @@ http:
           - Content-Type
           - Authorization
           - X-User-ID
+          - X-CSRF-TOKEN
         addVaryHeader: true
 
     strict-headers:
@@ -45,12 +50,33 @@ http:
 
 
   routers:
+    # === CORS ===
+
+    cors-preflight:
+      rule: "Method(`OPTIONS`)"
+      service: noop@internal
+      entryPoints: [web]
+      priority: 1000
+      middlewares: [cors]
+
     # === Auth Service ===
+    auth-me:
+      rule: "Path(`/auth/me`) && Method(`GET`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers] 
+    
     auth-login:
       rule: "Path(`/auth/login`)"
       service: auth-service
       entryPoints: [web]
       middlewares: [cors, logging, strict-headers]
+
+    auth-logout:
+      rule: "Path(`/auth/logout`) && Method(`POST`)"
+      service: auth-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers] # Middlewares consistentes com o login
 
     oauth-google:
       rule: "Path(`/oauth/google/login`)"
@@ -127,6 +153,30 @@ http:
       entryPoints: [web]
       middlewares: [cors, logging, auth, strict-headers] 
 
+    # === Chat Service ===
+    chat-ws-router:
+      rule: "PathPrefix(`/ws`)"
+      service: chat-service
+      entryPoints: [web]
+      middlewares: [auth]
+    
+    chat-history-router:
+      # Use Path com um placeholder regex:
+      # {roomId:[a-f0-9-]+} captura qualquer UUID na URL.
+      rule: "Path(`/rooms/{roomId:[a-f0-9-]+}/messages`) && Method(`GET`)"
+      service: chat-service
+      entryPoints: [web]
+      middlewares: [cors, logging, auth, strict-headers]
+      
+
+    # === Documentação (Swagger) ===
+    swagger-docs:
+      rule: "PathPrefix(`/swagger`) || Path(`/`)" # Pega /swagger E a raiz
+      service: documentation-service
+      entryPoints: [web]
+      middlewares: [cors, logging, strict-headers]
+
+    # === Dashboards ===
     traefik-dashboard:
       rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
       service: api@internal
@@ -148,3 +198,13 @@ http:
       loadBalancer:
         servers:
           - url: "http://room-service:8080"
+    
+    chat-service:
+      loadBalancer:
+        servers:
+          - url: "http://chat-service:8084"
+
+    documentation-service:
+      loadBalancer:
+        servers:
+          - url: "http://documentation-service:8090"

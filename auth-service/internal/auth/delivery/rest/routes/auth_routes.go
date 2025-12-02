@@ -6,8 +6,8 @@ import (
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/handler"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/middleware"
-	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/logger"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/pkg/metrics"
+	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -16,6 +16,10 @@ func RegisterRoutes(authHandler *handler.AuthHandler) {
 	http.HandleFunc("POST /auth/login", withCommonMiddleware("auth-service", authHandler.Login))
 	http.HandleFunc("/oauth/google/login", withCommonMiddleware("auth-service", authHandler.GoogleLogin))
 	http.HandleFunc("/oauth/google/callback", withCommonMiddleware("auth-service", authHandler.GoogleCallback))
+
+	http.HandleFunc("POST /auth/logout", withCommonMiddleware("auth-service", authHandler.Logout))
+
+	http.HandleFunc("GET /auth/me", withCommonMiddleware("auth-service", authHandler.Me))
 
 	// Metrics endpoint
 	http.Handle("/metrics", promhttp.Handler())

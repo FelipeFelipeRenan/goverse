@@ -23,7 +23,8 @@ data:
         cors:
           headers:
             accessControlAllowOriginList:
-              - "*"
+              - "https://goverse-frontend.vercel.app" 
+              - "http://localhost:4200"               
             accessControlAllowMethods:
               - GET
               - POST

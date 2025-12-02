@@ -5,16 +5,16 @@ RUN apk add --no-cache git gcc musl-dev
 
 WORKDIR /app
 
-# Se precisar do proto futuramente, pode descomentar essa linha:
-# COPY proto /proto
+COPY common /common
 
-# Copia os arquivos de go.mod e go.sum do api-gateway
+# Copia os arquivos de módulo
 COPY api-gateway/go.mod api-gateway/go.sum ./
 
-RUN go mod download
-
-# Copia o restante do código do api-gateway
+# Copia todo o código-fonte (que agora é só o cmd/, docs/, pkg/)
 COPY api-gateway/. .
+
+# Roda o tidy para baixar dependências (só o swagger e o logger)
+RUN go mod tidy
 
 # Compila o binário
 RUN go build -o app ./cmd/main.go
@@ -33,4 +33,5 @@ RUN adduser -D appuser
 USER appuser
 
 ENTRYPOINT ["/app/app"]
-EXPOSE 8080
+
+EXPOSE 8090

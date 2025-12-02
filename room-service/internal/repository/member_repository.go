@@ -9,7 +9,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-//go:generate mockery --name RoomMemberRepository --output ./mocks --outpkg mocks --filename mock_member_room_repository.go
 type RoomMemberRepository interface {
 	AddMember(ctx context.Context, dbtx DBTX, member *domain.RoomMember) error
 	RemoveMember(ctx context.Context, dbtx DBTX, roomID, userID string) error
@@ -27,11 +26,46 @@ func NewRoomMemberRepository() RoomMemberRepository {
 	return &roomMemberRepository{}
 }
 
-func (r *roomMemberRepository) AddMember(ctx context.Context, dbtx DBTX, member *domain.RoomMember) error {
+func (r *roomMemberRepository) GetRoomsByUserID(ctx context.Context, dbtx DBTX, userID string) ([]*domain.Room, error) {
+	// ---> INÍCIO DA CORREÇÃO
 	query := `
-		INSERT INTO room_members (room_id, user_id, role, joined_at)
-		VALUES ($1, $2, $3, $4)
+		SELECT r.id, r.name, r.description, r.is_public, r.owner_id, r.member_count, r.max_members, r.created_at, r.updated_at, r.deleted_at
+		FROM rooms r
+		INNER JOIN room_members rm ON rm.room_id = r.id
+		WHERE rm.user_id = $1 AND r.deleted_at IS NULL
 	`
+	// ---> FIM DA CORREÇÃO
+	rows, err := dbtx.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// pgx.CollectRows agora funcionará porque a ordem bate com a struct
+	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByPos[domain.Room])
+}
+
+func (r *roomMemberRepository) GetRoomsByOwnerID(ctx context.Context, dbtx DBTX, userID string) ([]*domain.Room, error) {
+	// ---> INÍCIO DA CORREÇÃO
+	query := `
+		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
+		FROM rooms
+		WHERE owner_id = $1 AND deleted_at IS NULL
+	`
+	// ---> FIM DA CORREÇÃO
+	rows, err := dbtx.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// pgx.CollectRows agora funcionará porque a ordem bate com a struct
+	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByPos[domain.Room])
+}
+
+// O resto das funções do arquivo continua o mesmo...
+func (r *roomMemberRepository) AddMember(ctx context.Context, dbtx DBTX, member *domain.RoomMember) error {
+	query := `INSERT INTO room_members (room_id, user_id, role, joined_at) VALUES ($1, $2, $3, $4)`
 	if member.JoinedAt.IsZero() {
 		member.JoinedAt = time.Now()
 	}
@@ -98,40 +132,9 @@ func (r *roomMemberRepository) UpdateMemberRole(ctx context.Context, dbtx DBTX, 
 	return nil
 }
 
-func (r *roomMemberRepository) GetRoomsByUserID(ctx context.Context, dbtx DBTX, userID string) ([]*domain.Room, error) {
-	query := `
-		SELECT r.id, r.owner_id, r.name, r.description, r.member_count, r.max_members, r.is_public, r.created_at, r.updated_at
-		FROM rooms r
-		INNER JOIN room_members rm ON rm.room_id = r.id
-		WHERE rm.user_id = $1 AND r.deleted_at IS NULL
-	`
-	rows, err := dbtx.Query(ctx, query, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByPos[domain.Room])
-}
-
 func (r *roomMemberRepository) IsMember(ctx context.Context, dbtx DBTX, roomID string, userID string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2)`
 	var exists bool
 	err := dbtx.QueryRow(ctx, query, roomID, userID).Scan(&exists)
 	return exists, err
-}
-
-func (r *roomMemberRepository) GetRoomsByOwnerID(ctx context.Context, dbtx DBTX, userID string) ([]*domain.Room, error) {
-	query := `
-		SELECT id, owner_id, name, description, member_count, max_members, is_public, created_at, updated_at
-		FROM rooms
-		WHERE owner_id = $1 AND deleted_at IS NULL
-	`
-	rows, err := dbtx.Query(ctx, query, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return pgx.CollectRows(rows, pgx.RowToAddrOfStructByPos[domain.Room])
 }
