@@ -62,8 +62,8 @@ Ambiente de Produção-Like (Recomendado): Usa o Traefik como gateway, forçando
 
 ```bash
 docker-compose -f docker-compose-traefik.yml up --build
-Ambiente de Desenvolvimento Rápido: Expõe as portas de todos os serviços diretamente, útil para debug.
 ```
+Ambiente de Desenvolvimento Rápido: Expõe as portas de todos os serviços diretamente, útil para debug.
 
 ```bash
 docker-compose up --build
