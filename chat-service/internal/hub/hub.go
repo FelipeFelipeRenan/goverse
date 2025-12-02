@@ -2,46 +2,39 @@ package hub
 
 import (
 	"context"
-	"strings"
+	"encoding/json"
 	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/chat-service/internal/message/domain"
-	"github.com/FelipeFelipeRenan/goverse/chat-service/pkg/kafka"
+	pkgkafka "github.com/FelipeFelipeRenan/goverse/chat-service/pkg/kafka"
 	"github.com/FelipeFelipeRenan/goverse/common/pkg/logger"
 	"github.com/redis/go-redis/v9"
 )
 
-// Hub mantém o conjunto de clientes ativos e transmite mensagens para eles.
 type Hub struct {
-
-	// Mapa global para clientes conectados
+	Rooms   map[string]map[*Client]bool
 	Clients map[string]*Client
 
-	// Mapeia um ID de sala para um map de clientes naquela sala
-	Rooms map[string]map[*Client]bool
-
-	// Mensagens de entrada dos clientes
-	Broadcast chan *domain.Message
-
-	// Mensagens efemeras (nao serao salvas )
-	Relay chan *domain.Message
-	// Solicitação de registros de clientes
-	Register chan *Client
-
-	// Solicitação de cancelamento de registro de clientes
+	Broadcast  chan *domain.Message
+	Relay      chan *domain.Message
+	Register   chan *Client
 	Unregister chan *Client
 
-	KafkaProducer *kafka.Producer
+	// [NOVO] Canal para receber mensagens vindas do Redis de forma segura
+	redisIngress chan *domain.Message
 
-	redisClient *redis.Client
+	KafkaProducer *pkgkafka.Producer
+	redisClient   *redis.Client
 }
 
-func NewHub(redisClient *redis.Client, kafkaProducer *kafka.Producer) *Hub {
+func NewHub(redisClient *redis.Client, kafkaProducer *pkgkafka.Producer) *Hub {
 	return &Hub{
-		Broadcast:     make(chan *domain.Message),
-		Relay:         make(chan *domain.Message),
-		Register:      make(chan *Client),
-		Unregister:    make(chan *Client),
+		Broadcast:  make(chan *domain.Message),
+		Relay:      make(chan *domain.Message),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
+		// Canal sem buffer ou com buffer pequeno é ok aqui
+		redisIngress:  make(chan *domain.Message, 256),
 		Rooms:         make(map[string]map[*Client]bool),
 		Clients:       make(map[string]*Client),
 		redisClient:   redisClient,
@@ -51,167 +44,136 @@ func NewHub(redisClient *redis.Client, kafkaProducer *kafka.Producer) *Hub {
 
 func (h *Hub) runRedisSubscriber() {
 	ctx := context.Background()
-
 	pubsub := h.redisClient.PSubscribe(ctx, "chat:room:*")
 	defer pubsub.Close()
 
 	ch := pubsub.Channel()
-
 	logger.Info("Hub está ouvindo os canais do Redis")
 
 	for msg := range ch {
-
-		// msg.Channel é "chat:room:sala-1", por exemplo
-		roomID := strings.TrimPrefix(msg.Channel, "chat:room:")
-
-		// Encontra a sala e envia a mensagem para todos os clientes locais nela
-		if room, ok := h.Rooms[roomID]; ok {
-			for client := range room {
-				select {
-				case client.Send <- []byte(msg.Payload):
-				default:
-					// se o canal do cliente estiver cheio, assume que ele está morto
-					close(client.Send)
-					delete(h.Rooms[roomID], client)
-				}
-			}
+		var message domain.Message
+		if err := json.Unmarshal([]byte(msg.Payload), &message); err != nil {
+			logger.Error("Erro ao decodificar mensagem do Redis", "err", err)
+			continue
 		}
+		// [CORREÇÃO] Não acessamos mapas aqui. Apenas encaminhamos para o loop principal.
+		h.redisIngress <- &message
 	}
 }
 
 func (h *Hub) Run() {
-
-	// inicia o ouvinte redis em uma goroutine separada
 	go h.runRedisSubscriber()
 	ctx := context.Background()
 
 	for {
 		select {
 		case client := <-h.Register:
-			go func(c *Client) {
-				// Se a sala não existir, crie-a.
-				if _, ok := h.Rooms[c.RoomID]; !ok {
-					h.Rooms[c.RoomID] = make(map[*Client]bool)
-				}
-				// Registra o cliente na sala.
-				h.Rooms[c.RoomID][c] = true
+			// 1. Registra nos Mapas (Thread-safe aqui dentro)
+			if _, ok := h.Rooms[client.RoomID]; !ok {
+				h.Rooms[client.RoomID] = make(map[*Client]bool)
+			}
+			h.Rooms[client.RoomID][client] = true
+			h.Clients[client.UserID] = client
 
-				h.Clients[client.UserID] = client
+			// 2. Redis
+			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "online", 5*time.Minute)
+			h.redisClient.SAdd(ctx, "room:active:"+client.RoomID, client.UserID)
 
-				//  Define o status no Redis com expiração (ex: 5 minutos)
-				//    Isso garante que, se o serviço cair, o usuário ficará "offline"
-				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "online", 5*time.Minute)
+			// 3. Notifica entrada
+			presenceMsg := &domain.Message{
+				Type:     "PRESENCE",
+				Content:  "entrou na sala",
+				RoomID:   client.RoomID,
+				UserID:   client.UserID,
+				Username: client.Username,
+			}
 
-				// adicionar à lista de membros ativos da sala
-				roomKey := "room:active:" + c.RoomID
-				if err := h.redisClient.SAdd(ctx, roomKey, c.UserID).Err(); err != nil {
-					logger.Error("Erro ao adicionar usuario ao set da sala do Redis", "err", err)
-				}
-				// Cria uma mensagem de presença para modificar a sala
-				presenceMsg := &domain.Message{
-					Content:  "entrou na sala", // tratar com o front depois
-					RoomID:   c.RoomID,
-					UserID:   c.UserID,
-					Username: c.Username,
-					Type:     "PRESENCE",
-					// adicionar type depois, para diferenciar o tipo de mensagem
-				}
-
+			// [CORREÇÃO DO DEADLOCK]
+			// Usamos uma goroutine para não bloquear o loop atual tentando escrever no canal que ele mesmo lê.
+			go func() {
 				h.Broadcast <- presenceMsg
-				logger.Info("Cliente registrado e presença 'online' definida", "userID", c.UserID)
-			}(client)
+			}()
+
+			logger.Info("Cliente registrado", "userID", client.UserID)
 
 		case client := <-h.Unregister:
-			go func(c *Client) {
-
-				// Remove o cliente da sala.
-				if room, ok := h.Rooms[c.RoomID]; ok {
-					if _, ok := room[c]; ok {
-						delete(h.Rooms[client.RoomID], c)
-						close(c.Send)
-					}
-					// Se a sala ficar vazia, opcionalmente, remova a sala do map.
-					if len(h.Rooms[c.RoomID]) == 0 {
-						delete(h.Rooms, c.RoomID)
-					}
+			if room, ok := h.Rooms[client.RoomID]; ok {
+				if _, ok := room[client]; ok {
+					delete(room, client)
+					close(client.Send)
 				}
-
-				if _, ok := h.Clients[client.UserID]; ok {
-					delete(h.Clients, client.UserID)
+				if len(room) == 0 {
+					delete(h.Rooms, client.RoomID)
 				}
+			}
+			delete(h.Clients, client.UserID)
 
-				//    Define o status no Redis como "offline"
-				//    Usamos SetEX com 24h só para manter o dado, poderia ser um DEL ou SET simples
-				h.redisClient.SetEx(ctx, "user:status:"+c.UserID, "offline", 24*time.Hour)
+			h.redisClient.SetEx(ctx, "user:status:"+client.UserID, "offline", 24*time.Hour)
+			h.redisClient.SRem(ctx, "room:active:"+client.RoomID, client.UserID)
 
-				roomKey := "room:active:" + c.RoomID
-				if err := h.redisClient.SRem(ctx, roomKey, c.UserID).Err(); err != nil {
-					logger.Error("Erro ao remover usuário do set da sala no Redis", "err", err)
-				}
+			presenceMsg := &domain.Message{
+				Type:     "PRESENCE",
+				Content:  "saiu da sala",
+				RoomID:   client.RoomID,
+				UserID:   client.UserID,
+				Username: client.Username,
+			}
 
-				// Cria uma mensagem de presença para modificar a sala
-				presenceMsg := &domain.Message{
-					Content:  "saiu da sala", // tratar com o front depois
-					RoomID:   c.RoomID,
-					UserID:   c.UserID,
-					Username: c.Username,
-					Type:     "PRESENCE",
-					// adicionar type depois, para diferenciar o tipo de mensagem
-				}
-
+			// [CORREÇÃO DO DEADLOCK]
+			go func() {
 				h.Broadcast <- presenceMsg
-				logger.Info("Cliente registrado e presença 'online' definida", "userID", c.UserID)
+			}()
 
-			}(client)
+			logger.Info("Cliente desconectado", "userID", client.UserID)
+
 		case message := <-h.Broadcast:
-			ctx := context.Background()
-			if message.Type == "CHAT" || message.Type == "DIRECT" {
+			// Lógica de envio (apenas publica, não entrega)
+			shouldPersist := message.Type == "CHAT" || message.Type == "DIRECT"
+			if shouldPersist {
 				jsonBytes, _ := message.ToJSON()
-				// usamos o RoomID como Key para garantir ordem (mensagens da mesma sala na mesma partição)
 				err := h.KafkaProducer.WriteMessage(ctx, []byte(message.RoomID), jsonBytes)
 				if err != nil {
 					logger.Error("Erro ao enviar mensagem para o Kafka", "err", err)
 				}
-
 			}
+
 			payload, err := message.ToJSON()
-
-			if err != nil {
-				logger.Error("erro ao parsear mensagem", "err", err)
-				continue
-			}
-
-			if message.Type == "DIRECT" || message.Type == "SIGNAL" {
-				if target, ok := h.Clients[message.TargetUserID]; ok {
-					select {
-					case target.Send <- payload:
-					default:
-						close(target.Send)
-						delete(h.Clients, message.TargetUserID)
-					}
-				}
-
-				if sender, ok := h.Clients[message.UserID]; ok {
-					sender.Send <- payload
-				}
-			} else {
-				// 3. Publica a mensagem no Redis
-				channelName := "chat:room:" + message.RoomID
-				if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
-					logger.Error("erro ao publicar mensagem ao Redis", "err", err)
-				}
+			if err == nil {
+				// Publica para todos (inclusive eu mesmo recebo de volta via Redis)
+				h.redisClient.Publish(ctx, "chat:room:"+message.RoomID, payload)
 			}
 
 		case message := <-h.Relay:
-			// mensagem efemera, apenas retransmitir no redis
-			payload, err := message.ToJSON()
-			if err != nil {
-				logger.Error("erro ao parsear mensagem de relay", "err", err)
-				continue
-			}
-			channelName := "chat:room:" + message.RoomID
-			if err := h.redisClient.Publish(ctx, channelName, payload).Err(); err != nil {
-				logger.Error("erro ao publicar relay ao Redis", "err", err)
+			payload, _ := message.ToJSON()
+			h.redisClient.Publish(ctx, "chat:room:"+message.RoomID, payload)
+
+		// [NOVO] Lógica de entrega (Vem do Redis)
+		case message := <-h.redisIngress:
+			// Aqui temos acesso seguro aos mapas h.Clients e h.Rooms
+			payload, _ := message.ToJSON()
+
+			if message.TargetUserID != "" {
+				// Entrega Direta (Direct/Signal)
+				if client, ok := h.Clients[message.TargetUserID]; ok {
+					select {
+					case client.Send <- payload:
+					default:
+						close(client.Send)
+						delete(h.Clients, message.TargetUserID)
+					}
+				}
+			} else {
+				// Broadcast para a Sala
+				if room, ok := h.Rooms[message.RoomID]; ok {
+					for client := range room {
+						select {
+						case client.Send <- payload:
+						default:
+							close(client.Send)
+							delete(h.Rooms[message.RoomID], client)
+						}
+					}
+				}
 			}
 		}
 	}

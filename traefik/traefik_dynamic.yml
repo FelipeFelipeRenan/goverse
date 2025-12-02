@@ -20,6 +20,7 @@ http:
           - "https://goverse-frontend.vercel.app"
           - "http://localhost:4200" # <-- Especifique a origem do seu frontend
           - "https://goverse.localhost"
+          - "http://localhost:8000"
         accessControlAllowMethods:
           - GET
           - POST
