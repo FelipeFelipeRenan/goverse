@@ -83,6 +83,7 @@ func (c *MessageConsumer) Start(ctx context.Context) {
 
 		if !success {
 			logger.Error("Esgotadas tentativas. Enviando para DLQ.", "msg_id", msg.ID)
+			c.sendToDLQ(ctx, m.Value, "db")
 		}
 
 	}
@@ -90,9 +91,16 @@ func (c *MessageConsumer) Start(ctx context.Context) {
 
 func (c *MessageConsumer) sendToDLQ(ctx context.Context, value []byte, reason string) {
 
-	err := c.dlqWriter.WriteMessage(ctx, []byte(reason), value)
+	// Cria um contexto que morre em 5 segundos
+	ctxTimeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	logger.Info("Tentando escrever na DLQ...", "reason", reason)
+	err := c.dlqWriter.WriteMessage(ctxTimeout, []byte(reason), value)
 	if err != nil {
 		logger.Error("CRITICO: Falha ao escrever na DLQ.", "err", err)
+	} else {
+		logger.Info("Mensagem enviada para DLQ com sucesso", "reason", reason)
 	}
 
 }

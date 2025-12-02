@@ -19,6 +19,8 @@ func NewProducer(topic string) *Producer {
 		brokers = "localhost:9092" // fallback para dev local sem docker
 	}
 
+	logger.Info("Configurando Kafka Producer (SYNC MODE)", "topic", topic)
+
 	writer := &kafka.Writer{
 		Addr:                   kafka.TCP(brokers),
 		Topic:                  topic,
@@ -26,7 +28,7 @@ func NewProducer(topic string) *Producer {
 		AllowAutoTopicCreation: true,
 		// Otimização de Batch/lotes
 		BatchSize:    100,                   // Envia se juntar 100 mensagens
-		BatchTimeout: 50 * time.Microsecond, // ou se passar 50ms
+		BatchTimeout: 50 * time.Millisecond, // ou se passar 50ms
 		Async:        true,                  // Não bloqueia a goroutine chamadora
 	}
 

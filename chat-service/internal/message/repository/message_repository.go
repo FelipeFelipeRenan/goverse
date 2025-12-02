@@ -25,10 +25,14 @@ func NewMessageRepository(db *pgxpool.Pool) MessageRepository {
 func (r *pgxMessageRepository) SaveMessage(ctx context.Context, msg *domain.Message) error {
 
 	query := `
-        INSERT INTO messages (room_id, user_id, username, content)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO messages (room_id, user_id, username, content, type)
+        VALUES ($1, $2, $3, $4, $5)
     `
-	_, err := r.db.Exec(ctx, query, msg.RoomID, msg.UserID, msg.Username, msg.Content)
+
+	if msg.Type == ""{
+		msg.Type = "CHAT"
+	}
+	_, err := r.db.Exec(ctx, query, msg.RoomID, msg.UserID, msg.Username, msg.Content, msg.Type)
 	if err != nil {
 		return fmt.Errorf("falha ao salvar mensagem no banco: %w", err)
 	}
@@ -38,9 +42,9 @@ func (r *pgxMessageRepository) SaveMessage(ctx context.Context, msg *domain.Mess
 // GetMessagesByRoomID implements MessageRepository.
 func (r *pgxMessageRepository) GetMessagesByRoomID(ctx context.Context, roomID string, limit int, offset int) ([]domain.Message, error) {
 	query := `
-        SELECT id, room_id, user_id, username, content, created_at 
+        SELECT id, room_id, user_id, username, content, created_at, type
         FROM messages 
-        WHERE room_id = $1 
+        WHERE room_id = $1 AND type = 'CHAT'
         ORDER BY created_at DESC 
         LIMIT $2 OFFSET $3
     `
@@ -54,7 +58,7 @@ func (r *pgxMessageRepository) GetMessagesByRoomID(ctx context.Context, roomID s
 
 	for rows.Next() {
 		var msg domain.Message
-		if err := rows.Scan(&msg.ID, &msg.RoomID, &msg.UserID, &msg.Username, &msg.Content, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.RoomID, &msg.UserID, &msg.Username, &msg.Content, &msg.CreatedAt, &msg.Type); err != nil {
 			return nil, fmt.Errorf("erro ai escanear mensagem: %w", err)
 		}
 
