@@ -75,7 +75,7 @@ services:
       - JWT_PRIVATE_KEY_PATH=/keys/private.pem
       - GRPC_SERVER_HOST=user-service
       - GRPC_SERVER_PORT=:50051
-      - ENV=devc
+      - ENV=prod
     labels:
       - "traefik.enable=true"
 
