@@ -135,7 +135,7 @@ func (s *memberService) GetRoomMembers(ctx context.Context, roomID string) ([]*d
 			JoinedAt: member.JoinedAt,
 			User: dtos.UserDTO{
 				ID:        userResp.Id,
-				Name:      userResp.Name,
+				Username:  userResp.Name,
 				Email:     userResp.Email,
 				Picture:   userResp.Picture,
 				CreatedAt: userResp.CreatedAt,

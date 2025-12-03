@@ -17,7 +17,7 @@ type UpdateRoleRequest struct {
 
 type UserDTO struct {
 	ID        string `json:"user_id"`
-	Name      string `json:"name"`
+	Username      string `json:"username"`
 	Email     string `json:"email"`
 	Picture   string `json:"picture"`
 	CreatedAt string `json:"created_at"`
