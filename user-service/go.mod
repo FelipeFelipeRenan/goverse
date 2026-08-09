@@ -2,7 +2,7 @@ module github.com/FelipeFelipeRenan/goverse/user-service
 
 go 1.24.2
 
-require (
+require (\n\tgithub.com/FelipeFelipeRenan/goverse v0.0.0-00010101000000-000000000000
 	github.com/FelipeFelipeRenan/goverse/proto v0.0.0-20250706201258-4a18dd1e3946
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/joho/godotenv v1.5.1
@@ -41,6 +41,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/FelipeFelipeRenan/goverse/proto => ../proto
+replace github.com/FelipeFelipeRenan/goverse => ..\n\nreplace github.com/FelipeFelipeRenan/goverse/proto => ../proto
 
 replace github.com/FelipeFelipeRenan/goverse/common => ../common
