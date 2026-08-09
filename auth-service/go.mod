@@ -2,7 +2,7 @@ module github.com/FelipeFelipeRenan/goverse/auth-service
 
 go 1.24.2
 
-require (
+require (\n\tgithub.com/FelipeFelipeRenan/goverse v0.0.0-00010101000000-000000000000
 	github.com/FelipeFelipeRenan/goverse/common v0.0.0-00010101000000-000000000000
 	github.com/FelipeFelipeRenan/goverse/proto v0.0.0-00010101000000-000000000000
 	github.com/golang-jwt/jwt/v5 v5.2.2
@@ -35,6 +35,6 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 )
 
-replace github.com/FelipeFelipeRenan/goverse/proto => ../proto
+replace github.com/FelipeFelipeRenan/goverse => ..\n\nreplace github.com/FelipeFelipeRenan/goverse/proto => ../proto
 
 replace github.com/FelipeFelipeRenan/goverse/common => ../common
