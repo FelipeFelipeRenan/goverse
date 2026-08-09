@@ -1,29 +1,11 @@
 package domain
 
-import (
-	"errors"
-	"time"
-)
+import identitydomain "github.com/FelipeFelipeRenan/goverse/internal/modules/identity/domain"
 
-type User struct {
-	ID        string     `json:"id"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	Password  string     `json:"password"`
-	Picture   string     `json:"picture"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `json:"deleted_at"`
-	IsOAuth   bool       `json:"is_oauth"`
-}
+// Deprecated: use identitydomain.User.
+type User = identitydomain.User
 
-type UserResponse struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Picture   string    `json:"picture"`
-	CreatedAt time.Time `json:"created_at"`
-	IsOAuth   bool      `json:"is_oauth"`
-}
+// Deprecated: use identitydomain.UserResponse.
+type UserResponse = identitydomain.UserResponse
 
-var ErrUserNotFound = errors.New("usuário não encontrado")
+var ErrUserNotFound = identitydomain.ErrUserNotFound
