@@ -4,7 +4,7 @@ go 1.23.0
 
 toolchain go1.24.10
 
-require (
+require (\n\tgithub.com/FelipeFelipeRenan/goverse v0.0.0-00010101000000-000000000000
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -24,3 +24,5 @@ require (
 	golang.org/x/text v0.28.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
+
+replace github.com/FelipeFelipeRenan/goverse => ..
