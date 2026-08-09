@@ -1,0 +1,49 @@
+name: Modular-monolith baseline
+
+on:
+  push:
+    branches:
+      - refactor/modular-monolith
+  pull_request:
+    branches:
+      - refactor/modular-monolith
+
+jobs:
+  verify:
+    name: Verify ${{ matrix.module }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - common
+          - proto
+          - auth-service
+          - user-service
+          - room-service
+          - chat-service
+          - api-gateway
+          - auth-middleware
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.10
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...
