@@ -3,11 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/domain"
 	"github.com/FelipeFelipeRenan/goverse/auth-service/internal/auth/repository"
-	"github.com/golang-jwt/jwt/v5"
+	"github.com/FelipeFelipeRenan/goverse/internal/modules/identity/token"
 )
 
 type AuthService interface {
@@ -19,60 +18,42 @@ type AuthService interface {
 type authService struct {
 	authMethods map[string]AuthMethod
 	repository  repository.AuthRepository
-	jwtKey      []byte
+	tokenIssuer *token.Issuer
 }
 
-func NewAuthService(authMethods map[string]AuthMethod, repo repository.AuthRepository, jwtKey []byte) AuthService {
+func NewAuthService(authMethods map[string]AuthMethod, repository repository.AuthRepository, jwtKey []byte) AuthService {
 	return &authService{
-		authMethods: authMethods,
-		repository:  repo,
-		jwtKey:      jwtKey,
+		authMethods: map[string]AuthMethod{},
+		repository:  repository,
+		tokenIssuer: token.NewIssuer(jwtKey),
 	}
 }
 
 func (s *authService) Authenticate(ctx context.Context, credentials domain.Credentials) (string, *domain.UserResponse, error) {
-
 	method, ok := s.authMethods[credentials.Type]
-
 	if !ok {
 		return "", nil, fmt.Errorf("metodo de autenticação não suportado: %s", credentials.Type)
 	}
 
 	user, err := method.Authenticate(ctx, credentials)
 	if err != nil {
-		return "", nil, fmt.Errorf("falha na autenticação> %w", err)
+		return "", nil, fmt.Errorf("falha na autenticação: %w", err)
 	}
 
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(s.jwtKey)
+	tokenString, err := s.tokenIssuer.Issue(user.ID, user.Username)
 	if err != nil {
-		return "", nil, fmt.Errorf("erro ao fazer parse de chave privada: %w", err)
+		return "", nil, err
 	}
 
-	claims := domain.CustomClaims{
-		UserID:   user.ID,
-		UserName: user.Username,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-
-	tokenString, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", nil, fmt.Errorf("erro ao assinar token: %w", err)
-	}
 	return tokenString, user, nil
 }
 
 func (s *authService) GetOAuthURL(state string) string {
-	// Verifica se existe o método "oauth" registrado
 	method, ok := s.authMethods["oauth"]
 	if !ok {
 		return ""
 	}
 
-	// Faz type assertion para a estratégia correta
 	oauthMethod, ok := method.(interface {
 		GetOAuthURL(state string) string
 	})
@@ -85,9 +66,4 @@ func (s *authService) GetOAuthURL(state string) string {
 
 func (s *authService) GetUserByID(ctx context.Context, userID string) (*domain.UserResponse, error) {
 	return s.repository.FindByID(ctx, userID)
-}	tokenString, err := s.tokenIssuer.Issue(user.ID, user.Username)
-	if err != nil {
-		return "", nil, err
-	}
-
-
+}
