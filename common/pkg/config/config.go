@@ -1,21 +1,9 @@
+// Package config provides compatibility during the migration to the modular monolith.
 package config
 
-import (
-	"fmt"
-	"os"
-)
+import platformconfig "github.com/FelipeFelipeRenan/goverse/internal/platform/config"
 
+// RequireEnv delegates environment validation to the centralized configuration package.
 func RequireEnv(vars ...string) error {
-	missing := []string{}
-
-	for _, v := range vars {
-		if os.Getenv(v) == "" {
-			missing = append(missing, v)
-		}
-	}
-
-	if len(missing) > 0 {
-		return fmt.Errorf("variaveis de ambiente obrigatórias ausentes: %v", missing)
-	}
-	return nil
+	return platformconfig.RequireEnv(vars...)
 }
