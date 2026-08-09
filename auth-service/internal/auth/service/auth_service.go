@@ -85,4 +85,9 @@ func (s *authService) GetOAuthURL(state string) string {
 
 func (s *authService) GetUserByID(ctx context.Context, userID string) (*domain.UserResponse, error) {
 	return s.repository.FindByID(ctx, userID)
-}
+}	tokenString, err := s.tokenIssuer.Issue(user.ID, user.Username)
+	if err != nil {
+		return "", nil, err
+	}
+
+
