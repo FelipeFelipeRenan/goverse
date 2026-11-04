@@ -118,7 +118,7 @@ func (r *roomRepository) ListPublic(ctx context.Context, dbtx DBTX, limit, offse
 func (r *roomRepository) SearchByName(ctx context.Context, dbtx DBTX, keyword string) ([]*domain.Room, error) {
 	query := `
 		SELECT id, name, description, is_public, owner_id, member_count, max_members, created_at, updated_at, deleted_at
-		FROM rooms WHERE name ILIKE '%' || $1 || '%' AND deleted_at IS NULL
+		FROM rooms WHERE name ILIKE '%' || $1 || '%' AND is_public = true AND deleted_at IS NULL
 	`
 	rows, err := dbtx.Query(ctx, query, keyword)
 	if err != nil {

@@ -147,10 +147,8 @@ func (h *RoomHandler) ListRooms(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// parse do publicOnly
-	if p := r.URL.Query().Get("public_only"); p != "" {
-		publicOnly = (p == "true" || p == "1")
-	}
+	// Esta rota é pública (sem auth no gateway): nunca listar salas privadas.
+	// O parâmetro public_only foi removido de propósito; X-User-ID não é confiável aqui.
 
 	// parse do keyword
 	keyword = r.URL.Query().Get("keyword")
