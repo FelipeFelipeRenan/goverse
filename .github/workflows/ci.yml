@@ -1,0 +1,37 @@
+name: CI (monolito)
+
+on:
+  push:
+    branches: [main, "feat/**", "chore/**"]
+    paths: [go.mod, go.sum, "cmd/**", "internal/**", "deploy/**", ".github/workflows/ci.yml"]
+  pull_request:
+    paths: [go.mod, go.sum, "cmd/**", "internal/**", "deploy/**", ".github/workflows/ci.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: go.mod/go.sum em dia
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+      - run: gofmt -l cmd internal | tee /dev/stderr | (! grep .)
+      - run: go vet ./...
+      - run: go test -race -covermode=atomic ./...
+      - run: go build ./...
+      - name: Vulnerabilidades
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  image:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f deploy/Dockerfile -t goverse:ci .
