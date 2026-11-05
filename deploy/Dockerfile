@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
-FROM golang:1.24-alpine AS build
+ARG GO_VERSION=1.26
+FROM golang:${GO_VERSION}-alpine AS build
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
