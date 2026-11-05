@@ -14,9 +14,10 @@ func JSON(w http.ResponseWriter, status int, v any) {
 	}
 }
 
-// Error escreve {"error": msg} (mesmo formato dos serviços antigos).
+// Error escreve {"error": msg, "message": msg}. "error" é o formato dos serviços antigos;
+// "message" é o campo que o frontend exibe ao usuário (err.error.message).
 func Error(w http.ResponseWriter, status int, msg string) {
-	JSON(w, status, map[string]string{"error": msg})
+	JSON(w, status, map[string]string{"error": msg, "message": msg})
 }
 
 // Decode lê o corpo JSON (máx. 1 MiB). Em caso de erro já responde 400 e devolve false.

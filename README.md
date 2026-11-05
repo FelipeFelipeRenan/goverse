@@ -18,8 +18,11 @@ make logs    # logs do app
 make down    # para (mantém dados) | make reset: apaga banco e chave
 ```
 
-- API: <http://localhost:8080> (`/healthz`, `/readyz`, `/user`, `/auth/login`, ...)
+- API: <http://localhost> (porta 80, onde o frontend a espera; `/healthz`, `/readyz`, `/user`, `/auth/login`, ...). Se a 80 estiver ocupada (por exemplo pelo Traefik antigo), pare-o ou use `GOVERSE_PUBLIC_PORT=8080 make up`.
 - Grafana: <http://localhost:3000> (`admin`/`admin`) -> *Explore*: traces (Tempo), logs (Loki) e métricas, todos correlacionados por `trace_id`.
+- **Login com Google (opcional):** ponha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URI` (`http://localhost/oauth/google/callback`) no `.env` da raiz e rode `make up` de novo. Sem isso, `/oauth/google/login` responde 501.
+- **Frontend:** `ng serve` em <http://localhost:4200> já é aceito pelo CORS (`GOVERSE_CORS_ORIGINS` muda a lista).
+- O chat (WebSocket e mensagens) ainda não foi portado: login, cadastro e salas funcionam; mensagens vêm no próximo lote.
 - Decisões e roteiro da migração: [`docs/adr/0001-monolito-modular.md`](docs/adr/0001-monolito-modular.md).
 
 > Os diretórios `*-service/`, `api-gateway/`, `traefik/` e `k8s/` são o desenho antigo em microsserviços

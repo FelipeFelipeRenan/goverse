@@ -5,7 +5,7 @@
 # Requer: curl e jq. Compatível com bash 3.2 (macOS).
 set -euo pipefail
 
-BASE="${BASE:-http://localhost:8080}"
+BASE="${BASE:-http://localhost:${GOVERSE_PUBLIC_PORT:-80}}"
 DIR="$(mktemp -d)"; trap 'rm -rf "$DIR"' EXIT
 ok()   { echo "  ✔ $*"; }
 fail() { echo "  ✘ $*" >&2; exit 1; }

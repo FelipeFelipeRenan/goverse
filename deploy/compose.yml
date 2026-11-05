@@ -17,7 +17,7 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: goverse
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-goverse}
+      POSTGRES_PASSWORD: ${GOVERSE_POSTGRES_PASSWORD:-goverse}
       POSTGRES_DB: goverse
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -45,14 +45,20 @@ services:
     environment:
       GOVERSE_ENV: dev
       GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
-      GOVERSE_CORS_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
-      GOVERSE_DATABASE_URL: postgres://goverse:${POSTGRES_PASSWORD:-goverse}@postgres:5432/goverse?sslmode=disable
+      GOVERSE_CORS_ORIGINS: ${GOVERSE_CORS_ORIGINS:-http://localhost:4200,http://127.0.0.1:4200}
+      # Login com Google (opcional). Coloque no .env da raiz; sem isso /oauth/google/login responde 501.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost/oauth/google/callback}
+      GOVERSE_DATABASE_URL: postgres://goverse:${GOVERSE_POSTGRES_PASSWORD:-goverse}@postgres:5432/goverse?sslmode=disable
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     volumes:
       - keys:/keys:ro
     ports:
-      - "8080:8080"
+      # Porta 80 por padrão: é onde o frontend espera a API (http://localhost), como era no Traefik.
+      # Se a 80 estiver ocupada: GOVERSE_PUBLIC_PORT=8080 make up (e ajuste o frontend).
+      - "${GOVERSE_PUBLIC_PORT:-80}:8080"
 
 volumes:
   keys:

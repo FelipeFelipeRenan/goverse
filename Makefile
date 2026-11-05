@@ -95,13 +95,13 @@ help:
 
 # ========== MONOLITO (desenvolvimento) ==========
 
-COMPOSE=docker compose -f deploy/compose.yml
+COMPOSE=docker compose $(if $(wildcard .env),--env-file .env) -f deploy/compose.yml
 
 up: ## sobe tudo (app + Postgres + Grafana) e espera ficar pronto
 	$(COMPOSE) up -d --build
 	@./deploy/smoke.sh wait
 	@echo ""
-	@echo "API:     http://localhost:8080   (teste: make smoke)"
+	@echo "API:     http://localhost        (teste: make smoke)"
 	@echo "Grafana: http://localhost:3000   (admin/admin -> Explore: traces, logs, métricas)"
 
 down: ## para tudo (mantém os dados)
