@@ -31,9 +31,15 @@ services:
         condition: service_healthy
     environment:
       GOVERSE_ENV: dev
+      GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
+      GOVERSE_CORS_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
       GOVERSE_DATABASE_URL: postgres://goverse:${POSTGRES_PASSWORD:-goverse}@postgres:5432/goverse?sslmode=disable
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+    volumes:
+      # Gere a chave uma vez: mkdir -p .keys && openssl genpkey -algorithm RSA -out .keys/private.pem -pkeyopt rsa_keygen_bits:2048
+      # A imagem roda como "nonroot": o arquivo precisa ser legível (chmod 644 .keys/private.pem, só em dev).
+      - ../.keys/private.pem:/keys/private.pem:ro
     ports:
       - "8080:8080"
 
