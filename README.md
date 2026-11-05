@@ -7,6 +7,24 @@
 
 > Goverse é uma plataforma moderna de comunicação em tempo real inspirada em soluções como Discord e Google Meet, desenvolvida com arquitetura de microsserviços em Go.
 
+## ⚡ Quickstart (monolito modular)
+
+Só precisa de Docker. Sem `.env`, sem chaves, sem migrations manuais:
+
+```bash
+make up      # sobe app + Postgres + Grafana e espera ficar pronto (a chave JWT é gerada sozinha)
+make smoke   # testa: cadastro -> login -> /auth/me -> CSRF -> editar perfil
+make logs    # logs do app
+make down    # para (mantém dados) | make reset: apaga banco e chave
+```
+
+- API: <http://localhost:8080> (`/healthz`, `/readyz`, `/user`, `/auth/login`, ...)
+- Grafana: <http://localhost:3000> (`admin`/`admin`) -> *Explore*: traces (Tempo), logs (Loki) e métricas, todos correlacionados por `trace_id`.
+- Decisões e roteiro da migração: [`docs/adr/0001-monolito-modular.md`](docs/adr/0001-monolito-modular.md).
+
+> Os diretórios `*-service/`, `api-gateway/`, `traefik/` e `k8s/` são o desenho antigo em microsserviços
+> e serão removidos conforme cada módulo for portado. As instruções abaixo se referem a ele.
+
 ## 🧩 Funcionalidades
 
 - Autenticação (senha, OAuth com JWTs RS256)

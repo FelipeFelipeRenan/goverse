@@ -2,6 +2,17 @@
 # Uso: docker compose -f deploy/compose.yml up --build
 # Grafana: http://localhost:3000 (admin/admin) -> Explore: Tempo (traces), Loki, Prometheus.
 services:
+  # Gera a chave RSA da sessão uma única vez (fica no volume "keys"). Só para desenvolvimento.
+  keygen:
+    image: alpine:3.20
+    command: >
+      sh -c "[ -f /keys/private.pem ] ||
+      (apk add --no-cache openssl >/dev/null &&
+      openssl genpkey -algorithm RSA -out /keys/private.pem -pkeyopt rsa_keygen_bits:2048 &&
+      chmod 644 /keys/private.pem)"
+    volumes:
+      - keys:/keys
+
   postgres:
     image: postgres:16
     environment:
@@ -29,6 +40,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      keygen:
+        condition: service_completed_successfully
     environment:
       GOVERSE_ENV: dev
       GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
@@ -37,11 +50,10 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
     volumes:
-      # Gere a chave uma vez: mkdir -p .keys && openssl genpkey -algorithm RSA -out .keys/private.pem -pkeyopt rsa_keygen_bits:2048
-      # A imagem roda como "nonroot": o arquivo precisa ser legível (chmod 644 .keys/private.pem, só em dev).
-      - ../.keys/private.pem:/keys/private.pem:ro
+      - keys:/keys:ro
     ports:
       - "8080:8080"
 
 volumes:
+  keys:
   pgdata:

@@ -92,3 +92,26 @@ help:
 	@echo "  make auth-middleware-apply    # Aplica auth-middleware"
 	@echo "  make traefik-logs        	# Mostra logs do traefik"
 	@echo "  make restart-all        	# reinicia todos os pods"
+
+# ========== MONOLITO (desenvolvimento) ==========
+
+COMPOSE=docker compose -f deploy/compose.yml
+
+up: ## sobe tudo (app + Postgres + Grafana) e espera ficar pronto
+	$(COMPOSE) up -d --build
+	@./deploy/smoke.sh wait
+	@echo ""
+	@echo "API:     http://localhost:8080   (teste: make smoke)"
+	@echo "Grafana: http://localhost:3000   (admin/admin -> Explore: traces, logs, métricas)"
+
+down: ## para tudo (mantém os dados)
+	$(COMPOSE) down
+
+reset: ## para tudo e APAGA banco e chave
+	$(COMPOSE) down -v
+
+logs: ## logs do app
+	$(COMPOSE) logs -f goverse
+
+smoke: ## roda o fluxo cadastro -> login -> /auth/me -> editar perfil
+	@./deploy/smoke.sh

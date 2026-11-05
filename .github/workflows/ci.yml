@@ -53,3 +53,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -f deploy/Dockerfile -t goverse:ci .
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe app + Postgres (sem o Grafana, que é pesado)
+        run: docker compose -f deploy/compose.yml up -d --build goverse
+      - name: Fluxo cadastro -> login -> CSRF -> perfil
+        run: ./deploy/smoke.sh
+      - name: Logs do app (se falhou)
+        if: failure()
+        run: docker compose -f deploy/compose.yml logs --no-color goverse postgres keygen
+      - name: Derruba
+        if: always()
+        run: docker compose -f deploy/compose.yml down -v
