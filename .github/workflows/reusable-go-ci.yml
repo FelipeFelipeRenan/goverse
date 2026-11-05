@@ -26,7 +26,7 @@ jobs:
       - name: Check code formatting with gofmt
         # 3. Usa a variável de input para construir os caminhos
         run: |
-          fmt_output=$(gofmt -l ./$)
+          fmt_output=$(gofmt -l ./${{ inputs.service-name }})
           if [ -n "$fmt_output" ]; then
             echo "Code is not properly formatted:"
             echo "$fmt_output"
@@ -40,24 +40,24 @@ jobs:
           # Testa apenas o módulo específico
           args: --timeout=5m run ./...
           # Define o diretório de trabalho para o lint
-          working-directory: $
+          working-directory: ${{ inputs.service-name }}
 
       # 5. (MELHORIA 2) Adicionar Scan de Vulnerabilidade (Opcional, mas recomendado)
       - name: Run Go vulnerability check
-        run: govulncheck ./...
-        working-directory: $
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        working-directory: ${{ inputs.service-name }}
 
       - name: Build
         run: go build ./...
-        working-directory: $
+        working-directory: ${{ inputs.service-name }}
 
       - name: Run tests
         run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
-        working-directory: $
+        working-directory: ${{ inputs.service-name }}
 
       # 6. (MELHORIA 3) Upload do Relatório de Cobertura (Opcional)
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-$
-          path: $
+          name: coverage-${{ inputs.service-name }}
+          path: ${{ inputs.service-name }}/coverage.out
