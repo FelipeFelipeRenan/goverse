@@ -13,6 +13,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/FelipeFelipeRenan/goverse/internal/identity"
+	"github.com/FelipeFelipeRenan/goverse/internal/platform/authn"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/config"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/database"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/httpx"
@@ -48,6 +50,11 @@ func run() error {
 	}
 	defer pool.Close()
 
+	keys, err := authn.LoadKeys(cfg.JWTPrivateKeyPath)
+	if err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -62,9 +69,21 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Os módulos (identity, rooms, chat) serão adicionados aqui nos próximos lotes.
-	var modules []module.Module
+	// rooms e chat entram aqui nos próximos lotes; eles receberão identityMod.Directory().
+	identityMod := identity.New(pool, keys, identity.Config{
+		Secure:             cfg.IsProd(),
+		GoogleClientID:     cfg.GoogleClientID,
+		GoogleClientSecret: cfg.GoogleClientSecret,
+		GoogleRedirectURL:  cfg.GoogleRedirectURL,
+	})
+	modules := []module.Module{identityMod}
+
 	for _, m := range modules {
+		if mg, ok := m.(module.Migrator); ok && cfg.AutoMigrate {
+			if err := mg.Migrate(ctx); err != nil {
+				return fmt.Errorf("migrations de %s: %w", m.Name(), err)
+			}
+		}
 		slog.Info("registrando módulo", "module", m.Name(), "role", cfg.Role)
 		m.Register(mux)
 	}
@@ -72,7 +91,7 @@ func run() error {
 	// Sem WriteTimeout global: conexões WebSocket são longas. Timeouts por rota virão com os módulos.
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           httpx.Wrap(mux),
+		Handler:           httpx.Wrap(httpx.CORS(cfg.CORSOrigins, mux)),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

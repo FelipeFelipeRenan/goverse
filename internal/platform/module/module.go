@@ -3,10 +3,18 @@
 // internos: conversam apenas por interfaces pequenas exportadas na raiz de cada módulo.
 package module
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 type Module interface {
 	Name() string
 	// Register adiciona as rotas HTTP do módulo ao mux compartilhado.
 	Register(mux *http.ServeMux)
+}
+
+// Migrator é implementado por módulos que possuem schema próprio.
+type Migrator interface {
+	Migrate(ctx context.Context) error
 }
