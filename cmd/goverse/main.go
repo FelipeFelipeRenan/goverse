@@ -20,6 +20,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/httpx"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/module"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/telemetry"
+	"github.com/FelipeFelipeRenan/goverse/internal/rooms"
 )
 
 func main() {
@@ -69,14 +70,17 @@ func run() error {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// rooms e chat entram aqui nos próximos lotes; eles receberão identityMod.Directory().
 	identityMod := identity.New(pool, keys, identity.Config{
 		Secure:             cfg.IsProd(),
 		GoogleClientID:     cfg.GoogleClientID,
 		GoogleClientSecret: cfg.GoogleClientSecret,
 		GoogleRedirectURL:  cfg.GoogleRedirectURL,
 	})
-	modules := []module.Module{identityMod}
+	roomsMod := rooms.New(pool, keys, identityMod.Directory())
+	// chat entra no próximo lote e receberá roomsMod.Membership().
+
+	// Ordem importa: rooms tem FK para identity.users, então identity migra primeiro.
+	modules := []module.Module{identityMod, roomsMod}
 
 	for _, m := range modules {
 		if mg, ok := m.(module.Migrator); ok && cfg.AutoMigrate {

@@ -1,7 +1,6 @@
 package identity
 
 import (
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -45,14 +44,6 @@ func (a *api) routes(mux *http.ServeMux) {
 
 func normEmail(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
-func decode(w http.ResponseWriter, r *http.Request, v any) bool {
-	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v); err != nil {
-		httpx.Error(w, http.StatusBadRequest, "corpo da requisição inválido")
-		return false
-	}
-	return true
-}
-
 func (a *api) register(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		Username string `json:"username"`
@@ -60,7 +51,7 @@ func (a *api) register(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 		Picture  string `json:"picture"`
 	}
-	if !decode(w, r, &in) {
+	if !httpx.Decode(w, r, &in) {
 		return
 	}
 	in.Username, in.Email = strings.TrimSpace(in.Username), normEmail(in.Email)
@@ -103,7 +94,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-	if !decode(w, r, &in) {
+	if !httpx.Decode(w, r, &in) {
 		return
 	}
 	if in.Type != "" && in.Type != "password" {
@@ -202,7 +193,7 @@ func (a *api) updateMe(w http.ResponseWriter, r *http.Request) {
 		Username string `json:"username"`
 		Picture  string `json:"picture"`
 	}
-	if !decode(w, r, &in) {
+	if !httpx.Decode(w, r, &in) {
 		return
 	}
 	in.Username = strings.TrimSpace(in.Username)

@@ -18,3 +18,12 @@ func JSON(w http.ResponseWriter, status int, v any) {
 func Error(w http.ResponseWriter, status int, msg string) {
 	JSON(w, status, map[string]string{"error": msg})
 }
+
+// Decode lê o corpo JSON (máx. 1 MiB). Em caso de erro já responde 400 e devolve false.
+func Decode(w http.ResponseWriter, r *http.Request, v any) bool {
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<20)).Decode(v); err != nil {
+		Error(w, http.StatusBadRequest, "corpo da requisição inválido")
+		return false
+	}
+	return true
+}
