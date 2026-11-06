@@ -180,6 +180,15 @@ func (d fakeDir) Get(_ context.Context, id string) (identity.User, error) {
 	return identity.User{}, identity.ErrNotFound
 }
 
+func (d fakeDir) ByEmail(_ context.Context, email string) (identity.User, error) {
+	for _, u := range d {
+		if u.Email == email {
+			return u, nil
+		}
+	}
+	return identity.User{}, identity.ErrNotFound
+}
+
 func (d fakeDir) GetMany(_ context.Context, ids []string) (map[string]identity.User, error) {
 	out := map[string]identity.User{}
 	for _, id := range ids {
@@ -486,4 +495,23 @@ func TestMemberEmailsOnlyVisibleToOwnerAndAdmins(t *testing.T) {
 	if got := emails("b"); got["a"] == "" || got["c"] == "" {
 		t.Fatalf("admin deve ver os e-mails: %v", got)
 	}
+}
+
+func TestAddMemberByEmailAndRoleAlias(t *testing.T) {
+	e := newEnv(t, "a", "b", "c")
+	id := e.mustCreate(t, "a", `{"name":"x","is_public":false,"max_members":5}`)
+
+	// por e-mail (com maiúsculas/espaços, como alguém digitaria)
+	want(t, e.call("a", "POST", "/rooms/"+id+"/members", `{"email":"  B@X.com ","role":"member"}`), http.StatusCreated)
+	want(t, e.call("c", "GET", "/rooms/"+id, ""), http.StatusNotFound) // c ainda não é membro
+	want(t, e.call("b", "GET", "/rooms/"+id, ""), http.StatusOK)
+
+	want(t, e.call("a", "POST", "/rooms/"+id+"/members", `{"email":"nao@existe.com"}`), http.StatusNotFound)
+	want(t, e.call("a", "POST", "/rooms/"+id+"/members", `{}`), http.StatusBadRequest)
+	want(t, e.call("b", "POST", "/rooms/"+id+"/members", `{"email":"c@x.com"}`), http.StatusForbidden) // só o dono adiciona
+
+	// o frontend manda "role"; o contrato antigo usava "new_role": os dois valem
+	want(t, e.call("a", "PUT", "/rooms/"+id+"/members/b/role", `{"role":"admin"}`), http.StatusOK)
+	want(t, e.call("a", "PUT", "/rooms/"+id+"/members/b/role", `{"new_role":"moderator"}`), http.StatusOK)
+	want(t, e.call("a", "PUT", "/rooms/"+id+"/members/b/role", `{}`), http.StatusBadRequest)
 }
