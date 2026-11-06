@@ -152,7 +152,7 @@ func (s *service) deleteRoom(ctx context.Context, actorID, roomID string) error 
 	return s.st.softDelete(ctx, roomID)
 }
 
-func (s *service) addMember(ctx context.Context, actorID, roomID, userID string, role Role) error {
+func (s *service) addMember(ctx context.Context, actorID, roomID, userID, email string, role Role) error {
 	if role == "" {
 		role = RoleMember
 	}
@@ -166,10 +166,24 @@ func (s *service) addMember(ctx context.Context, actorID, roomID, userID string,
 	if r.OwnerID != actorID {
 		return ErrForbidden
 	}
-	if ok, err := s.users.Exists(ctx, userID); err != nil {
-		return err
-	} else if !ok {
-		return ErrUserNotFound
+	switch {
+	case userID == "" && strings.TrimSpace(email) == "":
+		return invalid("informe user_id ou email")
+	case userID == "":
+		u, err := s.users.ByEmail(ctx, email)
+		if errors.Is(err, identity.ErrNotFound) {
+			return ErrUserNotFound
+		}
+		if err != nil {
+			return err
+		}
+		userID = u.ID
+	default:
+		if ok, err := s.users.Exists(ctx, userID); err != nil {
+			return err
+		} else if !ok {
+			return ErrUserNotFound
+		}
 	}
 	return s.st.addMember(ctx, roomID, userID, role)
 }
