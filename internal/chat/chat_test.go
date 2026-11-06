@@ -65,6 +65,7 @@ func (f fakeMembers) IsMember(_ context.Context, room, user string) (bool, error
 
 type env struct {
 	srv   *httptest.Server
+	hub   *hub
 	keys  *authn.Keys
 	st    *fakeStore
 	room  string
@@ -86,9 +87,34 @@ func newEnv(t *testing.T) *env {
 	mux := http.NewServeMux()
 	m.Register(mux)
 	// Wrap completo: garante que o AccessLog não quebra o upgrade (Hijack).
+	e.hub = m.api.hub
 	e.srv = httptest.NewServer(httpx.Wrap(mux))
 	t.Cleanup(e.srv.Close)
 	return e
+}
+
+// waitConns espera o servidor registrar n conexões do usuário. O Dial do cliente retorna assim que o
+// handshake termina, um instante ANTES de hub.join rodar no servidor; sem esta espera o teste corre
+// contra o próprio servidor (foi a causa de uma falha intermitente no CI).
+func (e *env) waitConns(t *testing.T, userID string, n int) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		e.hub.mu.Lock()
+		r := e.hub.rooms[e.room]
+		got := 0
+		if r != nil {
+			r.mu.Lock()
+			got = r.users[userID]
+			r.mu.Unlock()
+		}
+		e.hub.mu.Unlock()
+		if got == n {
+			return
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("usuário %s não chegou a %d conexões", userID, n)
 }
 
 func (e *env) header(t *testing.T, userID, name, origin string) http.Header {
@@ -210,8 +236,11 @@ func TestPresenceOnlyOnFirstAndLastTab(t *testing.T) {
 	if m := readType(t, b, TypePresence); m.Content != "entrou na sala" || m.UserID != e.alice {
 		t.Fatalf("esperava entrada da alice, veio %+v", m)
 	}
+	e.waitConns(t, e.alice, 1)
 	a2 := e.dial(t, e.alice, "alice") // 2ª aba: sem nova presença
-	a1.Close()                        // ainda resta uma aba: sem "saiu"
+	e.waitConns(t, e.alice, 2)
+	a1.Close() // ainda resta uma aba: sem "saiu"
+	e.waitConns(t, e.alice, 1)
 	_ = a2.WriteJSON(map[string]any{"type": "CHAT", "content": "sigo aqui"})
 	if m := read(t, b); m.Type != TypeChat {
 		t.Fatalf("esperava CHAT (sem presença extra), veio %+v", m)
