@@ -10,6 +10,7 @@ Rotas preservadas (mesmo formato JSON, inclusive `CreatedAt`):
 ## O que mudou (de propósito)
 
 - **Sem Kafka, Zookeeper e Redis.** A mensagem é gravada no Postgres *antes* de ser distribuída, na ordem em que a sala a recebeu. Antes: Kafka → consumer → banco, e a entrega não esperava a gravação.
+- **Resiliência a queda do banco:** a gravação tenta 4 vezes (esperas de 100/300/900 ms). Se ainda falhar, ninguém recebe a mensagem e o remetente recebe `{"type":"ERROR"}` para poder reenviar. O desenho antigo entregava ao vivo e gravava depois via Kafka; a DLQ antiga era só de escrita (nada a reprocessava).
 - **IDs e datas gerados no servidor** (UUIDv7); `user_id`, `username` e `room_id` vêm da conexão autenticada, nunca do payload.
 - **Várias abas por usuário.** Antes só a última conexão contava. "entrou/saiu da sala" só dispara na 1ª/última aba.
 - **Fila limitada por conexão (64).** Consumidor lento é desconectado; não trava a sala nem consome memória sem limite.

@@ -38,10 +38,13 @@ type hub struct {
 	mu    sync.Mutex
 	rooms map[string]*room
 	now   func() time.Time
+	// esperas entre tentativas de gravar (cobre queda curta de conexão/failover)
+	retry []time.Duration
 }
 
 func newHub(st store) *hub {
-	return &hub{st: st, rooms: map[string]*room{}, now: time.Now}
+	return &hub{st: st, rooms: map[string]*room{}, now: time.Now,
+		retry: []time.Duration{100 * time.Millisecond, 300 * time.Millisecond, 900 * time.Millisecond}}
 }
 
 func (h *hub) join(c *conn) {
@@ -118,9 +121,7 @@ func (h *hub) handle(c *conn, raw []byte) {
 		// que ninguém vê uma mensagem que não foi persistida.
 		r.mu.Lock()
 		defer r.mu.Unlock()
-		ctx, cancel := context.WithTimeout(context.Background(), saveTimeout)
-		defer cancel()
-		if err := h.st.save(ctx, &out); err != nil {
+		if err := h.save(&out); err != nil {
 			slog.Error("chat: falha ao salvar", "err", err, "room_id", c.roomID)
 			c.reply(Message{Type: "ERROR", Content: "não foi possível enviar a mensagem", RoomID: c.roomID})
 			return
@@ -141,6 +142,21 @@ func (h *hub) handle(c *conn, raw []byte) {
 		r.mu.Lock()
 		defer r.mu.Unlock()
 		r.fanout(encode(out), func(o *conn) bool { return o.userID == in.TargetUserID || o.userID == c.userID })
+	}
+}
+
+// save tenta gravar com backoff curto. Só chamado com a trava da sala, então o total é
+// limitado (tentativas x saveTimeout) e a ordem das mensagens é preservada.
+func (h *hub) save(m *Message) (err error) {
+	for i := 0; ; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), saveTimeout)
+		err = h.st.save(ctx, m)
+		cancel()
+		if err == nil || i >= len(h.retry) {
+			return err
+		}
+		slog.Warn("chat: falha ao salvar, tentando de novo", "tentativa", i+1, "err", err)
+		time.Sleep(h.retry[i])
 	}
 }
 

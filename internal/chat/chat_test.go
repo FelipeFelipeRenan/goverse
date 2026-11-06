@@ -24,6 +24,7 @@ type fakeStore struct {
 	mu   sync.Mutex
 	msgs []Message
 	fail bool
+	failN int // falha as N primeiras chamadas e depois funciona
 }
 
 func (f *fakeStore) save(_ context.Context, m *Message) error {
@@ -31,6 +32,10 @@ func (f *fakeStore) save(_ context.Context, m *Message) error {
 	defer f.mu.Unlock()
 	if f.fail {
 		return errors.New("db fora")
+	}
+	if f.failN > 0 {
+		f.failN--
+		return errors.New("oscilação")
 	}
 	id, _ := uuid.NewV7()
 	m.ID, m.CreatedAt = id.String(), time.Now().UTC()
@@ -280,5 +285,23 @@ func TestHistoryRequiresMembership(t *testing.T) {
 	resp, msgs := get(e.alice)
 	if resp.StatusCode != 200 || len(msgs) != 1 || msgs[0].Content != "antiga" {
 		t.Fatalf("histórico: %d %+v", resp.StatusCode, msgs)
+	}
+}
+
+func TestSaveRetriesTransientFailure(t *testing.T) {
+	st := &fakeStore{failN: 2}
+	h := newHub(st)
+	h.retry = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	room := uuid.NewString()
+	a := newConn(room, "u1", "u1", 10, func() {})
+	h.join(a)
+	<-a.send // presença
+	h.handle(a, []byte(`{"type":"CHAT","content":"oi"}`))
+	var m Message
+	if err := json.Unmarshal(<-a.send, &m); err != nil || m.Type != TypeChat || m.ID == "" {
+		t.Fatalf("esperava CHAT entregue após retry: %+v err=%v", m, err)
+	}
+	if st.count() != 1 {
+		t.Fatalf("esperava 1 gravada, tem %d", st.count())
 	}
 }
