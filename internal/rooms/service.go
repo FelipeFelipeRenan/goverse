@@ -170,7 +170,7 @@ func (s *service) addMember(ctx context.Context, actorID, roomID, userID, email 
 	case userID == "" && strings.TrimSpace(email) == "":
 		return invalid("informe user_id ou email")
 	case userID == "":
-		u, err := s.users.ByEmail(ctx, email)
+		u, err := s.users.ByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
 		if errors.Is(err, identity.ErrNotFound) {
 			return ErrUserNotFound
 		}
