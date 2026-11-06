@@ -1,0 +1,23 @@
+# Assume ingress-nginx. O WebSocket funciona sem config extra, mas os timeouts padrão (60s)
+# cortariam conexões ociosas: o servidor manda ping a cada 30s, e aqui damos folga.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: goverse
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # cert-manager.io/cluster-issuer: letsencrypt   # descomente se usar cert-manager
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [api.example.com]
+      secretName: goverse-tls
+  rules:
+    - host: api.example.com          # AJUSTE
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: {name: goverse, port: {name: http}}

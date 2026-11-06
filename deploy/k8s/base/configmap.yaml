@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: goverse-config
+data:
+  GOVERSE_ENV: prod                      # cookies Secure + SameSite=None
+  GOVERSE_LOG_LEVEL: info
+  # Atrás do ingress-nginx (que sobrescreve X-Forwarded-For): o rate limit usa o IP real do cliente.
+  GOVERSE_TRUST_PROXY: "true"
+  GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
+  # AJUSTE: origens do frontend (CORS e WebSocket), separadas por vírgula.
+  GOVERSE_CORS_ORIGINS: https://app.example.com
+  # AJUSTE: redirect cadastrada no console do Google (precisa apontar para a API).
+  GOOGLE_REDIRECT_URI: https://api.example.com/oauth/google/callback
+  # Traces/logs/métricas: aponte para seu collector OTLP/HTTP (remova se não houver).
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector.observability:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf

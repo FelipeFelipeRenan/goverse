@@ -1,0 +1,8 @@
+# Para clusters de estudo/staging: Postgres dentro do cluster. Em produção prefira um Postgres gerenciado
+# (use só o base e aponte database-url para ele).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: goverse
+resources:
+  - ../../base
+  - postgres.yaml

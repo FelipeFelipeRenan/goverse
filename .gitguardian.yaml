@@ -1,0 +1,7 @@
+version: 2
+# Senhas de exemplo/teste e a senha padrão do compose de desenvolvimento: não são segredos.
+secret:
+  ignored-paths:
+    - "**/*_test.go"
+    - deploy/smoke.sh
+    - deploy/compose.yml

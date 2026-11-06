@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: goverse
+  labels: {app.kubernetes.io/name: goverse}
+spec:
+  selector: {app.kubernetes.io/name: goverse}
+  ports:
+    - {name: http, port: 80, targetPort: http}

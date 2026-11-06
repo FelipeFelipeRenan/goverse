@@ -1,0 +1,48 @@
+# A senha vem do Secret "goverse-postgres" (chave "password"), criado por fora.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: postgres}
+  ports:
+    - {name: pg, port: 5432}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: postgres}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: postgres}
+    spec:
+      securityContext: {fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - {name: pg, containerPort: 5432}
+          env:
+            - {name: POSTGRES_USER, value: goverse}
+            - {name: POSTGRES_DB, value: goverse}
+            - name: POSTGRES_PASSWORD
+              valueFrom: {secretKeyRef: {name: goverse-postgres, key: password}}
+            - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+          readinessProbe:
+            exec: {command: [pg_isready, -U, goverse, -d, goverse]}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/postgresql/data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 5Gi}}
