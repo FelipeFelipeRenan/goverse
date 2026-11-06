@@ -106,6 +106,13 @@ do_call b GET /user/rooms;                                            expect 200
 echo "$R" | jq -e --arg id "$ROOM" 'map(.room_id) | index($id) != null' >/dev/null && ok "B vê a sala em /user/rooms" || fail "user/rooms: $R"
 do_call a GET /rooms/mine;                                            expect 200 "salas do dono"
 echo "$R" | jq -e --arg id "$ROOM" 'map(.room_id) | index($id) != null' >/dev/null && ok "A vê a sala em /rooms/mine" || fail "rooms/mine: $R"
+echo; echo "== chat (histórico; o WebSocket é coberto pelos testes Go) =="
+do_call ""  GET "/rooms/$ROOM/messages";                              expect 401 "histórico sem sessão"
+do_call c   GET "/rooms/$ROOM/messages";                              expect 403 "ex-membro não lê o histórico"
+do_call a   GET "/rooms/nao-e-uuid/messages";                         expect 400 "id de sala inválido"
+do_call a   GET "/rooms/$ROOM/messages";                              expect 200 "membro lê o histórico"
+echo "$R" | jq -e 'type == "array"' >/dev/null && ok "histórico é um array" || fail "histórico: $R"
+
 do_call a DELETE "/rooms/$ROOM";                                      expect 200 "dono apaga a sala"
 do_call a GET "/rooms/$ROOM";                                         expect 404 "sala apagada some"
 

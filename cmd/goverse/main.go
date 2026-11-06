@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/FelipeFelipeRenan/goverse/internal/chat"
 	"github.com/FelipeFelipeRenan/goverse/internal/identity"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/authn"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/config"
@@ -77,10 +78,10 @@ func run() error {
 		GoogleRedirectURL:  cfg.GoogleRedirectURL,
 	})
 	roomsMod := rooms.New(pool, keys, identityMod.Directory())
-	// chat entra no próximo lote e receberá roomsMod.Membership().
+	chatMod := chat.New(pool, keys, roomsMod.Membership(), chat.Config{AllowedOrigins: cfg.CORSOrigins})
 
-	// Ordem importa: rooms tem FK para identity.users, então identity migra primeiro.
-	modules := []module.Module{identityMod, roomsMod}
+	// Ordem importa: rooms tem FK para identity.users e chat para rooms.rooms.
+	modules := []module.Module{identityMod, roomsMod, chatMod}
 
 	for _, m := range modules {
 		if mg, ok := m.(module.Migrator); ok && cfg.AutoMigrate {

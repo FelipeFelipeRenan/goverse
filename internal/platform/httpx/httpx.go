@@ -3,7 +3,9 @@
 package httpx
 
 import (
+	"bufio"
 	"log/slog"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -29,6 +31,14 @@ func (w *statusWriter) WriteHeader(code int) {
 // Unwrap permite que http.ResponseController alcance o writer original (necessário
 // para Hijack/Flush, por exemplo no upgrade de WebSocket).
 func (w *statusWriter) Unwrap() http.ResponseWriter { return w.ResponseWriter }
+
+// Hijack é necessário porque o gorilla/websocket faz type assertion para http.Hijacker
+// direto no writer recebido (não usa Unwrap).
+func (w *statusWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return http.NewResponseController(w.ResponseWriter).Hijack()
+}
+
+func (w *statusWriter) Flush() { _ = http.NewResponseController(w.ResponseWriter).Flush() }
 
 func AccessLog(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
