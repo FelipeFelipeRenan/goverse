@@ -76,6 +76,8 @@ func run() error {
 		GoogleClientID:     cfg.GoogleClientID,
 		GoogleClientSecret: cfg.GoogleClientSecret,
 		GoogleRedirectURL:  cfg.GoogleRedirectURL,
+		RateLimit:          true,
+		TrustProxy:         cfg.TrustProxy,
 	})
 	roomsMod := rooms.New(pool, keys, identityMod.Directory())
 	chatMod := chat.New(pool, keys, roomsMod.Membership(), chat.Config{AllowedOrigins: cfg.CORSOrigins})

@@ -47,4 +47,4 @@ O CI (`.github/workflows/ci.yml`) roda gofmt, vet, testes com `-race`, govulnche
 
 ## 🚢 Deploy
 
-Uma imagem (`deploy/Dockerfile`, distroless) e variáveis `GOVERSE_*` (ver `.env.example` e `internal/platform/config`). `GOVERSE_ENV=prod` ativa cookies `Secure`/`SameSite=None`. O desenho antigo (7 microsserviços, Kafka, gRPC, Traefik, k8s) está no histórico do git, antes da remoção.
+Uma imagem (`deploy/Dockerfile`, distroless) e variáveis `GOVERSE_*` (ver `.env.example` e `internal/platform/config`). `GOVERSE_ENV=prod` ativa cookies `Secure`/`SameSite=None`. Atrás de um proxy/ingress confiável, `GOVERSE_TRUST_PROXY=true` faz o rate limit de login e cadastro usar o IP real do cliente (`X-Forwarded-For`); sem proxy, deixe `false`, senão o cabeçalho pode ser forjado. O desenho antigo (7 microsserviços, Kafka, gRPC, Traefik, k8s) está no histórico do git, antes da remoção.

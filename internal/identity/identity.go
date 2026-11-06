@@ -50,6 +50,8 @@ type Config struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+	RateLimit          bool // limita cadastro e login (por IP e, no login, por e-mail)
+	TrustProxy         bool // IP do cliente via X-Forwarded-For (só atrás de proxy confiável)
 }
 
 type Module struct {

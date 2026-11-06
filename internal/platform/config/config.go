@@ -29,6 +29,7 @@ type Config struct {
 	JWTPrivateKeyPath string   // chave RSA que assina as sessões (a pública é derivada)
 	CORSOrigins       []string // origens do frontend (cookies exigem lista explícita)
 	AutoMigrate       bool     // aplica as migrations embutidas no boot
+	TrustProxy        bool     // atrás de proxy/ingress confiável: usa X-Forwarded-For para o IP do cliente
 
 	GoogleClientID     string
 	GoogleClientSecret string
@@ -61,6 +62,12 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("GOVERSE_AUTO_MIGRATE inválido: %w", err)
 	}
 	c.AutoMigrate = auto
+
+	trust, err := strconv.ParseBool(get("GOVERSE_TRUST_PROXY", "false"))
+	if err != nil {
+		return Config{}, fmt.Errorf("GOVERSE_TRUST_PROXY inválido: %w", err)
+	}
+	c.TrustProxy = trust
 
 	d, err := time.ParseDuration(get("GOVERSE_SHUTDOWN_TIMEOUT", "10s"))
 	if err != nil {

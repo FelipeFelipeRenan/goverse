@@ -92,6 +92,8 @@ do_call c POST "/rooms/$ROOM/join";                                   expect 409
 do_call a GET "/rooms/$ROOM/members"
 echo "$R" | jq -e 'length == 2 and all(.[]; .user.email | length > 0)' >/dev/null && ok "2 membros com usuário" || fail "membros: $R"
 
+do_call b GET "/rooms/$ROOM/members";                                 expect 200 "B (membro comum) lista membros"
+echo "$R" | jq -e --arg a "$A" 'map(select(.user.user_id == $a)) | .[0].user.email == ""' >/dev/null && ok "membro comum NÃO vê o e-mail do dono" || fail "e-mail do dono vazou para membro comum: $R"
 do_call b PATCH "/rooms/$ROOM" '{"name":"hack"}';                     expect 403 "membro comum não edita"
 do_call b DELETE "/rooms/$ROOM";                                      expect 403 "membro comum não apaga"
 do_call a POST "/rooms/$ROOM/members" "{\"user_id\":\"$C\",\"role\":\"owner\"}"; expect 400 "não dá para criar um 2º dono"

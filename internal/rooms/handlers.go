@@ -237,12 +237,24 @@ func (a *api) listMembers(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
+	// E-mail é dado pessoal: só dono e admins da sala veem o dos outros (cada um sempre vê o próprio).
+	me := actor(r)
+	seeEmails := false
+	for _, m := range ms {
+		if m.UserID == me && (m.Role == RoleOwner || m.Role == RoleAdmin) {
+			seeEmails = true
+		}
+	}
 	out := make([]memberView, len(ms))
 	for i, m := range ms {
+		email := ""
+		if seeEmails || m.UserID == me {
+			email = m.User.Email
+		}
 		out[i] = memberView{
 			RoomID: m.RoomID, Role: string(m.Role), JoinedAt: m.JoinedAt,
 			User: userView{
-				ID: m.User.ID, Name: m.User.Username, Email: m.User.Email, Picture: m.User.Picture,
+				ID: m.User.ID, Name: m.User.Username, Email: email, Picture: m.User.Picture,
 				CreatedAt: m.User.CreatedAt.UTC().Format(time.RFC3339), IsOAuth: m.User.IsOAuth,
 			},
 		}

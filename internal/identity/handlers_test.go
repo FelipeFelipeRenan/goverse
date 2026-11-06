@@ -269,3 +269,61 @@ func TestDirectory(t *testing.T) {
 		t.Fatalf("GetMany: %v %v", m, err)
 	}
 }
+
+func newLimitedServer(t *testing.T) http.Handler {
+	t.Helper()
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mux := http.NewServeMux()
+	newAPI(newFakeStore(), authn.NewKeys(priv), Config{RateLimit: true}).routes(mux)
+	return mux
+}
+
+func TestLoginIsRateLimitedPerEmail(t *testing.T) {
+	h := newLimitedServer(t)
+	register(t, h, "ana@x.com", "senha-boa-123")
+	bad := `{"type":"password","email":"ana@x.com","password":"errada-123"}`
+	for i := 0; i < 8; i++ {
+		if rec := do(h, "POST", "/auth/login", bad); rec.Code != http.StatusUnauthorized {
+			t.Fatalf("tentativa %d: %d", i, rec.Code)
+		}
+	}
+	// Esgotado: nem a senha certa passa (força bruta não ganha a 9ª tentativa).
+	good := `{"type":"password","email":"ana@x.com","password":"senha-boa-123"}`
+	rec := do(h, "POST", "/auth/login", good)
+	if rec.Code != http.StatusTooManyRequests || rec.Header().Get("Retry-After") == "" {
+		t.Fatalf("esperava 429 com Retry-After, veio %d", rec.Code)
+	}
+	// Outro e-mail, mesmo IP, não é afetado pelo limite por e-mail.
+	if rec := do(h, "POST", "/auth/login", `{"type":"password","email":"outro@x.com","password":"x"}`); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("outro e-mail deveria seguir 401, veio %d", rec.Code)
+	}
+}
+
+func TestRegisterIsRateLimitedPerIP(t *testing.T) {
+	h := newLimitedServer(t)
+	for i := 0; i < 10; i++ {
+		body := fmt.Sprintf(`{"username":"u","email":"u%d@x.com","password":"senha-boa-123"}`, i)
+		if rec := do(h, "POST", "/user", body); rec.Code != http.StatusCreated {
+			t.Fatalf("cadastro %d: %d %s", i, rec.Code, rec.Body)
+		}
+	}
+	if rec := do(h, "POST", "/user", `{"username":"u","email":"z@x.com","password":"senha-boa-123"}`); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("11º cadastro seguido deveria dar 429, veio %d", rec.Code)
+	}
+}
+
+func TestFieldLengthLimits(t *testing.T) {
+	h, _ := newTestServer(t)
+	long := strings.Repeat("a", 51)
+	rec := do(h, "POST", "/user", fmt.Sprintf(`{"username":%q,"email":"a@x.com","password":"senha-boa-123"}`, long))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("username de 51 caracteres: %d", rec.Code)
+	}
+	rec = do(h, "POST", "/user", fmt.Sprintf(`{"username":"ok","email":"%s@x.com","password":"senha-boa-123"}`, strings.Repeat("a", 250)))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("e-mail enorme: %d", rec.Code)
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/authn"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/httpx"
@@ -17,30 +18,55 @@ type api struct {
 	secure    bool
 	google    *googleOAuth
 	dummyHash []byte // usado para igualar o tempo de resposta quando o e-mail não existe
+
+	// nil = sem limite (testes). Em produção: por IP em cadastro/login e por e-mail no login,
+	// o que também freia força bruta distribuída contra uma conta só.
+	registerIP, loginIP, loginEmail *httpx.Limiter
+	trustProxy                      bool
 }
 
 func newAPI(st store, keys *authn.Keys, cfg Config) *api {
 	dummy, _ := bcrypt.GenerateFromPassword([]byte("dummy-password"), bcrypt.DefaultCost)
-	return &api{st: st, keys: keys, secure: cfg.Secure, google: newGoogle(cfg), dummyHash: dummy}
+	a := &api{st: st, keys: keys, secure: cfg.Secure, google: newGoogle(cfg), dummyHash: dummy, trustProxy: cfg.TrustProxy}
+	if cfg.RateLimit {
+		a.registerIP = httpx.NewLimiter(5, 10)
+		a.loginIP = httpx.NewLimiter(10, 20)
+		a.loginEmail = httpx.NewLimiter(4, 8)
+	}
+	return a
 }
 
 // Rotas e cookies idênticos aos dos serviços antigos, para o frontend não perceber a migração.
 func (a *api) routes(mux *http.ServeMux) {
 	auth := func(h http.HandlerFunc) http.Handler { return a.keys.Require(h) }
 
-	mux.HandleFunc("POST /user", a.register)
+	mux.Handle("POST /user", a.limit(a.registerIP, http.HandlerFunc(a.register)))
 	mux.Handle("GET /users", auth(a.listUsers))
 	mux.Handle("GET /user/{id}", auth(a.getUser))
 	mux.Handle("PUT /user/me", auth(a.updateMe))
 	mux.Handle("DELETE /user/me", auth(a.deleteMe))
 
-	mux.HandleFunc("POST /auth/login", a.login)
+	mux.Handle("POST /auth/login", a.limit(a.loginIP, http.HandlerFunc(a.login)))
 	mux.HandleFunc("POST /auth/logout", a.logout)
 	mux.Handle("GET /auth/me", auth(a.me))
 
 	mux.HandleFunc("GET /oauth/google/login", a.googleLogin)
 	mux.HandleFunc("GET /oauth/google/callback", a.googleCallback)
 }
+
+// limit aplica o limitador por IP quando configurado.
+func (a *api) limit(l *httpx.Limiter, h http.Handler) http.Handler {
+	if l == nil {
+		return h
+	}
+	return httpx.RateLimit(l, a.trustProxy)(h)
+}
+
+const (
+	maxUsernameLen = 50
+	maxEmailLen    = 254
+	maxPictureLen  = 2048
+)
 
 func normEmail(s string) string { return strings.ToLower(strings.TrimSpace(s)) }
 
@@ -60,8 +86,14 @@ func (a *api) register(w http.ResponseWriter, r *http.Request) {
 	case in.Username == "" || in.Email == "" || in.Password == "":
 		httpx.Error(w, http.StatusBadRequest, "username, email e password são obrigatórios")
 		return
-	case !strings.Contains(in.Email, "@"):
+	case !strings.Contains(in.Email, "@") || len(in.Email) > maxEmailLen:
 		httpx.Error(w, http.StatusBadRequest, "e-mail inválido")
+		return
+	case utf8.RuneCountInString(in.Username) > maxUsernameLen:
+		httpx.Error(w, http.StatusBadRequest, "username deve ter no máximo 50 caracteres")
+		return
+	case len(in.Picture) > maxPictureLen:
+		httpx.Error(w, http.StatusBadRequest, "URL da imagem muito longa")
 		return
 	case len(in.Password) < 8 || len(in.Password) > 72: // 72 = limite do bcrypt
 		httpx.Error(w, http.StatusBadRequest, "a senha deve ter entre 8 e 72 caracteres")
@@ -102,7 +134,12 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	row, err := a.st.byEmail(r.Context(), normEmail(in.Email))
+	email := normEmail(in.Email)
+	if a.loginEmail != nil && !a.loginEmail.Allow(email) {
+		httpx.TooManyRequests(w)
+		return
+	}
+	row, err := a.st.byEmail(r.Context(), email)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		slog.ErrorContext(r.Context(), "buscar usuário", "err", err)
 		httpx.Error(w, http.StatusInternalServerError, "erro interno")
@@ -199,6 +236,10 @@ func (a *api) updateMe(w http.ResponseWriter, r *http.Request) {
 	in.Username = strings.TrimSpace(in.Username)
 	if in.Username == "" {
 		httpx.Error(w, http.StatusBadRequest, "username não pode ser vazio")
+		return
+	}
+	if utf8.RuneCountInString(in.Username) > maxUsernameLen || len(in.Picture) > maxPictureLen {
+		httpx.Error(w, http.StatusBadRequest, "username (máx. 50) ou URL da imagem (máx. 2048) grandes demais")
 		return
 	}
 	u, err := a.st.update(r.Context(), id.UserID, in.Username, in.Picture)

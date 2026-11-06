@@ -5,6 +5,8 @@ metadata:
 data:
   GOVERSE_ENV: prod                      # cookies Secure + SameSite=None
   GOVERSE_LOG_LEVEL: info
+  # Atrás do ingress-nginx (que sobrescreve X-Forwarded-For): o rate limit usa o IP real do cliente.
+  GOVERSE_TRUST_PROXY: "true"
   GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
   # AJUSTE: origens do frontend (CORS e WebSocket), separadas por vírgula.
   GOVERSE_CORS_ORIGINS: https://app.example.com

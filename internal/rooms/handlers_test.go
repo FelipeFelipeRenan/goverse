@@ -449,3 +449,41 @@ func TestMembershipContract(t *testing.T) {
 		t.Fatalf("sala inexistente: %v %v", ok, err)
 	}
 }
+
+func TestMemberEmailsOnlyVisibleToOwnerAndAdmins(t *testing.T) {
+	e := newEnv(t, "a", "b", "c")
+	id := e.mustCreate(t, "a", `{"name":"x","is_public":true,"max_members":5}`)
+	want(t, e.call("b", "POST", "/rooms/"+id+"/join", ""), http.StatusOK)
+	want(t, e.call("c", "POST", "/rooms/"+id+"/join", ""), http.StatusOK)
+
+	emails := func(as string) map[string]string {
+		rec := e.call(as, "GET", "/rooms/"+id+"/members", "")
+		want(t, rec, http.StatusOK)
+		var ms []struct {
+			User struct {
+				ID    string `json:"user_id"`
+				Email string `json:"email"`
+			} `json:"user"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &ms); err != nil {
+			t.Fatal(err, rec.Body)
+		}
+		out := map[string]string{}
+		for _, m := range ms {
+			out[m.User.ID] = m.User.Email
+		}
+		return out
+	}
+
+	if got := emails("a"); got["a"] == "" || got["b"] == "" || got["c"] == "" {
+		t.Fatalf("dono deve ver todos os e-mails: %v", got)
+	}
+	got := emails("b") // membro comum
+	if got["b"] != "b@x.com" || got["a"] != "" || got["c"] != "" {
+		t.Fatalf("membro vê só o próprio e-mail: %v", got)
+	}
+	want(t, e.call("a", "PUT", "/rooms/"+id+"/members/b/role", `{"new_role":"admin"}`), http.StatusOK)
+	if got := emails("b"); got["a"] == "" || got["c"] == "" {
+		t.Fatalf("admin deve ver os e-mails: %v", got)
+	}
+}
