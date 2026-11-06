@@ -21,9 +21,9 @@ import (
 )
 
 type fakeStore struct {
-	mu   sync.Mutex
-	msgs []Message
-	fail bool
+	mu    sync.Mutex
+	msgs  []Message
+	fail  bool
 	failN int // falha as N primeiras chamadas e depois funciona
 }
 
