@@ -29,6 +29,8 @@ type Config struct {
 	JWTPrivateKeyPath string   // chave RSA que assina as sessões (a pública é derivada)
 	CORSOrigins       []string // origens do frontend (cookies exigem lista explícita)
 	AutoMigrate       bool     // aplica as migrations embutidas no boot
+	ChatSpoolDir      string   // diretório do spool de mensagens quando o banco cai (vazio = desligado)
+	ChatBus           string   // "postgres" (LISTEN/NOTIFY, várias réplicas) ou "none"
 	TrustProxy        bool     // atrás de proxy/ingress confiável: usa X-Forwarded-For para o IP do cliente
 
 	GoogleClientID     string
@@ -68,6 +70,12 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("GOVERSE_TRUST_PROXY inválido: %w", err)
 	}
 	c.TrustProxy = trust
+
+	c.ChatSpoolDir = os.Getenv("GOVERSE_CHAT_SPOOL_DIR")
+	c.ChatBus = get("GOVERSE_CHAT_BUS", "postgres")
+	if c.ChatBus != "postgres" && c.ChatBus != "none" {
+		return Config{}, fmt.Errorf("GOVERSE_CHAT_BUS inválido: %q (use postgres ou none)", c.ChatBus)
+	}
 
 	d, err := time.ParseDuration(get("GOVERSE_SHUTDOWN_TIMEOUT", "10s"))
 	if err != nil {

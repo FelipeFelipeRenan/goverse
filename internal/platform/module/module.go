@@ -18,3 +18,9 @@ type Module interface {
 type Migrator interface {
 	Migrate(ctx context.Context) error
 }
+
+// Runner é implementado por módulos com trabalho em segundo plano (consumidores, filas, reprocessamento).
+// Run bloqueia até ctx ser cancelado.
+type Runner interface {
+	Run(ctx context.Context) error
+}

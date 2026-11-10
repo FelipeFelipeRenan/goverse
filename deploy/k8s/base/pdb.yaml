@@ -1,0 +1,9 @@
+# Em manutenção do cluster, nunca derruba as duas réplicas ao mesmo tempo.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: goverse
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: goverse}

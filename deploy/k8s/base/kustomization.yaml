@@ -7,6 +7,8 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - pdb.yaml
+  - backup.yaml
 images:
   - name: ghcr.io/felipefeliperenan/goverse
     newTag: latest   # em produção fixe a tag/digest: kustomize edit set image ...

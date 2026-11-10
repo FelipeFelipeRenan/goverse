@@ -63,9 +63,36 @@ jobs:
         run: docker compose -f deploy/compose.yml up -d --build goverse
       - name: Fluxo cadastro -> login -> CSRF -> perfil
         run: ./deploy/smoke.sh
+      - name: Backup e restore (ida e volta)
+        run: |
+          before=$(docker compose -f deploy/compose.yml exec -T postgres psql -U goverse -d goverse -tAc "select count(*) from identity.users")
+          ./deploy/backup.sh /tmp/backups
+          GOVERSE_ASSUME_YES=1 ./deploy/restore.sh /tmp/backups/goverse-*.dump
+          ./deploy/smoke.sh wait
+          after=$(docker compose -f deploy/compose.yml exec -T postgres psql -U goverse -d goverse -tAc "select count(*) from identity.users")
+          echo "usuários antes=$before depois=$after"
+          [ "$before" = "$after" ] && [ "$before" -gt 0 ]
       - name: Logs do app (se falhou)
         if: failure()
         run: docker compose -f deploy/compose.yml logs --no-color goverse postgres keygen
+      - name: Derruba
+        if: always()
+        run: docker compose -f deploy/compose.yml down -v
+
+  observability:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe a stack completa (com Grafana LGTM)
+        run: docker compose -f deploy/compose.yml up -d --build
+      - name: Gera tráfego
+        run: ./deploy/smoke.sh
+      - name: Métricas chegam ao Grafana e o dashboard está provisionado
+        run: ./deploy/check-observability.sh
+      - name: Logs (se falhou)
+        if: failure()
+        run: docker compose -f deploy/compose.yml logs --no-color goverse lgtm | tail -200
       - name: Derruba
         if: always()
         run: docker compose -f deploy/compose.yml down -v

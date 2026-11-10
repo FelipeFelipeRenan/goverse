@@ -18,9 +18,25 @@ Rotas preservadas (mesmo formato JSON, inclusive `CreatedAt`):
 - `SIGNAL`/`DIRECT` só chegam a quem está conectado na mesma sala. Digitando (`TYPING_*`) não volta ao remetente. Mensagem vazia ou > 4000 bytes devolve frame `{"type":"ERROR"}`.
 - Status online no Redis (`user:status:*`) foi removido: nada no front o consome.
 
-## Limite conhecido
+## Falha do banco: spool
 
-O hub vive na memória de **um** processo. Para várias réplicas é preciso trocar a distribuição por um barramento (Postgres `LISTEN/NOTIFY` resolve até boa escala; NATS depois). A persistência já está correta para isso.
+`GOVERSE_CHAT_SPOOL_DIR` liga um spool durável (arquivo JSON por linha, com fsync). Se o Postgres falha mesmo após as tentativas:
+
+1. a mensagem (que já tem ID UUIDv7 e horário) é gravada no spool e **entregue ao vivo**, como no desenho antigo com Kafka;
+2. um disjuntor manda as próximas direto ao spool por 5 s, para não segurar a sala em timeouts;
+3. a cada 5 s o spool é reprocessado **em ordem**; o `INSERT ... ON CONFLICT DO NOTHING` torna o replay idempotente (inclusive após crash no meio);
+4. erro **permanente** (violação de integridade, ex.: sala apagada) vai para `chat.dead_letters` e é registrado em log; erro permanente numa gravação ao vivo é recusado com `{"type":"ERROR"}`, sem spool.
+
+Limites honestos: o spool sobrevive a restart do processo, **não** à perda do disco (em k8s, `emptyDir` não sobrevive a reagendamento do pod); até o reprocessamento a mensagem não aparece no histórico nem para outras réplicas (que só a veem se o barramento estiver de pé, e ele depende do mesmo Postgres); a métrica `chat_spool_pending` deve ser 0. Sem `GOVERSE_CHAT_SPOOL_DIR`, vale o comportamento anterior: falha vira erro para o remetente.
+
+## Várias réplicas
+
+`GOVERSE_CHAT_BUS=postgres` (padrão) liga as réplicas por LISTEN/NOTIFY. Cada réplica entrega aos seus clientes e publica o evento; as outras entregam aos delas. Mensagens grandes viajam só como ID (o limite do NOTIFY é 8000 bytes) e o receptor lê do banco. Sinais WebRTC acima de ~7,5 KB não atravessam réplicas.
+
+- Entrega "melhor esforço" entre réplicas: se uma réplica ficou desconectada do barramento, perde mensagens ao vivo, presença e digitação do período; o histórico está certo e o front recarrega ao reconectar.
+- Presença é por réplica: o mesmo usuário em duas réplicas pode gerar "entrou/saiu" duplicados.
+- Não funciona atrás de PgBouncer em modo *transaction* (LISTEN é por sessão).
+- Escala: cada mensagem vira um NOTIFY lido por todas as réplicas. Serve para poucas réplicas e estudo; acima disso, NATS/Redis Streams.
 
 ## Dados antigos
 

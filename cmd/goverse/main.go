@@ -80,7 +80,14 @@ func run() error {
 		TrustProxy:         cfg.TrustProxy,
 	})
 	roomsMod := rooms.New(pool, keys, identityMod.Directory())
-	chatMod := chat.New(pool, keys, roomsMod.Membership(), chat.Config{AllowedOrigins: cfg.CORSOrigins})
+	chatMod, err := chat.New(pool, keys, roomsMod.Membership(), chat.Config{
+		AllowedOrigins: cfg.CORSOrigins,
+		SpoolDir:       cfg.ChatSpoolDir,
+		Bus:            cfg.ChatBus,
+	})
+	if err != nil {
+		return fmt.Errorf("chat: %w", err)
+	}
 
 	// Ordem importa: rooms tem FK para identity.users e chat para rooms.rooms.
 	modules := []module.Module{identityMod, roomsMod, chatMod}
@@ -93,6 +100,13 @@ func run() error {
 		}
 		slog.Info("registrando módulo", "module", m.Name(), "role", cfg.Role)
 		m.Register(mux)
+		if r, ok := m.(module.Runner); ok {
+			go func() {
+				if err := r.Run(ctx); err != nil {
+					slog.Error("módulo encerrou com erro", "module", m.Name(), "err", err)
+				}
+			}()
+		}
 	}
 
 	// Sem WriteTimeout global: conexões WebSocket são longas. Timeouts por rota virão com os módulos.
