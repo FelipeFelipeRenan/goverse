@@ -5,7 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 FILE="${1:?uso: deploy/restore.sh <arquivo.dump>}"
 [ -f "$FILE" ] || { echo "arquivo não existe: $FILE" >&2; exit 1; }
-COMPOSE=(docker compose $([ -f .env ] && echo --env-file .env) -f deploy/compose.yml)
+ENVF=()
+if [ -f .env ]; then ENVF=(--env-file .env); fi
+COMPOSE=(docker compose "${ENVF[@]}" -f deploy/compose.yml)
 
 if [ "${GOVERSE_ASSUME_YES:-}" != "1" ]; then
   read -r -p "Isto APAGA os dados atuais e restaura $FILE. Digite 'sim' para continuar: " ans

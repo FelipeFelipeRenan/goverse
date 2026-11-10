@@ -5,7 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 DIR="${1:-backups}"
 KEEP="${GOVERSE_BACKUP_KEEP:-14}"
-COMPOSE=(docker compose $([ -f .env ] && echo --env-file .env) -f deploy/compose.yml)
+ENVF=()
+if [ -f .env ]; then ENVF=(--env-file .env); fi
+COMPOSE=(docker compose "${ENVF[@]}" -f deploy/compose.yml)
 
 mkdir -p "$DIR"
 OUT="$DIR/goverse-$(date +%Y%m%d-%H%M%S).dump"

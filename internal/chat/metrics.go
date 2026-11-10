@@ -35,6 +35,18 @@ func newMetrics(h *hub) *metrics {
 			}
 			return nil
 		}))
+	// Séries nascem em 0: sem isso o painel mostra "sem dados" até o primeiro evento (e não dá
+	// para distinguir "nada aconteceu" de "a métrica não existe").
+	ctx := context.Background()
+	out.conns.Add(ctx, 0)
+	for _, r := range []string{"ok", "spooled", "rejected", "failed", "dead_letter"} {
+		out.msgs.Add(ctx, 0, metric.WithAttributes(attribute.String("result", r)))
+	}
+	for _, d := range []string{"in", "out"} {
+		for _, o := range []string{"ok", "error", "dropped"} {
+			out.bus.Add(ctx, 0, metric.WithAttributes(attribute.String("direction", d), attribute.String("outcome", o)))
+		}
+	}
 	return out
 }
 
