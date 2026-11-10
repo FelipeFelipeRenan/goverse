@@ -260,11 +260,17 @@ func TestChatCrossesReplicas(t *testing.T) {
 	if m := recvType(t, ana, TypeChat); m.Content != "oi da réplica 1" {
 		t.Fatalf("ana: %+v", m)
 	}
-	select { // ana não pode receber de volta pelo barramento (eco)
-	case b := <-ana.send:
-		t.Fatalf("eco inesperado: %s", b)
-	case <-time.After(150 * time.Millisecond):
+	for { // ana não pode receber a mesma mensagem de volta pelo barramento (eco); presença de outros é normal
+		select {
+		case b := <-ana.send:
+			if strings.Contains(string(b), `"CHAT"`) {
+				t.Fatalf("eco inesperado: %s", b)
+			}
+		case <-time.After(150 * time.Millisecond):
+			goto done
+		}
 	}
+done:
 	if st.count() != 1 {
 		t.Fatalf("só a réplica de origem grava: %d", st.count())
 	}
