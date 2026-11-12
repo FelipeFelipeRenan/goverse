@@ -1,4 +1,4 @@
-.PHONY: up down reset logs smoke test
+.PHONY: up down reset logs smoke test backup restore
 
 COMPOSE=docker compose $(if $(wildcard .env),--env-file .env) -f deploy/compose.yml
 
@@ -20,6 +20,12 @@ logs: ## logs do app
 
 smoke: ## roda o fluxo cadastro -> login -> /auth/me -> editar perfil
 	@./deploy/smoke.sh
+
+backup: ## dump do Postgres em ./backups (mantém os 14 mais recentes)
+	@./deploy/backup.sh
+
+restore: ## restaura um dump (APAGA os dados): make restore FILE=backups/goverse-....dump
+	@./deploy/restore.sh $(FILE)
 
 test: ## testes Go com detector de race
 	go test -race ./...

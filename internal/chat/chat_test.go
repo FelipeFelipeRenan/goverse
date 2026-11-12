@@ -23,13 +23,18 @@ import (
 type fakeStore struct {
 	mu    sync.Mutex
 	msgs  []Message
-	fail  bool
-	failN int // falha as N primeiras chamadas e depois funciona
+	dead  []Message
+	fail  bool  // transitório: o banco "caiu"
+	failN int   // falha as N primeiras chamadas e depois funciona
+	perm  error // erro permanente (ex.: FK) em toda gravação
 }
 
-func (f *fakeStore) save(_ context.Context, m *Message) error {
+func (f *fakeStore) save(_ context.Context, m Message) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	if f.perm != nil {
+		return f.perm
+	}
 	if f.fail {
 		return errors.New("db fora")
 	}
@@ -37,11 +42,34 @@ func (f *fakeStore) save(_ context.Context, m *Message) error {
 		f.failN--
 		return errors.New("oscilação")
 	}
-	id, _ := uuid.NewV7()
-	m.ID, m.CreatedAt = id.String(), time.Now().UTC()
-	f.msgs = append(f.msgs, *m)
+	for _, x := range f.msgs { // idempotente, como ON CONFLICT DO NOTHING
+		if x.ID == m.ID {
+			return nil
+		}
+	}
+	f.msgs = append(f.msgs, m)
 	return nil
 }
+
+func (f *fakeStore) deadLetter(_ context.Context, m Message, _ string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.dead = append(f.dead, m)
+	return nil
+}
+
+func (f *fakeStore) byID(_ context.Context, id string) (Message, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, m := range f.msgs {
+		if m.ID == id {
+			return m, nil
+		}
+	}
+	return Message{}, errors.New("não encontrada")
+}
+
+func (f *fakeStore) setFail(v bool) { f.mu.Lock(); f.fail = v; f.mu.Unlock() }
 
 func (f *fakeStore) history(_ context.Context, roomID string, limit, offset int) ([]Message, error) {
 	f.mu.Lock()
@@ -83,11 +111,11 @@ func newEnv(t *testing.T) *env {
 	keys := authn.NewKeys(pk)
 	e := &env{keys: keys, st: &fakeStore{}, room: uuid.NewString(), alice: uuid.NewString(), bob: uuid.NewString(), eve: uuid.NewString()}
 	members := fakeMembers{e.room + "|" + e.alice: true, e.room + "|" + e.bob: true}
-	m := newModule(nil, e.st, keys, members, Config{AllowedOrigins: []string{"http://localhost:4200"}})
+	e.hub = newHub(e.st)
+	m := newModule(nil, e.st, keys, members, []string{"http://localhost:4200"}, e.hub)
 	mux := http.NewServeMux()
 	m.Register(mux)
 	// Wrap completo: garante que o AccessLog não quebra o upgrade (Hijack).
-	e.hub = m.api.hub
 	e.srv = httptest.NewServer(httpx.Wrap(mux))
 	t.Cleanup(e.srv.Close)
 	return e
@@ -190,7 +218,7 @@ func TestChatPersistsThenBroadcasts(t *testing.T) {
 
 func TestSaveFailureDoesNotBroadcast(t *testing.T) {
 	e := newEnv(t)
-	e.st.fail = true
+	e.st.setFail(true)
 	a, b := e.dial(t, e.alice, "alice"), e.dial(t, e.bob, "bob")
 	readType(t, a, TypePresence)
 	readType(t, b, TypePresence)
@@ -294,7 +322,7 @@ func TestSlowConsumerIsKickedWithoutBlockingRoom(t *testing.T) {
 
 func TestHistoryRequiresMembership(t *testing.T) {
 	e := newEnv(t)
-	_ = e.st.save(context.Background(), &Message{RoomID: e.room, UserID: e.alice, Username: "alice", Content: "antiga", Type: TypeChat})
+	_ = e.st.save(context.Background(), Message{ID: uuid.NewString(), RoomID: e.room, UserID: e.alice, Username: "alice", Content: "antiga", Type: TypeChat})
 
 	get := func(userID string) (*http.Response, []Message) {
 		req, _ := http.NewRequest("GET", e.srv.URL+"/rooms/"+e.room+"/messages?limit=10", nil)

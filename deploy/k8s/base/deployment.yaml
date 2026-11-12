@@ -1,12 +1,12 @@
-# ATENÇÃO: replicas=1 de propósito. O hub do chat vive na memória do processo; com 2+ réplicas,
-# usuários em pods diferentes não se veem. Veja "Limite conhecido" em docs/chat-migration.md.
+# Duas réplicas: o chat liga as réplicas por LISTEN/NOTIFY no Postgres (GOVERSE_CHAT_BUS=postgres),
+# então usuários em pods diferentes se veem. Limites e riscos: docs/chat-migration.md.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: goverse
   labels: {app.kubernetes.io/name: goverse}
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: RollingUpdate
     rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
@@ -39,6 +39,7 @@ spec:
               valueFrom: {secretKeyRef: {name: goverse-secrets, key: google-client-secret, optional: true}}
           volumeMounts:
             - {name: jwt-key, mountPath: /keys, readOnly: true}
+            - {name: spool, mountPath: /spool}
           startupProbe:
             httpGet: {path: /readyz, port: http}
             periodSeconds: 3
@@ -57,6 +58,10 @@ spec:
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
       volumes:
+        # Spool de mensagens quando o banco cai. emptyDir sobrevive a restart do contêiner, mas NÃO a
+        # reagendamento/eviction do pod; para garantia total use um PVC por pod (StatefulSet).
+        - name: spool
+          emptyDir: {sizeLimit: 256Mi}
         - name: jwt-key
           secret:
             secretName: goverse-secrets

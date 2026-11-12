@@ -9,9 +9,11 @@ services:
       sh -c "[ -f /keys/private.pem ] ||
       (apk add --no-cache openssl >/dev/null &&
       openssl genpkey -algorithm RSA -out /keys/private.pem -pkeyopt rsa_keygen_bits:2048 &&
-      chmod 644 /keys/private.pem)"
+      chmod 644 /keys/private.pem);
+      mkdir -p /spool && chown 65532:65532 /spool"
     volumes:
       - keys:/keys
+      - spool:/spool
 
   postgres:
     image: postgres:16
@@ -32,6 +34,10 @@ services:
     ports:
       - "3000:3000"   # Grafana
       - "4318:4318"   # OTLP/HTTP
+    volumes:
+      # Dashboard "Goverse" já provisionado (Grafana -> Dashboards).
+      - ./grafana/dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/custom.yaml:ro
+      - ./grafana/goverse.json:/otel-lgtm/grafana/conf/provisioning/dashboards/custom/goverse.json:ro
 
   goverse:
     build:
@@ -53,8 +59,12 @@ services:
       GOVERSE_DATABASE_URL: postgres://goverse:${GOVERSE_POSTGRES_PASSWORD:-goverse}@postgres:5432/goverse?sslmode=disable
       OTEL_EXPORTER_OTLP_ENDPOINT: http://lgtm:4318
       OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRIC_EXPORT_INTERVAL: "10000"   # padrão é 60s: em dev o dashboard fica mais vivo
+      # Mensagens que não puderam ir ao Postgres ficam aqui e são reprocessadas (ver docs/chat-migration.md).
+      GOVERSE_CHAT_SPOOL_DIR: /spool
     volumes:
       - keys:/keys:ro
+      - spool:/spool
     ports:
       # Porta 80 por padrão: é onde o frontend espera a API (http://localhost), como era no Traefik.
       # Se a 80 estiver ocupada: GOVERSE_PUBLIC_PORT=8080 make up (e ajuste o frontend).
@@ -63,3 +73,4 @@ services:
 volumes:
   keys:
   pgdata:
+  spool:

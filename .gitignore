@@ -29,3 +29,5 @@ k8s/base/secrets/*
 cookies.txt
 cookie_admin.txt
 cookie_user.txt
+# backups locais do Postgres
+backups/

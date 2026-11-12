@@ -8,6 +8,8 @@ data:
   # Atrás do ingress-nginx (que sobrescreve X-Forwarded-For): o rate limit usa o IP real do cliente.
   GOVERSE_TRUST_PROXY: "true"
   GOVERSE_JWT_PRIVATE_KEY_PATH: /keys/private.pem
+  GOVERSE_CHAT_SPOOL_DIR: /spool
+  GOVERSE_CHAT_BUS: postgres        # LISTEN/NOTIFY entre réplicas (não use PgBouncer em modo transaction)
   # AJUSTE: origens do frontend (CORS e WebSocket), separadas por vírgula.
   GOVERSE_CORS_ORIGINS: https://app.example.com
   # AJUSTE: redirect cadastrada no console do Google (precisa apontar para a API).

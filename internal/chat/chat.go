@@ -8,6 +8,7 @@ package chat
 import (
 	"context"
 	"embed"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/authn"
 	"github.com/FelipeFelipeRenan/goverse/internal/platform/migrate"
 	"github.com/FelipeFelipeRenan/goverse/internal/rooms"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -48,6 +50,11 @@ const (
 type Config struct {
 	// AllowedOrigins: origens de browser aceitas no handshake do WebSocket.
 	AllowedOrigins []string
+	// SpoolDir: se definido, mensagens que não puderam ser gravadas (banco fora) vão para um arquivo
+	// local e são reprocessadas depois, em vez de serem recusadas. Precisa de disco que sobreviva a restart.
+	SpoolDir string
+	// Bus: "postgres" (padrão; LISTEN/NOTIFY, permite várias réplicas) ou "none" (processo único).
+	Bus string
 }
 
 type Module struct {
@@ -55,18 +62,36 @@ type Module struct {
 	api  *api
 }
 
-func New(pool *pgxpool.Pool, keys *authn.Keys, members rooms.Membership, cfg Config) *Module {
-	return newModule(pool, &pgStore{pool: pool}, keys, members, cfg)
+func New(pool *pgxpool.Pool, keys *authn.Keys, members rooms.Membership, cfg Config) (*Module, error) {
+	var opts hubOpts
+	opts.origin = uuid.NewString()
+	if cfg.SpoolDir != "" {
+		sp, err := newSpool(cfg.SpoolDir)
+		if err != nil {
+			return nil, fmt.Errorf("spool: %w", err)
+		}
+		opts.spool = sp
+	}
+	if cfg.Bus != "none" {
+		opts.bus = &pgBus{pool: pool}
+	}
+	st := &pgStore{pool: pool}
+	return newModule(pool, st, keys, members, cfg.AllowedOrigins, newHub(st, opts)), nil
 }
 
-func newModule(pool *pgxpool.Pool, st store, keys *authn.Keys, members rooms.Membership, cfg Config) *Module {
-	h := newHub(st)
-	return &Module{pool: pool, api: &api{hub: h, st: st, keys: keys, members: members, origins: toSet(cfg.AllowedOrigins)}}
+func newModule(pool *pgxpool.Pool, st store, keys *authn.Keys, members rooms.Membership, origins []string, h *hub) *Module {
+	return &Module{pool: pool, api: &api{hub: h, st: st, keys: keys, members: members, origins: toSet(origins)}}
 }
 
 func (m *Module) Name() string { return "chat" }
 
 func (m *Module) Register(mux *http.ServeMux) { m.api.routes(mux) }
+
+// Run executa o trabalho em segundo plano (barramento entre réplicas, reprocessamento do spool).
+func (m *Module) Run(ctx context.Context) error {
+	m.api.hub.run(ctx)
+	return nil
+}
 
 func (m *Module) Migrate(ctx context.Context) error {
 	sub, err := fs.Sub(migrationsFS, "migrations")

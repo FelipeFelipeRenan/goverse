@@ -1,0 +1,48 @@
+# pg_dump diário para um PVC, mantendo 7 dias. Copie também para fora do cluster (bucket) se os dados importarem:
+# um backup no mesmo cluster não protege contra perder o cluster.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: goverse-backups
+spec:
+  accessModes: [ReadWriteOnce]
+  resources: {requests: {storage: 5Gi}}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: goverse-backup
+spec:
+  schedule: "17 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext: {runAsNonRoot: true, runAsUser: 999, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+          containers:
+            - name: pg-dump
+              image: postgres:16
+              env:
+                - name: DATABASE_URL
+                  valueFrom: {secretKeyRef: {name: goverse-secrets, key: database-url}}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  f=/backups/goverse-$(date +%Y%m%d-%H%M%S).dump
+                  pg_dump -Fc "$DATABASE_URL" -f "$f.tmp"
+                  pg_restore --list "$f.tmp" >/dev/null   # só vale se der para ler
+                  mv "$f.tmp" "$f"
+                  find /backups -name 'goverse-*.dump' -mtime +7 -delete
+                  ls -l /backups
+              securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+              volumeMounts: [{name: backups, mountPath: /backups}]
+          volumes:
+            - name: backups
+              persistentVolumeClaim: {claimName: goverse-backups}
