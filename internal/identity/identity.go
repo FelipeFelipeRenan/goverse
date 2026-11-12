@@ -42,6 +42,8 @@ type User struct {
 type Directory interface {
 	Exists(ctx context.Context, id string) (bool, error)
 	Get(ctx context.Context, id string) (User, error)
+	// ByEmail resolve um e-mail (normalizado) para o usuário; ErrNotFound se não existir.
+	ByEmail(ctx context.Context, email string) (User, error)
 	GetMany(ctx context.Context, ids []string) (map[string]User, error)
 }
 
@@ -91,6 +93,11 @@ func (d directory) Exists(ctx context.Context, id string) (bool, error) {
 
 func (d directory) Get(ctx context.Context, id string) (User, error) {
 	r, err := d.st.byID(ctx, id)
+	return r.User, err
+}
+
+func (d directory) ByEmail(ctx context.Context, email string) (User, error) {
+	r, err := d.st.byEmail(ctx, normEmail(email))
 	return r.User, err
 }
 

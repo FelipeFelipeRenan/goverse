@@ -265,12 +265,13 @@ func (a *api) listMembers(w http.ResponseWriter, r *http.Request) {
 func (a *api) addMember(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		UserID string `json:"user_id"`
+		Email  string `json:"email"` // alternativa ao user_id: quem convida sabe o e-mail, não o UUID
 		Role   Role   `json:"role"`
 	}
 	if !httpx.Decode(w, r, &in) {
 		return
 	}
-	if err := a.svc.addMember(r.Context(), actor(r), r.PathValue("id"), in.UserID, in.Role); err != nil {
+	if err := a.svc.addMember(r.Context(), actor(r), r.PathValue("id"), in.UserID, in.Email, in.Role); err != nil {
 		fail(w, r, err)
 		return
 	}
@@ -289,9 +290,13 @@ func (a *api) removeMember(w http.ResponseWriter, r *http.Request) {
 func (a *api) setRole(w http.ResponseWriter, r *http.Request) {
 	var in struct {
 		NewRole Role `json:"new_role"`
+		Role    Role `json:"role"` // o frontend envia "role"; o contrato antigo era "new_role"
 	}
 	if !httpx.Decode(w, r, &in) {
 		return
+	}
+	if in.NewRole == "" {
+		in.NewRole = in.Role
 	}
 	if err := a.svc.setRole(r.Context(), actor(r), r.PathValue("id"), r.PathValue("memberID"), in.NewRole); err != nil {
 		fail(w, r, err)
